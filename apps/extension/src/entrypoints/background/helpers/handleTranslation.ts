@@ -1,4 +1,5 @@
-const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:3000"
+const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:3001"
+import { getClerkToken } from "./clerkAuth"
 
 export default async function handleTranslation(
   text: string,
@@ -6,11 +7,19 @@ export default async function handleTranslation(
   sourceLanguage: string,
   personalContext: string
 ): Promise<object> {
+  const token = await getClerkToken()
+  
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  }
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`
+  }
+
   return fetch(`${BASE_URL}/translation`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: headers,
     body: JSON.stringify({
       text: text,
       targetLanguage: targetLanguage || "English",

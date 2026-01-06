@@ -1,9 +1,16 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import { getAuth, createClerkClient } from '@clerk/fastify'
 
+const clerkSecretKey = process.env.CLERK_SECRET_KEY
+const clerkPublishableKey = process.env.CLERK_PUBLISHABLE_KEY
+
+if (!clerkSecretKey || !clerkPublishableKey) {
+  throw new Error('Missing CLERK_SECRET_KEY or CLERK_PUBLISHABLE_KEY')
+}
+
 const clerkClient = createClerkClient({
-  secretKey: process.env.CLERK_SECRET_KEY,
-  publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
+  secretKey: clerkSecretKey,
+  publishableKey: clerkPublishableKey,
 })
 
 /**

@@ -1,15 +1,21 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
-import { GoogleGenAI, GenerateContentResponse } from '@google/genai'
+import { generateText } from 'ai'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { createOpenAI } from '@ai-sdk/openai'
 import { extractJSON, promptBuilder } from './helpers.ts'
+import { getAuthenticatedUserEmail } from '../middleware/clerkAuth.ts'
+import { userContextData } from '../data/usersData.ts'
 import 'dotenv/config'
 
-const geminiKey = process.env.GEMINI_API_KEY
-
-if (!geminiKey) {
+const systemGeminiKey = process.env.GEMINI_API_KEY
+if (!systemGeminiKey) {
   throw new Error('GEMINI_API_KEY environment variable is required')
 }
 
-const ai = new GoogleGenAI({ apiKey: geminiKey })
+// System default provider
+const google = createGoogleGenerativeAI({
+  apiKey: systemGeminiKey,
+})
 
 type TranslationRequest = {
   text: string
@@ -31,12 +37,6 @@ export async function translate(
       console.error(
         'Validation error: missing required fields: text, targetLanguage'
       )
-      console.error('Received:', {
-        text,
-        targetLanguage,
-        sourceLanguage,
-        personalContext,
-      })
       return reply.status(400).send({
         error: 'Missing required fields: text, targetLanguage',
       })
@@ -49,24 +49,48 @@ export async function translate(
       personalContext
     )
 
-    console.log('Generated prompt:', prompt)
+    // Determine Provider and API Key
+    let model: any = google('gemini-2.5-flash') // Default system model
+
+    // Try to identify user and check for custom settings
+    try {
+      const userEmail = await getAuthenticatedUserEmail(request)
+      if (userEmail) {
+        const settings = await userContextData.retrieveUserContext(userEmail)
+        
+        if (settings.customApiKey && settings.preferredProvider) {
+          if (settings.preferredProvider === 'openai') {
+            const openai = createOpenAI({
+              apiKey: settings.customApiKey,
+            })
+            model = openai('gpt-4o')
+          } else if (settings.preferredProvider === 'google') {
+            const customGoogle = createGoogleGenerativeAI({
+              apiKey: settings.customApiKey,
+            })
+            model = customGoogle('gemini-2.5-flash')
+          }
+        }
+      }
+    } catch (authError) {
+      // Non-fatal: just use default provider if auth/lookup fails
+      console.warn('Failed to resolve user settings for translation:', authError)
+    }
 
     async function callAIWithRetry(
       prompt: string,
       maxRetries: number = 3
-    ): Promise<GenerateContentResponse> {
+    ): Promise<string> {
       let lastError: Error | null = null
 
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
-          const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-              temperature: 0,
-            },
+          const { text } = await generateText({
+            model: model,
+            prompt: prompt,
+            temperature: 0,
           })
-          return response
+          return text
         } catch (error) {
           lastError = error as Error
           console.warn(`Attempt ${attempt + 1} failed:`, error)
@@ -78,29 +102,16 @@ export async function translate(
       )
     }
 
-    const response = await callAIWithRetry(prompt)
-
-    console.log('Gemini response received')
-
-    let responseText: string | undefined
-    if (response && typeof response.text === 'function') {
-      responseText = response.text()
-    } else if (response && 'text' in response) {
-      responseText = response.text as string
-    }
-
-    console.log('Raw response text:', responseText)
+    const responseText = await callAIWithRetry(prompt)
+    console.log('AI response received')
 
     if (responseText) {
       const translationResult = extractJSON(responseText)
       return reply.status(200).send(translationResult)
     } else {
-      console.error(
-        'Gemini response missing text:',
-        JSON.stringify(response, null, 2)
-      )
-      throw new Error('Failed to retrieve translation')
+      throw new Error('Failed to retrieve translation text')
     }
+
   } catch (error) {
     console.error('Translation error:', error)
     return reply.status(500).send({

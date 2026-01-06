@@ -7,13 +7,20 @@ import {
   clerkClient,
 } from '../middleware/clerkAuth.ts'
 import conceptsData from '../data/conceptsData.ts'
-import { usersData } from '../data/usersData.ts'
+import { usersData, userContextData } from '../data/usersData.ts'
 
 type SaveConceptBody = {
   concept: string
   translation: string
   sourceLanguage: string
   targetLanguage: string
+}
+
+type UserSettingsBody = {
+  targetLanguage: string | null
+  personalContext: string | null
+  customApiKey?: string | null
+  preferredProvider?: string | null
 }
 
 export async function extensionRoutes(
@@ -112,6 +119,114 @@ export async function extensionRoutes(
       return reply.send({
         message: 'Concept deleted',
         concept: deletedConcept[0],
+      })
+    }
+  )
+
+  // Protected endpoint - get user settings
+  fastify.get(
+    '/user/settings',
+    { preHandler: [requireAuth] },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const email = await getAuthenticatedUserEmail(request)
+      if (!email) {
+        return reply.code(401).send({ error: 'Could not get user email' })
+      }
+
+      const settings = await userContextData.retrieveUserContext(email)
+
+      // Mask API key for security
+      let maskedKey = null
+      if (settings.customApiKey) {
+        const key = settings.customApiKey
+        if (key.length > 8) {
+          maskedKey = `${key.slice(0, 3)}...${key.slice(-4)}`
+        } else {
+          maskedKey = '***'
+        }
+      }
+
+      return reply.send({
+        targetLanguage: settings.targetLanguage,
+        personalContext: settings.context,
+        preferredProvider: settings.preferredProvider,
+        maskedApiKey: maskedKey,
+        hasCustomApiKey: !!settings.customApiKey
+      })
+    }
+  )
+
+  // Protected endpoint - update user settings
+  fastify.put<{ Body: UserSettingsBody }>(
+    '/user/settings',
+    { preHandler: [requireAuth] },
+    async (request: FastifyRequest<{ Body: UserSettingsBody }>, reply: FastifyReply) => {
+      const userId = getAuthenticatedUserId(request)
+      if (!userId) {
+        return reply.code(401).send({ error: 'Unauthorized' })
+      }
+
+      const email = await getAuthenticatedUserEmail(request)
+      if (!email) {
+        return reply.code(401).send({ error: 'Could not get user email' })
+      }
+
+      // Ensure user exists in database
+      const clerkUser = await clerkClient.users.getUser(userId)
+      const name = clerkUser.firstName ?? clerkUser.username
+      await usersData.findOrCreateUser({
+        clerkId: userId,
+        email,
+        ...(name && { name }),
+      })
+
+      const { targetLanguage, personalContext, customApiKey, preferredProvider } = request.body
+
+      // If customApiKey is undefined (not sent), we don't update it. 
+      // If it is null or empty string, we might want to clear it.
+      // But we need to handle "don't change if not provided" vs "clear".
+      // Let's retrieve existing to merge if needed, or just trust the body.
+      // A better pattern for "Settings" forms is usually sending the whole state.
+      // However, for secrets, we often only send if changed.
+      
+      const currentSettings = await userContextData.retrieveUserContext(email)
+      
+      let newApiKey = currentSettings.customApiKey
+      if (customApiKey !== undefined) {
+         newApiKey = customApiKey
+      }
+
+      let newProvider = currentSettings.preferredProvider
+      if (preferredProvider !== undefined) {
+        newProvider = preferredProvider
+      }
+
+      const updatedSettings = await userContextData.saveNewContext(
+        email,
+        personalContext ?? currentSettings.context,
+        targetLanguage ?? currentSettings.targetLanguage,
+        newApiKey,
+        newProvider
+      )
+
+      // Mask key for response
+      let maskedKey = null
+      if (updatedSettings.customApiKey) {
+        const key = updatedSettings.customApiKey
+        if (key.length > 8) {
+          maskedKey = `${key.slice(0, 3)}...${key.slice(-4)}`
+        } else {
+          maskedKey = '***'
+        }
+      }
+
+      return reply.send({
+        message: 'Settings updated',
+        targetLanguage: updatedSettings.targetLanguage,
+        personalContext: updatedSettings.context,
+        preferredProvider: updatedSettings.preferredProvider,
+        maskedApiKey: maskedKey,
+        hasCustomApiKey: !!updatedSettings.customApiKey
       })
     }
   )

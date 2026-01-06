@@ -14,33 +14,54 @@ export const userContextData = {
   async retrieveUserContext(userEmail: string): Promise<{
     context: string | null
     targetLanguage: string | null
+    customApiKey: string | null
+    preferredProvider: string | null
   }> {
-    const { context, targetLanguage } = (await db.query.usersTable.findFirst({
-      where: eq(usersTable.email, userEmail),
-      columns: {
-        targetLanguage: true,
-        context: true,
-      },
-    })) ?? { context: null, targetLanguage: null }
+    const { context, targetLanguage, customApiKey, preferredProvider } =
+      (await db.query.usersTable.findFirst({
+        where: eq(usersTable.email, userEmail),
+        columns: {
+          targetLanguage: true,
+          context: true,
+          customApiKey: true,
+          preferredProvider: true,
+        },
+      })) ?? {
+        context: null,
+        targetLanguage: null,
+        customApiKey: null,
+        preferredProvider: null,
+      }
 
-    return { context, targetLanguage }
+    return { context, targetLanguage, customApiKey, preferredProvider }
   },
 
   async saveNewContext(
     userEmail: string,
     userContext: string | null,
-    userTargetLanguage: string | null
+    userTargetLanguage: string | null,
+    userCustomApiKey: string | null,
+    userPreferredProvider: string | null
   ): Promise<{
     context: string | null
     targetLanguage: string | null
+    customApiKey: string | null
+    preferredProvider: string | null
   }> {
     const result = await db
       .update(usersTable)
-      .set({ context: userContext, targetLanguage: userTargetLanguage })
+      .set({
+        context: userContext,
+        targetLanguage: userTargetLanguage,
+        customApiKey: userCustomApiKey,
+        preferredProvider: userPreferredProvider,
+      })
       .where(eq(usersTable.email, userEmail))
       .returning({
         context: usersTable.context,
         targetLanguage: usersTable.targetLanguage,
+        customApiKey: usersTable.customApiKey,
+        preferredProvider: usersTable.preferredProvider,
       })
 
     const contextAndLanguage = result[0]

@@ -7,6 +7,8 @@ export const usersTable = pgTable('users', {
   name: text('name'),
   targetLanguage: text('targetLanguage'),
   context: text('context'),
+  customApiKey: text('custom_api_key'),
+  preferredProvider: text('preferred_provider').default('google'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 

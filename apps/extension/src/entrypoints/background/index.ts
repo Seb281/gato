@@ -1,6 +1,7 @@
 import saveConcept from "./helpers/handleSaveConcept"
 import handleTranslation from "./helpers/handleTranslation"
 import { isAuthenticated } from "./helpers/clerkAuth"
+import { fetchUserSettings, saveUserSettings, type UserSettings } from "./helpers/handleUserSettings"
 
 export default defineBackground(() => {
   chrome.runtime.onStartup.addListener((): void => {
@@ -112,4 +113,38 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true // Keep channel open for async response
   }
 })
+
+// Listener to fetch user settings from API
+chrome.runtime.onMessage.addListener(
+  (message: { action: string }, _, sendResponse) => {
+    if (message.action === "fetchUserSettings") {
+      fetchUserSettings()
+        .then((settings) => {
+          sendResponse({ success: true, settings })
+        })
+        .catch((error) => {
+          sendResponse({ success: false, error: error.message })
+        })
+      return true
+    }
+    return false
+  }
+)
+
+// Listener to save user settings to API
+chrome.runtime.onMessage.addListener(
+  (message: { action: string; settings: UserSettings }, _, sendResponse) => {
+    if (message.action === "saveUserSettings") {
+      saveUserSettings(message.settings)
+        .then((settings) => {
+          sendResponse({ success: true, settings })
+        })
+        .catch((error) => {
+          sendResponse({ success: false, error: error.message })
+        })
+      return true
+    }
+    return false
+  }
+)
 })
