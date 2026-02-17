@@ -1,4 +1,4 @@
-import { getClerkToken } from "./clerkAuth"
+import { getSupabaseToken } from "./supabaseAuth"
 
 const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:3001"
 
@@ -8,7 +8,7 @@ export type UserSettings = {
 }
 
 export async function fetchUserSettings(): Promise<UserSettings> {
-  const token = await getClerkToken()
+  const token = await getSupabaseToken()
 
   if (!token) {
     throw new Error("User not authenticated")
@@ -30,7 +30,7 @@ export async function fetchUserSettings(): Promise<UserSettings> {
 }
 
 export async function saveUserSettings(settings: UserSettings): Promise<UserSettings> {
-  const token = await getClerkToken()
+  const token = await getSupabaseToken()
 
   if (!token) {
     throw new Error("User not authenticated")

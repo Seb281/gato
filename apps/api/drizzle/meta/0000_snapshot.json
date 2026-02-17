@@ -1,5 +1,5 @@
 {
-  "id": "a7fa897d-1466-4556-bd78-9711115d0b5c",
+  "id": "68c05437-a4b5-43fe-9da2-332e808580e1",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -98,8 +98,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "clerk_id": {
-          "name": "clerk_id",
+        "supabase_id": {
+          "name": "supabase_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -128,6 +128,19 @@
           "primaryKey": false,
           "notNull": false
         },
+        "custom_api_key": {
+          "name": "custom_api_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferred_provider": {
+          "name": "preferred_provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'google'"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -140,11 +153,11 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "users_clerk_id_unique": {
-          "name": "users_clerk_id_unique",
+        "users_supabase_id_unique": {
+          "name": "users_supabase_id_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "clerk_id"
+            "supabase_id"
           ]
         },
         "users_email_unique": {

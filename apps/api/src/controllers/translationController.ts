@@ -3,7 +3,7 @@ import { generateText } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createOpenAI } from '@ai-sdk/openai'
 import { extractJSON, promptBuilder } from './helpers.ts'
-import { getAuthenticatedUserEmail } from '../middleware/clerkAuth.ts'
+import { getAuthenticatedUserEmail, supabase } from '../middleware/supabaseAuth.ts'
 import { userContextData } from '../data/usersData.ts'
 import 'dotenv/config'
 
@@ -28,7 +28,6 @@ export async function translate(
   request: FastifyRequest<{ Body: TranslationRequest }>,
   reply: FastifyReply
 ): Promise<void> {
-  console.log('incoming request with body:', request.body)
   try {
     const { text, targetLanguage, sourceLanguage, personalContext } =
       request.body
@@ -54,21 +53,27 @@ export async function translate(
 
     // Try to identify user and check for custom settings
     try {
-      const userEmail = await getAuthenticatedUserEmail(request)
-      if (userEmail) {
-        const settings = await userContextData.retrieveUserContext(userEmail)
+      // Check if there's an auth header even if this is a "public" endpoint
+      const authHeader = request.headers.authorization
+      if (authHeader) {
+        const token = authHeader.replace('Bearer ', '')
+        const { data: { user } } = await supabase.auth.getUser(token)
         
-        if (settings.customApiKey && settings.preferredProvider) {
-          if (settings.preferredProvider === 'openai') {
-            const openai = createOpenAI({
-              apiKey: settings.customApiKey,
-            })
-            model = openai('gpt-4o')
-          } else if (settings.preferredProvider === 'google') {
-            const customGoogle = createGoogleGenerativeAI({
-              apiKey: settings.customApiKey,
-            })
-            model = customGoogle('gemini-2.5-flash')
+        if (user?.email) {
+          const settings = await userContextData.retrieveUserContext(user.email)
+          
+          if (settings.customApiKey && settings.preferredProvider) {
+            if (settings.preferredProvider === 'openai') {
+              const openai = createOpenAI({
+                apiKey: settings.customApiKey,
+              })
+              model = openai('gpt-4o')
+            } else if (settings.preferredProvider === 'google') {
+              const customGoogle = createGoogleGenerativeAI({
+                apiKey: settings.customApiKey,
+              })
+              model = customGoogle('gemini-2.5-flash')
+            }
           }
         }
       }
@@ -103,7 +108,6 @@ export async function translate(
     }
 
     const responseText = await callAIWithRetry(prompt)
-    console.log('AI response received')
 
     if (responseText) {
       const translationResult = extractJSON(responseText)

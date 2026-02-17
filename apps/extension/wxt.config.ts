@@ -14,7 +14,7 @@ export default defineConfig({
     plugins: [tailwindcss()],
   }),
   manifest: {
-    permissions: ['storage', 'activeTab', 'scripting', 'contextMenus'],
+    permissions: ['storage', 'activeTab', 'scripting', 'contextMenus', 'tabs'],
     host_permissions: ['<all_urls>'],
     commands: {
       'show-translation': {

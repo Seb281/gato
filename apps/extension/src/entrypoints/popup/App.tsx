@@ -1,12 +1,5 @@
 import { useState, useEffect } from 'react'
-import {
-  SignInButton,
-  SignOutButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-  useAuth,
-} from '@clerk/chrome-extension'
+import { supabase } from '@/entrypoints/background/helpers/supabaseAuth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import {
@@ -19,20 +12,42 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge.tsx'
-import { Languages, Check, CheckCircle, LogOut } from 'lucide-react'
+import { Languages, Check, CheckCircle, LogOut, User } from 'lucide-react'
 import { LANGUAGE_NAMES } from '@/entrypoints/content/helpers/detectLanguage'
 import { Separator } from '@/components/ui/separator'
-
-const EXTENSION_URL = chrome.runtime.getURL('.')
+import type { Session } from '@supabase/supabase-js'
+import AuthForm from './AuthForm'
 
 export default function App() {
+  const [session, setSession] = useState<Session | null>(null)
   const [targetLanguage, setTargetLanguage] = useState('English')
   const [personalContext, setPersonalContext] = useState('')
   const [isSaved, setIsSaved] = useState(false)
-  const [showSignInSuccess, setShowSignInSuccess] = useState(false)
-  const [showSignOutSuccess, setShowSignOutSuccess] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const { isSignedIn, isLoaded } = useAuth()
+  // Initialize Supabase session and listen for changes
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setIsLoading(false)
+      if (session) {
+        fetchSettingsFromApi()
+      }
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      if (session) {
+        fetchSettingsFromApi()
+      } else {
+        setPersonalContext('')
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   // Fetch user settings from API
   const fetchSettingsFromApi = () => {
@@ -52,43 +67,6 @@ export default function App() {
         }
       }
     )
-  }
-
-  // Check for pending sign-in/sign-out when popup opens
-  useEffect(() => {
-    if (isLoaded) {
-      if (isSignedIn) {
-        chrome.storage.local.get(['signInPending'], (result) => {
-          if (result.signInPending) {
-            setShowSignInSuccess(true)
-            chrome.storage.local.remove('signInPending')
-            setTimeout(() => setShowSignInSuccess(false), 3000)
-            // Fetch settings from API after sign-in
-            fetchSettingsFromApi()
-          }
-        })
-      } else {
-        chrome.storage.local.get(['signOutPending'], (result) => {
-          if (result.signOutPending) {
-            setShowSignOutSuccess(true)
-            setPersonalContext('')
-            chrome.storage.sync.remove('personalContext')
-            chrome.storage.local.remove('signOutPending')
-            setTimeout(() => setShowSignOutSuccess(false), 3000)
-          }
-        })
-      }
-    }
-  }, [isSignedIn, isLoaded])
-
-  // Set pending flag when sign-in button is clicked
-  const handleSignInClick = () => {
-    chrome.storage.local.set({ signInPending: true })
-  }
-
-  // Set pending flag when sign-out button is clicked
-  const handleSignOutClick = () => {
-    chrome.storage.local.set({ signOutPending: true })
   }
 
   const languages: Array<{ code: string; name: string }> = []
@@ -120,7 +98,7 @@ export default function App() {
     )
 
     // Also save to API if signed in
-    if (isSignedIn) {
+    if (session) {
       chrome.runtime.sendMessage({
         action: 'saveUserSettings',
         settings: {
@@ -131,8 +109,20 @@ export default function App() {
     }
   }
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+  }
+
   const maxChars = 150
   const remainingChars = maxChars - personalContext.length
+
+  if (isLoading) {
+    return (
+      <div className='w-[420px] p-8 flex items-center justify-center'>
+        <p className='text-sm text-muted-foreground'>Loading session...</p>
+      </div>
+    )
+  }
 
   return (
     <div className='w-[420px]'>
@@ -270,61 +260,41 @@ export default function App() {
           </div>
           <Separator />
 
-          <SignedOut>
-            {showSignOutSuccess && (
-              <div className='flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-700'>
-                <CheckCircle className='h-4 w-4' />
-                <span className='text-sm font-medium'>
-                  Successfully signed out!
-                </span>
-              </div>
-            )}
-            <div onClick={handleSignInClick}>
-              <SignInButton mode='modal'>
-                <Button variant='outline' className='w-full'>
-                  Sign In
+          {!session ? (
+            <AuthForm supabase={supabase} />
+          ) : (
+            <>
+              <div className='flex items-center justify-between'>
+                <div className='flex items-center gap-2'>
+                  <div className='w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center'>
+                    <User className='h-4 w-4 text-primary' />
+                  </div>
+                  <div className='flex flex-col'>
+                    <span className='text-xs font-medium truncate max-w-[150px]'>{session.user.email}</span>
+                    <span className='text-[10px] text-muted-foreground'>Signed in</span>
+                  </div>
+                </div>
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  onClick={handleSignOut}
+                  className='text-muted-foreground hover:text-destructive'
+                >
+                  <LogOut className='h-4 w-4 mr-1' />
+                  Logout
                 </Button>
-              </SignInButton>
-            </div>
-          </SignedOut>
-
-          <SignedIn>
-            {showSignInSuccess && (
-              <div className='flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md text-green-700'>
-                <CheckCircle className='h-4 w-4' />
-                <span className='text-sm font-medium'>
-                  Successfully signed in!
-                </span>
               </div>
-            )}
-            <div className='flex items-center justify-between'>
-              <div className='flex items-center gap-2'>
-                <UserButton />
-                <span className='text-sm text-muted-foreground'>Signed in</span>
-              </div>
-              <div onClick={handleSignOutClick}>
-                <SignOutButton redirectUrl={`${EXTENSION_URL}/popup.html`}>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    className='text-muted-foreground hover:text-destructive'
-                  >
-                    <LogOut className='h-4 w-4 mr-1' />
-                    Logout
-                  </Button>
-                </SignOutButton>
-              </div>
-            </div>
-            <Button
-              variant='outline'
-              className='w-full'
-              onClick={() =>
-                chrome.tabs.create({ url: 'http://localhost:3000' })
-              }
-            >
-              Open Dashboard
-            </Button>
-          </SignedIn>
+              <Button
+                variant='outline'
+                className='w-full'
+                onClick={() =>
+                  chrome.tabs.create({ url: import.meta.env.VITE_DASHBOARD_URL || 'http://localhost:3000' })
+                }
+              >
+                Open Dashboard
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

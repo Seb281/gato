@@ -1,5 +1,5 @@
 const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:3001"
-import { getClerkToken } from "./clerkAuth"
+import { getSupabaseToken } from "./supabaseAuth"
 
 export default async function handleTranslation(
   text: string,
@@ -7,7 +7,7 @@ export default async function handleTranslation(
   sourceLanguage: string,
   personalContext: string
 ): Promise<object> {
-  const token = await getClerkToken()
+  const token = await getSupabaseToken()
   
   const headers: HeadersInit = {
     "Content-Type": "application/json",

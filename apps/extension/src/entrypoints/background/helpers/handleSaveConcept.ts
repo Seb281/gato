@@ -1,4 +1,4 @@
-import { getClerkToken } from "./clerkAuth"
+import { getSupabaseToken } from "./supabaseAuth"
 
 const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:3001"
 
@@ -14,7 +14,7 @@ type NewConcept = {
 }
 
 export default async function saveConcept(concept: NewConcept) {
-  const token = await getClerkToken()
+  const token = await getSupabaseToken()
 
   if (!token) {
     throw new Error("User not authenticated")

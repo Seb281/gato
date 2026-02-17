@@ -2,10 +2,10 @@ import { eq } from 'drizzle-orm'
 import { db } from '../db/index.ts'
 import { usersTable } from '../db/schema.ts'
 import type { User } from '../db/schema.ts'
-import { clerkClient } from '../middleware/clerkAuth.ts'
+import { supabase } from '../middleware/supabaseAuth.ts'
 
 interface UserData {
-  clerkId: string
+  supabaseId: string
   email: string
   name?: string
 }
@@ -17,23 +17,26 @@ export const userContextData = {
     customApiKey: string | null
     preferredProvider: string | null
   }> {
-    const { context, targetLanguage, customApiKey, preferredProvider } =
-      (await db.query.usersTable.findFirst({
-        where: eq(usersTable.email, userEmail),
-        columns: {
-          targetLanguage: true,
-          context: true,
-          customApiKey: true,
-          preferredProvider: true,
-        },
-      })) ?? {
+    const user = await db.query.usersTable.findFirst({
+      where: eq(usersTable.email, userEmail),
+      columns: {
+        targetLanguage: true,
+        context: true,
+        customApiKey: true,
+        preferredProvider: true,
+      },
+    })
+
+    if (!user) {
+      return {
         context: null,
         targetLanguage: null,
         customApiKey: null,
         preferredProvider: null,
       }
+    }
 
-    return { context, targetLanguage, customApiKey, preferredProvider }
+    return user
   },
 
   async saveNewContext(
@@ -86,34 +89,34 @@ export const usersData = {
     return user ?? null
   },
 
-  async retrieveUserByClerkId(clerkId: string): Promise<User | null> {
-    if (!clerkId) {
-      throw new Error('clerkId is required')
+  async retrieveUserBySupabaseId(supabaseId: string): Promise<User | null> {
+    if (!supabaseId) {
+      throw new Error('supabaseId is required')
     }
 
     const user = await db.query.usersTable.findFirst({
-      where: eq(usersTable.clerkId, clerkId),
+      where: eq(usersTable.supabaseId, supabaseId),
     })
 
     return user ?? null
   },
 
   async findOrCreateUser(userData: UserData): Promise<User> {
-    const { clerkId, email, name } = userData
+    const { supabaseId, email, name } = userData
 
-    if (!clerkId || !email) {
-      throw new Error('clerkId and email are required')
+    if (!supabaseId || !email) {
+      throw new Error('supabaseId and email are required')
     }
 
     let user = await db.query.usersTable.findFirst({
-      where: eq(usersTable.clerkId, clerkId),
+      where: eq(usersTable.supabaseId, supabaseId),
     })
 
     if (!user) {
       const result = await db
         .insert(usersTable)
         .values({
-          clerkId,
+          supabaseId,
           email,
           name,
         })
@@ -129,18 +132,20 @@ export const usersData = {
     return user
   },
 
-  async deleteUser(clerkId: string): Promise<Array<User>> {
+  async deleteUser(supabaseId: string): Promise<Array<User>> {
     try {
-      // Delete from Clerk first
-      await clerkClient.users.deleteUser(clerkId)
-      console.log(`User ${clerkId} deleted from Clerk`)
+      // Delete from Supabase Auth first (requires admin access)
+      const { error } = await supabase.auth.admin.deleteUser(supabaseId)
+      if (error) throw error
+      
+      console.log(`User ${supabaseId} deleted from Supabase Auth`)
 
       // Then delete from database
       const deletedUser = await db
         .delete(usersTable)
-        .where(eq(usersTable.clerkId, clerkId))
+        .where(eq(usersTable.supabaseId, supabaseId))
         .returning()
-      console.log(`User ${clerkId} deleted from database`)
+      console.log(`User ${supabaseId} deleted from database`)
 
       return deletedUser
     } catch (error) {

@@ -1,6 +1,5 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
-import { clerkPlugin } from '@clerk/fastify'
 import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -16,14 +15,6 @@ const app = Fastify({
   logger: true,
 })
 
-const clerkPublishableKey = process.env.CLERK_PUBLISHABLE_KEY
-const clerkSecretKey = process.env.CLERK_SECRET_KEY
-
-if (!clerkPublishableKey || !clerkSecretKey) {
-  console.error('Missing CLERK_PUBLISHABLE_KEY or CLERK_SECRET_KEY')
-  process.exit(1)
-}
-
 export async function startServer() {
   try {
     // Register CORS
@@ -32,12 +23,6 @@ export async function startServer() {
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    })
-
-    // Register Clerk plugin for JWT verification
-    await app.register(clerkPlugin, {
-      publishableKey: clerkPublishableKey!,
-      secretKey: clerkSecretKey!,
     })
 
     // Register routes

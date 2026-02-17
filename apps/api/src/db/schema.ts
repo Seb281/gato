@@ -2,7 +2,7 @@ import { integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core'
 
 export const usersTable = pgTable('users', {
   id: serial('id').primaryKey(),
-  clerkId: text('clerk_id').notNull().unique(),
+  supabaseId: text('supabase_id').notNull().unique(),
   email: text('email').notNull().unique(),
   name: text('name'),
   targetLanguage: text('targetLanguage'),

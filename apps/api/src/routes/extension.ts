@@ -4,8 +4,7 @@ import {
   requireAuth,
   getAuthenticatedUserEmail,
   getAuthenticatedUserId,
-  clerkClient,
-} from '../middleware/clerkAuth.ts'
+} from '../middleware/supabaseAuth.ts'
 import conceptsData from '../data/conceptsData.ts'
 import { usersData, userContextData } from '../data/usersData.ts'
 
@@ -40,19 +39,18 @@ export async function extensionRoutes(
         return reply.code(401).send({ error: 'Unauthorized' })
       }
 
-      // Get user email from Clerk
       const email = await getAuthenticatedUserEmail(request)
       if (!email) {
         return reply.code(401).send({ error: 'Could not get user email' })
       }
 
-      // Get Clerk user info for name
-      const clerkUser = await clerkClient.users.getUser(userId)
-
       // Find or create user in database
-      const name = clerkUser.firstName ?? clerkUser.username
+      // With Supabase, we already have the user object in the request from middleware
+      const userFromAuth = (request as any).user
+      const name = userFromAuth.user_metadata?.full_name ?? userFromAuth.user_metadata?.name
+      
       const user = await usersData.findOrCreateUser({
-        clerkId: userId,
+        supabaseId: userId,
         email,
         ...(name && { name }),
       })
@@ -172,23 +170,15 @@ export async function extensionRoutes(
       }
 
       // Ensure user exists in database
-      const clerkUser = await clerkClient.users.getUser(userId)
-      const name = clerkUser.firstName ?? clerkUser.username
+      const userFromAuth = (request as any).user
+      const name = userFromAuth.user_metadata?.full_name ?? userFromAuth.user_metadata?.name
       await usersData.findOrCreateUser({
-        clerkId: userId,
+        supabaseId: userId,
         email,
         ...(name && { name }),
       })
 
       const { targetLanguage, personalContext, customApiKey, preferredProvider } = request.body
-
-      // If customApiKey is undefined (not sent), we don't update it. 
-      // If it is null or empty string, we might want to clear it.
-      // But we need to handle "don't change if not provided" vs "clear".
-      // Let's retrieve existing to merge if needed, or just trust the body.
-      // A better pattern for "Settings" forms is usually sending the whole state.
-      // However, for secrets, we often only send if changed.
-      
       const currentSettings = await userContextData.retrieveUserContext(email)
       
       let newApiKey = currentSettings.customApiKey

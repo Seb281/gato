@@ -4,13 +4,11 @@ const handleSelection = {
   getExpandedSelection(): Range | null {
     const selection: Selection | null = window.getSelection()
     if (!selection || selection.rangeCount === 0) {
-      console.log("No selection")
       return null
     }
 
     const selectedText: string = selection.toString().trim()
     if (!selectedText) {
-      console.log("No text selected")
       return null
     }
 
