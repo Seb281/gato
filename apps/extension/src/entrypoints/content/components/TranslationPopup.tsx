@@ -48,6 +48,7 @@ export default function TranslationPopup({
   const [sourceLanguage, setSourceLanguage] = useState("")
 
   const [status, setStatus] = useState<AuthStatus>("loading")
+  const [saveState, setSaveState] = useState<"idle" | "saved" | "alreadySaved">("idle")
 
   useEffect(() => {
     // Send a message to the Service Worker to check the status
@@ -115,12 +116,13 @@ export default function TranslationPopup({
           sourceLanguage,
           concept: selection,
           translation: translation.contextualTranslation,
-          // missing phoneticApproximation
         },
       },
       (response) => {
-        if (response.success) {
-          console.log("Concept saved successfully", response.concept)
+        if (response.alreadySaved) {
+          setSaveState("alreadySaved")
+        } else if (response.success) {
+          setSaveState("saved")
         }
       }
     )
@@ -209,14 +211,24 @@ export default function TranslationPopup({
         <CardContent className="space-y-4 max-h-[50vh] overflow-y-auto">
           <div className="space-y-2">
             {status === "logged_in" && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSaveConcept}
-                className="w-full mb-3"
-              >
-                Save concept for review
-              </Button>
+              saveState === "saved" ? (
+                <div className="w-full mb-3 text-center text-sm text-green-600 font-medium py-1.5">
+                  ✓ Saved
+                </div>
+              ) : saveState === "alreadySaved" ? (
+                <div className="w-full mb-3 text-center text-sm text-muted-foreground py-1.5">
+                  Already saved
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSaveConcept}
+                  className="w-full mb-3"
+                >
+                  Save concept for review
+                </Button>
+              )
             )}
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

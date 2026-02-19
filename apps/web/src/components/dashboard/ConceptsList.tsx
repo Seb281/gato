@@ -15,6 +15,8 @@ type Concept = {
   sourceLanguage: string;
   targetLanguage: string;
   createdAt: string;
+  state: string;
+  updatedAt: string;
 };
 
 export default function ConceptsList() {
@@ -22,6 +24,7 @@ export default function ConceptsList() {
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -114,7 +117,11 @@ export default function ConceptsList() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {concepts.map((concept) => (
-        <Card key={concept.id} className="relative group">
+        <Card
+          key={concept.id}
+          className="relative group cursor-pointer"
+          onClick={() => setExpandedId(expandedId === concept.id ? null : concept.id)}
+        >
           <CardHeader className="pb-2">
             <div className="flex justify-between items-start">
               <Badge variant="outline" className="text-xs font-normal">
@@ -124,7 +131,7 @@ export default function ConceptsList() {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => handleDelete(concept.id)}
+                onClick={(e) => { e.stopPropagation(); handleDelete(concept.id); }}
                 disabled={deletingId === concept.id}
               >
                 {deletingId === concept.id ? (
@@ -147,6 +154,22 @@ export default function ConceptsList() {
             <p className="text-xs text-muted-foreground text-right">
               Saved {format(new Date(concept.createdAt), "MMM d, yyyy")}
             </p>
+            {expandedId === concept.id && (
+              <div className="pt-2 border-t space-y-2 animate-in fade-in duration-200">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Status:</span>
+                  <Badge
+                    variant={concept.state === "learned" ? "default" : "secondary"}
+                    className="text-xs capitalize"
+                  >
+                    {concept.state}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Last updated {format(new Date(concept.updatedAt), "MMM d, yyyy")}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       ))}

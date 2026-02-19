@@ -1,5 +1,5 @@
 import { db } from '../db/index.ts'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { conceptsTable, usersTable } from '../db/schema.ts'
 import type { Concept, NewConcept } from '../db/schema.ts'
 
@@ -18,6 +18,24 @@ const conceptsData = {
     })
 
     return savedConcepts
+  },
+
+  async findExistingConcept(
+    userId: number,
+    concept: string,
+    translation: string,
+    sourceLanguage: string,
+    targetLanguage: string
+  ): Promise<Concept | undefined> {
+    return db.query.conceptsTable.findFirst({
+      where: and(
+        eq(conceptsTable.userId, userId),
+        eq(conceptsTable.concept, concept),
+        eq(conceptsTable.translation, translation),
+        eq(conceptsTable.sourceLanguage, sourceLanguage),
+        eq(conceptsTable.targetLanguage, targetLanguage)
+      ),
+    })
   },
 
   async saveNewConcept(newConcept: NewConcept): Promise<Array<Concept>> {

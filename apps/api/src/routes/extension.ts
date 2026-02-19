@@ -63,6 +63,18 @@ export async function extensionRoutes(
         })
       }
 
+      const existing = await conceptsData.findExistingConcept(
+        user.id,
+        concept,
+        translation,
+        sourceLanguage,
+        targetLanguage
+      )
+
+      if (existing) {
+        return reply.code(409).send({ error: 'Concept already exists', concept: existing })
+      }
+
       const savedConcept = await conceptsData.saveNewConcept({
         userId: user.id,
         concept,

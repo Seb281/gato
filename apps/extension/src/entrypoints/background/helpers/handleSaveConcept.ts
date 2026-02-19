@@ -29,9 +29,15 @@ export default async function saveConcept(concept: NewConcept) {
     body: JSON.stringify(concept),
   })
 
+  if (response.status === 409) {
+    const data = await response.json()
+    return { success: false, alreadySaved: true, concept: data.concept }
+  }
+
   if (!response.ok) {
     throw new Error(`Failed to save concept: ${response.statusText}`)
   }
 
-  return response.json()
+  const data = await response.json()
+  return { success: true, concept: data.concept }
 }
