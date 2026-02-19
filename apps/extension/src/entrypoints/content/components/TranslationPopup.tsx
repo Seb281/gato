@@ -49,6 +49,9 @@ export default function TranslationPopup({
 
   const [status, setStatus] = useState<AuthStatus>("loading")
   const [saveState, setSaveState] = useState<"idle" | "saved" | "alreadySaved">("idle")
+  const [fromCache, setFromCache] = useState(false)
+  const [cachedConceptId, setCachedConceptId] = useState<number | null>(null)
+  const [retranslated, setRetranslated] = useState(false)
 
   useEffect(() => {
     // Send a message to the Service Worker to check the status
@@ -83,14 +86,25 @@ export default function TranslationPopup({
       {
         action: "translate",
         text: `${contextBefore} [${selection}] ${contextAfter}`,
+        concept: selection,
       },
       (response: {
         success: boolean
         translateObject: TranslationResponse
+        fromCache?: boolean
+        cachedConceptId?: number
         error?: string
       }): void => {
         if (response.success) {
-          setTranslation(response.translateObject) // work -> take the object and display the properties in the component return
+          setTranslation(response.translateObject)
+          if (response.fromCache) {
+            setFromCache(true)
+            setSaveState("alreadySaved")
+            setCachedConceptId(response.cachedConceptId ?? null)
+          } else {
+            setFromCache(false)
+            setCachedConceptId(null)
+          }
         } else {
           throw new Error(`Error: ${response?.error || "Translation failed"}`)
         }
@@ -122,6 +136,56 @@ export default function TranslationPopup({
         if (response.alreadySaved) {
           setSaveState("alreadySaved")
         } else if (response.success) {
+          setSaveState("saved")
+        }
+      }
+    )
+  }
+
+  function handleRetranslate() {
+    setIsLoading(true)
+    setFromCache(false)
+    chrome.runtime.sendMessage(
+      {
+        action: "translate",
+        text: `${contextBefore} [${selection}] ${contextAfter}`,
+        concept: selection,
+        forceRefresh: true,
+      },
+      (response: {
+        success: boolean
+        translateObject: TranslationResponse
+        error?: string
+      }): void => {
+        if (response.success) {
+          setTranslation(response.translateObject)
+          setRetranslated(true)
+        }
+        setIsLoading(false)
+      }
+    )
+  }
+
+  function handleUpdateTranslation() {
+    if (cachedConceptId === null) return
+    chrome.runtime.sendMessage(
+      { action: "updateConcept", conceptId: cachedConceptId, translation: translation.contextualTranslation },
+      (response) => {
+        setSaveState(response?.success ? "saved" : "idle")
+      }
+    )
+  }
+
+  function handleAddSeparate() {
+    chrome.runtime.sendMessage(
+      {
+        action: "saveConcept",
+        concept: { targetLanguage, sourceLanguage, concept: selection, translation: translation.contextualTranslation },
+      },
+      (response) => {
+        if (response?.concept?.alreadySaved) {
+          setSaveState("alreadySaved")
+        } else if (response?.success) {
           setSaveState("saved")
         }
       }
@@ -215,6 +279,25 @@ export default function TranslationPopup({
                 <div className="w-full mb-3 text-center text-sm text-green-600 font-medium py-1.5">
                   ✓ Saved
                 </div>
+              ) : retranslated && saveState === "alreadySaved" ? (
+                <div className="flex gap-2 mb-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleUpdateTranslation}
+                    className="flex-1"
+                  >
+                    Update translation
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddSeparate}
+                    className="flex-1"
+                  >
+                    Add separate
+                  </Button>
+                </div>
               ) : saveState === "alreadySaved" ? (
                 <div className="w-full mb-3 text-center text-sm text-muted-foreground py-1.5">
                   Already saved
@@ -272,14 +355,31 @@ export default function TranslationPopup({
             ) : (
               <>
                 <div className="space-y-1.5">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Translation
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Translation
+                    </span>
+                    {fromCache && (
+                      <Badge variant="secondary" className="text-xs">
+                        Saved
+                      </Badge>
+                    )}
+                  </div>
                   <div className="rounded-lg bg-primary/5 p-4 border border-primary/20">
                     <p className="text-base font-medium leading-relaxed">
                       {translation.contextualTranslation}
                     </p>
                   </div>
+                  {fromCache && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleRetranslate}
+                      className="w-full"
+                    >
+                      Re-translate
+                    </Button>
+                  )}
                 </div>
 
                 {translation.phoneticApproximation && (

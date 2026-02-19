@@ -20,6 +20,22 @@ const conceptsData = {
     return savedConcepts
   },
 
+  async findConceptByText(
+    userId: number,
+    concept: string,
+    sourceLanguage: string,
+    targetLanguage: string
+  ): Promise<Concept | undefined> {
+    return db.query.conceptsTable.findFirst({
+      where: and(
+        eq(conceptsTable.userId, userId),
+        eq(conceptsTable.concept, concept),
+        eq(conceptsTable.sourceLanguage, sourceLanguage),
+        eq(conceptsTable.targetLanguage, targetLanguage)
+      ),
+    })
+  },
+
   async findExistingConcept(
     userId: number,
     concept: string,
@@ -36,6 +52,15 @@ const conceptsData = {
         eq(conceptsTable.targetLanguage, targetLanguage)
       ),
     })
+  },
+
+  async updateConceptTranslation(conceptId: number, translation: string): Promise<Concept | undefined> {
+    const result = await db
+      .update(conceptsTable)
+      .set({ translation })
+      .where(eq(conceptsTable.id, conceptId))
+      .returning()
+    return result[0]
   },
 
   async saveNewConcept(newConcept: NewConcept): Promise<Array<Concept>> {

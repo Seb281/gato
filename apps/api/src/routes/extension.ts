@@ -15,6 +15,16 @@ type SaveConceptBody = {
   targetLanguage: string
 }
 
+type UpdateConceptBody = {
+  translation: string
+}
+
+type LookupQuerystring = {
+  concept: string
+  sourceLanguage: string
+  targetLanguage: string
+}
+
 type UserSettingsBody = {
   targetLanguage: string | null
   personalContext: string | null
@@ -90,6 +100,35 @@ export async function extensionRoutes(
     }
   )
 
+  // Protected endpoint - lookup a concept by text (cache check)
+  fastify.get<{ Querystring: LookupQuerystring }>(
+    '/saved-concepts/lookup',
+    { preHandler: [requireAuth] },
+    async (request: FastifyRequest<{ Querystring: LookupQuerystring }>, reply: FastifyReply) => {
+      const supabaseId = getAuthenticatedUserId(request)
+      if (!supabaseId) {
+        return reply.code(401).send({ error: 'Unauthorized' })
+      }
+
+      const { concept, sourceLanguage, targetLanguage } = request.query
+      if (!concept || !sourceLanguage || !targetLanguage) {
+        return reply.code(400).send({ error: 'Missing required query params: concept, sourceLanguage, targetLanguage' })
+      }
+
+      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+      if (!user) {
+        return reply.send({ found: false })
+      }
+
+      const found = await conceptsData.findConceptByText(user.id, concept, sourceLanguage, targetLanguage)
+
+      if (found) {
+        return reply.send({ found: true, concept: found })
+      }
+      return reply.send({ found: false })
+    }
+  )
+
   // Protected endpoint - get saved concepts
   fastify.get(
     '/saved-concepts',
@@ -106,6 +145,30 @@ export async function extensionRoutes(
         message: 'Concepts retrieved',
         concepts,
       })
+    }
+  )
+
+  // Protected endpoint - update a concept's translation
+  fastify.patch<{ Params: { id: string }; Body: UpdateConceptBody }>(
+    '/saved-concepts/:id',
+    { preHandler: [requireAuth] },
+    async (request: FastifyRequest<{ Params: { id: string }; Body: UpdateConceptBody }>, reply: FastifyReply) => {
+      const conceptId = parseInt(request.params.id, 10)
+      if (isNaN(conceptId)) {
+        return reply.code(400).send({ error: 'Invalid concept ID' })
+      }
+
+      const { translation } = request.body
+      if (!translation) {
+        return reply.code(400).send({ error: 'Missing required field: translation' })
+      }
+
+      const updated = await conceptsData.updateConceptTranslation(conceptId, translation)
+      if (!updated) {
+        return reply.code(404).send({ error: 'Concept not found' })
+      }
+
+      return reply.send({ message: 'Concept updated', concept: updated })
     }
   )
 

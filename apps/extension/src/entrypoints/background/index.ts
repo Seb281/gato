@@ -1,5 +1,7 @@
 import saveConcept from "./helpers/handleSaveConcept"
 import handleTranslation from "./helpers/handleTranslation"
+import lookupConcept from "./helpers/handleLookupConcept"
+import updateConcept from "./helpers/handleUpdateConcept"
 import { isAuthenticated, supabase } from "./helpers/supabaseAuth"
 import { fetchUserSettings, saveUserSettings, type UserSettings } from "./helpers/handleUserSettings"
 
@@ -38,11 +40,15 @@ chrome.commands.onCommand.addListener((command: string): void => {
 type TranslateMessage = {
   action: "translate"
   text: string
+  concept?: string
+  forceRefresh?: boolean
 }
 
 type TranslateResponse = {
   success: boolean
   translateObject?: object // improve typing by adding keys
+  fromCache?: boolean
+  cachedConceptId?: number
   error?: string
 }
 
@@ -56,16 +62,36 @@ chrome.runtime.onMessage.addListener(
     if (message.action === "translate") {
       chrome.storage.sync
         .get(["targetLanguage", "sourceLanguage", "personalContext"])
-        .then((result) => {
-          return handleTranslation(
+        .then(async (result) => {
+          const targetLanguage = (result.targetLanguage as string) || "English"
+          const sourceLanguage = (result.sourceLanguage as string) || ""
+          const personalContext = (result.personalContext as string) || ""
+
+          if (message.concept && !message.forceRefresh) {
+            const cached = await lookupConcept(message.concept, sourceLanguage, targetLanguage)
+            if (cached) {
+              return {
+                translateObject: {
+                  contextualTranslation: cached.translation,
+                  language: cached.sourceLanguage,
+                  phoneticApproximation: "",
+                },
+                fromCache: true,
+                cachedConceptId: cached.id,
+              }
+            }
+          }
+
+          const translateObject = await handleTranslation(
             message.text,
-            (result.targetLanguage as string) || "English",
-            (result.sourceLanguage as string) || "",
-            (result.personalContext as string) || ""
+            targetLanguage,
+            sourceLanguage,
+            personalContext
           )
+          return { translateObject, fromCache: false }
         })
-        .then((translateObject) => {
-          sendResponse({ success: true, translateObject })
+        .then(({ translateObject, fromCache, cachedConceptId }) => {
+          sendResponse({ success: true, translateObject, fromCache, cachedConceptId })
         })
         .catch((error) => {
           sendResponse({ success: false, error: error.message })
@@ -95,6 +121,22 @@ chrome.runtime.onMessage.addListener(
       saveConcept(message.concept)
         .then((concept) => {
           sendResponse({ success: true, concept })
+        })
+        .catch((error) => {
+          sendResponse({ success: false, error: error.message })
+        })
+      return true
+    }
+    return false
+  }
+)
+
+chrome.runtime.onMessage.addListener(
+  (message: { action: string; conceptId: number; translation: string }, _, sendResponse) => {
+    if (message.action === "updateConcept") {
+      updateConcept(message.conceptId, message.translation)
+        .then((result) => {
+          sendResponse({ success: true, concept: result.concept })
         })
         .catch((error) => {
           sendResponse({ success: false, error: error.message })
