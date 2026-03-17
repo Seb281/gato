@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react"
-import { X, Languages, Volume2, Info, GripVertical, AlertCircle } from "lucide-react"
+import { X, Languages, Volume2, Info, GripVertical, AlertCircle, Plus, Check, ChevronDown, AlignLeft } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 
 interface TranslationPopupProps {
   selection: string
@@ -53,6 +54,7 @@ export default function TranslationPopup({
   const [cachedConceptId, setCachedConceptId] = useState<number | null>(null)
   const [retranslated, setRetranslated] = useState(false)
   const [translationError, setTranslationError] = useState(false)
+  const [showContext, setShowContext] = useState(false)
 
   useEffect(() => {
     // Send a message to the Service Worker to check the status
@@ -275,7 +277,7 @@ export default function TranslationPopup({
             </p>
           </div>
         )}
-        <CardHeader className="pb-3">
+        <CardHeader>
           <div
             className="flex items-center justify-between cursor-grab active:cursor-grabbing"
             onMouseDown={handleMouseDown}
@@ -296,63 +298,111 @@ export default function TranslationPopup({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4 max-h-[50vh] overflow-y-auto">
+        <CardContent className="space-y-3 max-h-[50vh] overflow-y-auto">
           <div className="space-y-2">
-            {status === "logged_in" && (
-              saveState === "saved" ? (
-                <div className="w-full mb-3 text-center text-sm text-green-600 font-medium py-1.5">
-                  ✓ Saved
-                </div>
-              ) : retranslated && saveState === "alreadySaved" ? (
-                <div className="flex gap-2 mb-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleUpdateTranslation}
-                    className="flex-1"
-                  >
-                    Update translation
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddSeparate}
-                    className="flex-1"
-                  >
-                    Add separate
-                  </Button>
-                </div>
-              ) : saveState === "alreadySaved" ? (
-                <div className="w-full mb-3 text-center text-sm text-muted-foreground py-1.5">
-                  Already saved
-                </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSaveConcept}
-                  className="w-full mb-3"
-                >
-                  Save concept for review
-                </Button>
-              )
-            )}
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Selected Text
               </span>
-              {!isLoading && translation.language && (
-                <Badge variant="secondary" className="text-xs">
-                  {translation.language}
-                </Badge>
-              )}
+              <div className="flex items-center gap-1">
+                {(contextBefore || contextAfter) && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-6 w-6 ${showContext ? "text-foreground" : "text-muted-foreground"}`}
+                        onClick={() => setShowContext(v => !v)}
+                      >
+                        <AlignLeft className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="z-[9999999]">
+                      Show surrounding context
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                {status === "logged_in" && (
+                  saveState === "saved" ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="h-6 w-6 flex items-center justify-center text-green-600 cursor-default">
+                          <Check className="h-3.5 w-3.5" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="z-[9999999] max-w-[180px] text-center">
+                        Saved! Visit the dashboard to review your concepts.
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : saveState === "alreadySaved" && !retranslated ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="h-6 w-6 flex items-center justify-center text-muted-foreground/50 cursor-default">
+                          <Check className="h-3.5 w-3.5" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="z-[9999999] max-w-[180px] text-center">
+                        Already in your saved concepts
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : saveState === "idle" ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                          onClick={handleSaveConcept}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="z-[9999999]">
+                        Save concept for review
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : null
+                )}
+                {!isLoading && translation.language && translation.language !== targetLanguage && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="secondary" className="text-xs cursor-default">
+                        {translation.language}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent className="z-[9999999]">
+                      Detected language
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
             </div>
             <div className="rounded-lg bg-muted/50 p-3">
               <p className="font-medium text-base">{selection}</p>
             </div>
+            {status === "logged_in" && retranslated && saveState === "alreadySaved" && (
+              <div className="flex gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleUpdateTranslation}
+                  className="flex-1 h-7 text-xs"
+                >
+                  Update translation
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddSeparate}
+                  className="flex-1 h-7 text-xs"
+                >
+                  Add new
+                </Button>
+              </div>
+            )}
           </div>
 
-          {selection.length <= 6 && (
+          {showContext && (contextBefore || contextAfter) && (
             <div className="space-y-2">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Context
@@ -383,13 +433,20 @@ export default function TranslationPopup({
                     <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Translation
                     </span>
-                    {fromCache && (
-                      <Badge variant="secondary" className="text-xs">
-                        Saved
-                      </Badge>
+                    {targetLanguage && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="secondary" className="text-xs cursor-default">
+                            {targetLanguage}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent className="z-[9999999]">
+                          Target language
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
-                  <div className="rounded-lg bg-primary/5 p-4 border border-primary/20">
+                  <div className="rounded-lg bg-primary/5 p-3 border border-primary/20">
                     <p className="text-base font-medium leading-relaxed">
                       {translation.contextualTranslation}
                     </p>
@@ -427,14 +484,16 @@ export default function TranslationPopup({
                 translation.grammarRules ||
                 translation.commonness ? (
                   <div className="space-y-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
+                    <div
                       onClick={() => setShowMore(!showMore)}
-                      className="w-full"
+                      className="flex items-center gap-2 cursor-pointer group"
                     >
-                      {showMore ? "See Less" : "See More"}
-                    </Button>
+                      <div className="flex-1 h-px bg-border" />
+                      <ChevronDown
+                        className={`h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:text-foreground ${showMore ? "rotate-180" : ""}`}
+                      />
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
 
                     {showMore && (
                       <>
@@ -465,7 +524,7 @@ export default function TranslationPopup({
                         )}
 
                         {translation.commonness && (
-                          <div className="space-y-1.5 pl-6">
+                          <div className="space-y-1.5">
                             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                               Frequency
                             </p>
