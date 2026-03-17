@@ -149,12 +149,12 @@ export default function App() {
               <SelectTrigger id='language'>
                 <SelectValue placeholder='Select a language' />
               </SelectTrigger>
-              <SelectContent className='bg-white'>
+              <SelectContent className='bg-popover'>
                 {languages.map((lang) => (
                   <SelectItem
                     key={lang.code}
                     value={lang.name}
-                    className='text-black'
+                    className='text-popover-foreground'
                   >
                     {lang.name}
                   </SelectItem>

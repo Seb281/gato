@@ -16,6 +16,13 @@ export default defineContentScript({
     let storedRange: Range | null = null
     let storedContext: { before: string; after: string } = { before: "", after: "" }
 
+    let activeContainer: HTMLDivElement | null = null
+    const mq = window.matchMedia("(prefers-color-scheme: dark)")
+
+    mq.addEventListener("change", (e) => {
+      if (activeContainer) activeContainer.classList.toggle("dark", e.matches)
+    })
+
     tooltip.init(showTranslationPopup)
 
     function captureSelection(): boolean {
@@ -46,6 +53,8 @@ export default defineContentScript({
 
       const container = document.createElement("div")
       container.id = "context-translator-root"
+      container.classList.toggle("dark", mq.matches)
+      activeContainer = container
       document.body.appendChild(container)
 
       const root = createRoot(container)
@@ -57,6 +66,7 @@ export default defineContentScript({
           contextAfter={storedContext.after}
           onClose={(): void => {
             highlight.clear()
+            if (activeContainer === container) activeContainer = null
             container.remove()
           }}
         />
