@@ -137,15 +137,12 @@ export const usersData = {
       // Delete from Supabase Auth first (requires admin access)
       const { error } = await supabase.auth.admin.deleteUser(supabaseId)
       if (error) throw error
-      
-      console.log(`User ${supabaseId} deleted from Supabase Auth`)
 
       // Then delete from database
       const deletedUser = await db
         .delete(usersTable)
         .where(eq(usersTable.supabaseId, supabaseId))
         .returning()
-      console.log(`User ${supabaseId} deleted from database`)
 
       return deletedUser
     } catch (error) {

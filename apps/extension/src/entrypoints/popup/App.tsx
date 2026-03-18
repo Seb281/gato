@@ -288,7 +288,7 @@ export default function App() {
                 variant='outline'
                 className='w-full'
                 onClick={() =>
-                  chrome.tabs.create({ url: import.meta.env.VITE_DASHBOARD_URL || 'http://localhost:3000' })
+                  chrome.tabs.create({ url: import.meta.env.VITE_DASHBOARD_URL })
                 }
               >
                 Open Dashboard

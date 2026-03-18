@@ -5,27 +5,13 @@ import updateConcept from "./helpers/handleUpdateConcept"
 import { isAuthenticated, supabase } from "./helpers/supabaseAuth"
 import { fetchUserSettings, saveUserSettings, type UserSettings } from "./helpers/handleUserSettings"
 
-const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD_URL || "http://localhost:3000"
+const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD_URL
 
 export default defineBackground(() => {
   // Flag to prevent infinite sync loops when setting session from dashboard
   let _isSyncingFromDashboard = false
 
-  chrome.runtime.onStartup.addListener((): void => {
-  console.log("Context Translator service worker started")
-})
-
-chrome.runtime.onInstalled.addListener(
-  (details: chrome.runtime.InstalledDetails): void => {
-    if (details.reason === "install") {
-      console.log("Context Translator installed")
-    } else if (details.reason === "update") {
-      console.log("Context Translator updated")
-    }
-  }
-)
-
-chrome.commands.onCommand.addListener((command: string): void => {
+  chrome.commands.onCommand.addListener((command: string): void => {
   if (command === "show-translation") {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]?.id) {

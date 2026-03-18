@@ -19,7 +19,7 @@ export async function startServer() {
   try {
     // Register CORS
     await app.register(cors, {
-      origin: true,
+      origin: process.env.ALLOWED_ORIGIN || 'http://localhost:3000',
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -30,7 +30,7 @@ export async function startServer() {
 
     // Start server
     await app.listen({ port: PORT, host: '0.0.0.0' })
-    console.log(`🧠 Server is running on http://localhost:${PORT}`)
+    app.log.info(`Server is running on port ${PORT}`)
 
     // Graceful shutdown
     const shutdown = async () => {

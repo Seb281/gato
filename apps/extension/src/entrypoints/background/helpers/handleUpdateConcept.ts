@@ -1,6 +1,6 @@
 import { getSupabaseToken } from "./supabaseAuth"
 
-const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:3001"
+const BASE_URL = import.meta.env.VITE_BASE_URL
 
 export default async function updateConcept(conceptId: number, translation: string) {
   const token = await getSupabaseToken()

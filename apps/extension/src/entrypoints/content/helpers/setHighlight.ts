@@ -8,7 +8,7 @@ const highlight: {
 
   selection(range: Range): void {
     const selectedSpan: HTMLSpanElement = document.createElement("span")
-    selectedSpan.className = "bg-yellow-300 transition-colors"
+    selectedSpan.className = "bg-blue-300 transition-colors"
     selectedSpan.dataset.translatorHighlight = "true" // keep or remove? ATM it's not used (nov13)
     try {
       range.surroundContents(selectedSpan)
@@ -52,7 +52,7 @@ const highlight: {
       range.setEnd(textNode, end)
 
       const span = document.createElement("span")
-      span.className = "bg-yellow-100 transition-colors"
+      span.className = "bg-blue-100 transition-colors"
       span.dataset.translatorHighlight = "true"
 
       range.surroundContents(span)

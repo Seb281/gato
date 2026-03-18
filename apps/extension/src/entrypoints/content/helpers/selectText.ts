@@ -23,11 +23,12 @@ const handleSelection = {
 
       const wordStart = textBefore.lastIndexOf(" ") + 1
 
-      if (wordStart !== 0) {
-        expandedRange.setStart(textNode, wordStart)
-      } else {
-        expandedRange.setStart(textNode, 0)
-      }
+      // Skip any leading punctuation after the word boundary (e.g. '(' in "(word")
+      const remaining = textNode.textContent!.substring(wordStart)
+      const leadingPunct = remaining.match(/^[^\p{L}\p{N}]+/u)
+      const adjustedStart = wordStart + (leadingPunct ? leadingPunct[0].length : 0)
+
+      expandedRange.setStart(textNode, adjustedStart)
     }
 
     if (range.endContainer.nodeType === Node.TEXT_NODE) {

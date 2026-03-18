@@ -9,7 +9,7 @@
  * - Extension -> Dashboard: receives full session from background, writes cookies
  */
 
-const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD_URL || "http://localhost:3000"
+const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD_URL
 
 // Extract project ref from Supabase URL (e.g. "https://abc123.supabase.co" -> "abc123")
 const SUPABASE_URL: string = import.meta.env.VITE_SUPABASE_URL || ""
@@ -17,15 +17,13 @@ const PROJECT_REF = SUPABASE_URL.match(/https?:\/\/([^.]+)\.supabase/)?.[1] || "
 const COOKIE_NAME = `sb-${PROJECT_REF}-auth-token`
 
 export default defineContentScript({
-  matches: [`${DASHBOARD_URL}/*`],
+  matches: [`${import.meta.env.VITE_DASHBOARD_URL}/*`],
   runAt: "document_idle",
   main() {
     if (!PROJECT_REF) {
       console.warn("[auth-bridge] Could not extract Supabase project ref from VITE_SUPABASE_URL")
       return
     }
-
-    console.log("[auth-bridge] Content script loaded, cookie name:", COOKIE_NAME)
 
     let lastCookieHash = ""
 
@@ -142,7 +140,6 @@ export default defineContentScript({
         (resolve) => {
           chrome.runtime.sendMessage({ type: "GET_EXTENSION_SESSION" }, (response) => {
             if (chrome.runtime.lastError) {
-              console.log("[auth-bridge] Failed to get extension session:", chrome.runtime.lastError.message)
               resolve(null)
               return
             }
@@ -153,11 +150,8 @@ export default defineContentScript({
 
       const extensionSession = extensionResponse?.session || null
 
-      console.log("[auth-bridge] Initial sync - dashboard has session:", !!dashboardTokens, "extension has session:", !!extensionSession)
-
       if (dashboardTokens && !extensionSession) {
         // Dashboard has session, extension doesn't -> sync to extension
-        console.log("[auth-bridge] Syncing dashboard session to extension")
         chrome.runtime.sendMessage({
           type: "DASHBOARD_SESSION",
           access_token: dashboardTokens.access_token,
@@ -165,7 +159,6 @@ export default defineContentScript({
         })
       } else if (!dashboardTokens && extensionSession) {
         // Extension has session, dashboard doesn't -> write full session to cookies
-        console.log("[auth-bridge] Syncing extension session to dashboard")
         writeSessionToCookies(JSON.stringify(extensionSession))
         location.reload()
       }
@@ -184,14 +177,12 @@ export default defineContentScript({
 
         const tokens = readTokensFromCookies()
         if (tokens) {
-          console.log("[auth-bridge] Dashboard cookie changed - signed in")
           chrome.runtime.sendMessage({
             type: "DASHBOARD_SESSION",
             access_token: tokens.access_token,
             refresh_token: tokens.refresh_token,
           })
         } else {
-          console.log("[auth-bridge] Dashboard cookie changed - signed out")
           chrome.runtime.sendMessage({ type: "DASHBOARD_SIGNOUT" })
         }
       }, 2000)
@@ -203,12 +194,10 @@ export default defineContentScript({
      */
     chrome.runtime.onMessage.addListener((message) => {
       if (message.type === "EXTENSION_SESSION" && message.session) {
-        console.log("[auth-bridge] Received extension session, writing cookies")
         writeSessionToCookies(JSON.stringify(message.session))
         lastCookieHash = hashCookieState()
         location.reload()
       } else if (message.type === "EXTENSION_SIGNOUT") {
-        console.log("[auth-bridge] Received extension signout, clearing cookies")
         clearSessionCookies()
         lastCookieHash = hashCookieState()
         location.reload()

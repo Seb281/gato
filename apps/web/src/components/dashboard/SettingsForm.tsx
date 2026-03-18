@@ -37,7 +37,7 @@ export default function SettingsForm() {
   const [hasCustomApiKey, setHasCustomApiKey] = useState(false);
   const [maskedApiKey, setMaskedApiKey] = useState("");
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
     async function fetchSettings() {
