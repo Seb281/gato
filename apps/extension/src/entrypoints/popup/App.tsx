@@ -53,9 +53,17 @@ export default function App() {
   const fetchSettingsFromApi = () => {
     chrome.runtime.sendMessage(
       { action: 'fetchUserSettings' },
-      (response: { success: boolean; settings?: { targetLanguage: string | null; personalContext: string | null }; error?: string }) => {
+      (response: {
+        success: boolean
+        settings?: {
+          targetLanguage: string | null
+          personalContext: string | null
+        }
+        error?: string
+      }) => {
         if (response?.success && response.settings) {
-          const { targetLanguage: apiTargetLang, personalContext: apiContext } = response.settings
+          const { targetLanguage: apiTargetLang, personalContext: apiContext } =
+            response.settings
           if (apiTargetLang) {
             setTargetLanguage(apiTargetLang)
             chrome.storage.sync.set({ targetLanguage: apiTargetLang })
@@ -65,7 +73,7 @@ export default function App() {
             chrome.storage.sync.set({ personalContext: apiContext })
           }
         }
-      }
+      },
     )
   }
 
@@ -94,7 +102,7 @@ export default function App() {
       () => {
         setIsSaved(true)
         setTimeout(() => setIsSaved(false), 2000)
-      }
+      },
     )
 
     // Also save to API if signed in
@@ -130,10 +138,10 @@ export default function App() {
         <CardHeader className='pb-3'>
           <div className='flex items-center gap-2'>
             <Languages className='h-5 w-5 text-primary' />
-            <CardTitle className='text-lg'>Context Translator</CardTitle>
+            <CardTitle className='text-lg'>Context-Aware Translator</CardTitle>
           </div>
           <p className='text-sm text-muted-foreground mt-1'>
-            Smart translations with context
+            Translate any text, in context
           </p>
         </CardHeader>
 
@@ -226,7 +234,10 @@ export default function App() {
                   1
                 </Badge>
                 <p className='text-sm text-muted-foreground'>
-                  Select any text on a webpage
+                  <span className='font-medium text-foreground'>
+                    Select any text
+                  </span>{' '}
+                  on a webpage
                 </p>
               </div>
 
@@ -238,10 +249,18 @@ export default function App() {
                   2
                 </Badge>
                 <p className='text-sm text-muted-foreground'>
-                  Press{' '}
-                  <kbd className='px-2 py-0.5 bg-muted rounded text-xs font-mono'>
-                    Ctrl+Shift+T
-                  </kbd>
+                  <span className='font-medium text-foreground'>
+                    Press{' '}
+                    <kbd className='px-2 py-0.5 bg-muted rounded text-xs font-mono'>
+                      Ctrl+Shift+T
+                    </kbd>{' '}
+                    or the{' '}
+                    <kbd className='px-2 py-0.5 bg-muted rounded text-xs font-mono'>
+                      Translate
+                    </kbd>{' '}
+                    tooltip
+                  </span>{' '}
+                  to trigger a translation
                 </p>
               </div>
 
@@ -253,7 +272,10 @@ export default function App() {
                   3
                 </Badge>
                 <p className='text-sm text-muted-foreground'>
-                  View context-aware translation
+                  <span className='font-medium text-foreground'>
+                    View the result
+                  </span>{' '}
+                  with context, grammar & usage notes
                 </p>
               </div>
             </div>
@@ -264,14 +286,29 @@ export default function App() {
             <AuthForm supabase={supabase} />
           ) : (
             <>
+              <Button
+                variant='outline'
+                className='w-full'
+                onClick={() =>
+                  chrome.tabs.create({
+                    url: import.meta.env.VITE_DASHBOARD_URL,
+                  })
+                }
+              >
+                Open Dashboard
+              </Button>
               <div className='flex items-center justify-between'>
                 <div className='flex items-center gap-2'>
                   <div className='w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center'>
                     <User className='h-4 w-4 text-primary' />
                   </div>
                   <div className='flex flex-col'>
-                    <span className='text-xs font-medium truncate max-w-[150px]'>{session.user.email}</span>
-                    <span className='text-[10px] text-muted-foreground'>Signed in</span>
+                    <span className='text-xs font-medium truncate max-w-[150px]'>
+                      {session.user.email}
+                    </span>
+                    <span className='text-[10px] text-muted-foreground'>
+                      Signed in
+                    </span>
                   </div>
                 </div>
                 <Button
@@ -284,15 +321,6 @@ export default function App() {
                   Logout
                 </Button>
               </div>
-              <Button
-                variant='outline'
-                className='w-full'
-                onClick={() =>
-                  chrome.tabs.create({ url: import.meta.env.VITE_DASHBOARD_URL })
-                }
-              >
-                Open Dashboard
-              </Button>
             </>
           )}
         </CardContent>

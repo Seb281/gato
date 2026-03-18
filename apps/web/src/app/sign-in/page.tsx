@@ -46,7 +46,7 @@ export default function SignInPage() {
             appearance={{ theme: ThemeSupa }}
             theme="default"
             showLinks={true}
-            providers={[]}
+            providers={['google']}
             redirectTo={`${typeof window !== 'undefined' ? window.location.origin : ''}/dashboard`}
           />
         </CardContent>
