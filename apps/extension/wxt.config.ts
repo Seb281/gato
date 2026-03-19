@@ -34,12 +34,5 @@ export default defineConfig({
         description: 'Show translation for selected text',
       },
     },
-    content_scripts: [
-      {
-        matches: ['<all_urls>'],
-        js: ['content-scripts/content.js'],
-        css: ['content-scripts/content.css'],
-      },
-    ],
   },
 })

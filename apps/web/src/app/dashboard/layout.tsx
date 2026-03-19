@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/app/actions";
 import { createClient } from "@/lib/supabase/server";
+import ExtensionBridge from "@/components/ExtensionBridge";
 
 export default async function DashboardLayout({
   children,
@@ -39,6 +40,7 @@ export default async function DashboardLayout({
           </div>
         </div>
       </header>
+      <ExtensionBridge />
       <main className="container mx-auto px-4 py-8">{children}</main>
     </div>
   );

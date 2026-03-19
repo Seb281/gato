@@ -5,7 +5,8 @@
  * the extension (IndexedDB/localStorage via Supabase JS SDK) and the
  * dashboard (cookies via @supabase/ssr).
  *
- * - Dashboard -> Extension: reads session cookies, sends tokens to background
+ * - Dashboard -> Extension: receives postMessage from ExtensionBridge component,
+ *   relays tokens to background via chrome.runtime.sendMessage
  * - Extension -> Dashboard: receives full session from background, writes cookies
  */
 
@@ -25,7 +26,9 @@ export default defineContentScript({
       return
     }
 
-    let lastCookieHash = ""
+    console.log('[auth-bridge] running — PROJECT_REF:', PROJECT_REF, '| COOKIE_NAME:', COOKIE_NAME)
+
+    const DASHBOARD_ORIGIN = new URL(DASHBOARD_URL).origin
 
     /** Parse all cookies into a key-value map. */
     function parseCookies(): Record<string, string> {
@@ -71,7 +74,7 @@ export default defineContentScript({
 
     /**
      * Read access_token and refresh_token from dashboard cookies.
-     * Used for dashboard -> extension sync (setSession only needs these two).
+     * Only JS-visible cookies (not HttpOnly) — used solely for Extension->Dashboard check.
      */
     function readTokensFromCookies(): { access_token: string; refresh_token: string } | null {
       const raw = readRawSessionFromCookies()
@@ -120,72 +123,52 @@ export default defineContentScript({
       }
     }
 
-    /** Simple hash of cookie state for change detection. */
-    function hashCookieState(): string {
-      const tokens = readTokensFromCookies()
-      return tokens ? tokens.access_token.slice(-16) : "none"
-    }
+    // Listen for session pushes from the dashboard's ExtensionBridge component
+    window.addEventListener('message', (event) => {
+      if (event.origin !== DASHBOARD_ORIGIN) return
+
+      if (event.data?.type === 'SUPABASE_SESSION') {
+        console.log('[auth-bridge] received SUPABASE_SESSION from dashboard')
+        chrome.runtime.sendMessage({
+          type: 'DASHBOARD_SESSION',
+          access_token: event.data.access_token,
+          refresh_token: event.data.refresh_token,
+        })
+      } else if (event.data?.type === 'SUPABASE_SIGNOUT') {
+        console.log('[auth-bridge] received SUPABASE_SIGNOUT from dashboard')
+        chrome.runtime.sendMessage({ type: 'DASHBOARD_SIGNOUT' })
+      }
+    })
 
     /**
      * Initial sync on page load:
-     * - Read dashboard cookies
-     * - Ask background for extension session
-     * - Sync whichever side is missing
+     * - If extension has a session and dashboard cookies are absent, write them and reload
+     * - Send EXTENSION_BRIDGE_READY ping so ExtensionBridge re-sends session if it already fired
      */
     async function initialSync(): Promise<void> {
-      const dashboardTokens = readTokensFromCookies()
-
-      // Get the full session object from extension (background)
-      const extensionResponse = await new Promise<{ session: any } | null>(
-        (resolve) => {
-          chrome.runtime.sendMessage({ type: "GET_EXTENSION_SESSION" }, (response) => {
-            if (chrome.runtime.lastError) {
-              resolve(null)
-              return
-            }
-            resolve(response || null)
-          })
-        }
-      )
+      const extensionResponse = await new Promise<{ session: any } | null>((resolve) => {
+        chrome.runtime.sendMessage({ type: 'GET_EXTENSION_SESSION' }, (response) => {
+          if (chrome.runtime.lastError) { resolve(null); return }
+          resolve(response || null)
+        })
+      })
 
       const extensionSession = extensionResponse?.session || null
+      const dashboardCookies = readTokensFromCookies() // JS-visible cookies only
 
-      if (dashboardTokens && !extensionSession) {
-        // Dashboard has session, extension doesn't -> sync to extension
-        chrome.runtime.sendMessage({
-          type: "DASHBOARD_SESSION",
-          access_token: dashboardTokens.access_token,
-          refresh_token: dashboardTokens.refresh_token,
-        })
-      } else if (!dashboardTokens && extensionSession) {
-        // Extension has session, dashboard doesn't -> write full session to cookies
+      console.log('[auth-bridge] initialSync — extensionSession:', extensionSession ? 'FOUND' : 'none', '| dashboardCookies (JS-visible):', dashboardCookies ? 'FOUND' : 'none')
+
+      if (extensionSession && !dashboardCookies) {
+        console.log('[auth-bridge] → writing extension session to dashboard cookies')
         writeSessionToCookies(JSON.stringify(extensionSession))
         location.reload()
+        return
       }
 
-      lastCookieHash = hashCookieState()
-    }
-
-    /**
-     * Poll cookies every 2s to detect dashboard sign-in / sign-out changes.
-     */
-    function startPolling(): void {
-      setInterval(() => {
-        const currentHash = hashCookieState()
-        if (currentHash === lastCookieHash) return
-        lastCookieHash = currentHash
-
-        const tokens = readTokensFromCookies()
-        if (tokens) {
-          chrome.runtime.sendMessage({
-            type: "DASHBOARD_SESSION",
-            access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token,
-          })
-        } else {
-          chrome.runtime.sendMessage({ type: "DASHBOARD_SIGNOUT" })
-        }
-      }, 2000)
+      // Ping dashboard to send current session (handles case where onAuthStateChange
+      // already fired before this content script initialized)
+      console.log('[auth-bridge] → sending EXTENSION_BRIDGE_READY ping')
+      window.postMessage({ type: 'EXTENSION_BRIDGE_READY' }, DASHBOARD_ORIGIN)
     }
 
     /**
@@ -195,17 +178,14 @@ export default defineContentScript({
     chrome.runtime.onMessage.addListener((message) => {
       if (message.type === "EXTENSION_SESSION" && message.session) {
         writeSessionToCookies(JSON.stringify(message.session))
-        lastCookieHash = hashCookieState()
         location.reload()
       } else if (message.type === "EXTENSION_SIGNOUT") {
         clearSessionCookies()
-        lastCookieHash = hashCookieState()
         location.reload()
       }
     })
 
     // Kick off
     initialSync()
-    startPolling()
   },
 })
