@@ -23,8 +23,8 @@ export default defineConfig({
       48: 'icon/icon-48.png',
       128: 'icon/icon-128.png',
     },
-    permissions: ['storage', 'tabs'],
-    host_permissions: ['<all_urls>'],
+    permissions: ['storage', 'tabs', 'activeTab', 'scripting'],
+    host_permissions: ['https://context-aware-translator-dashboard.vercel.app/*'],
     commands: {
       'show-translation': {
         suggested_key: {

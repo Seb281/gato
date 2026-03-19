@@ -8,7 +8,8 @@ import detectPageLanguage from "./helpers/detectLanguage"
 import tooltip from "./components/Tooltip"
 
 export default defineContentScript({
-  matches: ["<all_urls>"],
+  matches: ["https://context-aware-translator-dashboard.vercel.app/*"],
+  registration: 'runtime',
   main() {
     try { initSentry({ context: "content" }) } catch { /* Sentry unavailable — extension continues */ }
 

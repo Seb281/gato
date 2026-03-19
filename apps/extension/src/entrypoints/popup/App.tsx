@@ -16,6 +16,7 @@ export default function App() {
   const [targetLanguage, setTargetLanguage] = useState('English')
   const [personalContext, setPersonalContext] = useState('')
   const [isSaved, setIsSaved] = useState(false)
+  const [isActivated, setIsActivated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   // Initialize Supabase session and listen for changes
@@ -40,8 +41,10 @@ export default function App() {
     })
 
     // React to session written by background (e.g. auth-bridge dashboard sync)
-    const handleStorageChange = (changes: Record<string, chrome.storage.StorageChange>) => {
-      const hasAuthChange = Object.keys(changes).some(k => k.includes('auth'))
+    const handleStorageChange = (
+      changes: Record<string, chrome.storage.StorageChange>,
+    ) => {
+      const hasAuthChange = Object.keys(changes).some((k) => k.includes('auth'))
       if (!hasAuthChange) return
       supabase.auth.getSession().then(({ data: { session } }) => {
         setSession(session)
@@ -125,6 +128,37 @@ export default function App() {
     }
   }
 
+  useEffect(() => {
+    chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+      if (!tab?.id) return
+      chrome.tabs
+        .sendMessage(tab.id, { action: 'ping' })
+        .then(() => setIsActivated(true))
+        .catch(() => setIsActivated(false))
+    })
+  }, [])
+
+  async function handleActivate() {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (!tab?.id) return
+    await chrome.scripting.insertCSS({
+      target: { tabId: tab.id },
+      files: ['content-scripts/content.css'],
+    })
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['content-scripts/content.js'],
+    })
+    setIsActivated(true)
+  }
+
+  async function handleDeactivate() {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (!tab?.id) return
+    chrome.tabs.reload(tab.id)
+    setIsActivated(false)
+  }
+
   const handleSignOut = async () => {
     await supabase.auth.signOut()
   }
@@ -143,14 +177,37 @@ export default function App() {
   return (
     <div className='w-[420px]'>
       <Card className='rounded-none border-0 shadow-none'>
-        <CardHeader className='pb-3'>
+        <CardHeader className=''>
           <div className='flex items-center gap-2'>
             <Languages className='h-5 w-5 text-primary' />
             <CardTitle className='text-lg'>Context-Aware Translator</CardTitle>
           </div>
           <p className='text-sm text-muted-foreground mt-1'>
-            Translate any text, in context
+            Translate any text, in context. Start by activating the extension
+            for this tab by clicking below:
           </p>
+          <div className='mt-2 flex justify-center items-center gap-2'>
+            {!isActivated ? (
+              <Button variant='link' size='sm' onClick={handleActivate}>
+                Activate on current tab
+              </Button>
+            ) : (
+              <div className='flex justify-around'>
+                <span className='flex items-center gap-1 text-sm text-green-600 dark:text-green-400 font-medium'>
+                  <Check className='h-3.5 w-3.5' />
+                  Active on this tab
+                </span>
+                <Button
+                  variant='link'
+                  size='sm'
+                  onClick={handleDeactivate}
+                  className='text-muted-foreground hover:text-destructive hover:underline'
+                >
+                  Deactivate
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
 
         <CardContent className='space-y-4'>
@@ -211,7 +268,7 @@ export default function App() {
             </div>
           </div>
 
-          <Button onClick={handleSave} className='w-full'>
+          <Button onClick={handleSave} variant='default' className='w-full'>
             {isSaved ? (
               <>
                 <Check className='w-4 h-4 mr-2' />
@@ -239,9 +296,10 @@ export default function App() {
                 </Badge>
                 <p className='text-sm text-muted-foreground'>
                   <span className='font-medium text-foreground'>
-                    Select any text
+                    Activate on the tab
                   </span>{' '}
-                  on a webpage
+                  using the button at the top, or just press the shortcut for
+                  the first time
                 </p>
               </div>
 
@@ -254,17 +312,9 @@ export default function App() {
                 </Badge>
                 <p className='text-sm text-muted-foreground'>
                   <span className='font-medium text-foreground'>
-                    Press{' '}
-                    <kbd className='px-2 py-0.5 bg-muted rounded text-xs font-mono'>
-                      Ctrl+Shift+T
-                    </kbd>{' '}
-                    or the{' '}
-                    <kbd className='px-2 py-0.5 bg-muted rounded text-xs font-mono'>
-                      Translate
-                    </kbd>{' '}
-                    tooltip
+                    Select any text
                   </span>{' '}
-                  to trigger a translation
+                  on the webpage
                 </p>
               </div>
 
@@ -277,9 +327,17 @@ export default function App() {
                 </Badge>
                 <p className='text-sm text-muted-foreground'>
                   <span className='font-medium text-foreground'>
-                    View the result
+                    Press{' '}
+                    <kbd className='px-2 py-0.5 bg-muted rounded text-xs font-mono'>
+                      Ctrl+Shift+T
+                    </kbd>{' '}
+                    or click the{' '}
+                    <kbd className='px-2 py-0.5 bg-muted rounded text-xs font-mono'>
+                      Translate
+                    </kbd>{' '}
+                    tooltip
                   </span>{' '}
-                  with context, grammar & usage notes
+                  to get a contextual translation
                 </p>
               </div>
             </div>

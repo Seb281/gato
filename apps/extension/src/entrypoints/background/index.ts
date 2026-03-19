@@ -15,16 +15,27 @@ export default defineBackground(() => {
   // Flag to prevent infinite sync loops when setting session from dashboard
   let _isSyncingFromDashboard = false
 
-  chrome.commands.onCommand.addListener((command: string): void => {
-  if (command === "show-translation") {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]?.id) {
-        chrome.tabs.sendMessage(tabs[0].id, {
-          action: "showTranslation",
-        })
-      }
+  chrome.commands.onCommand.addListener(async (command: string) => {
+  if (command !== "show-translation") return
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  if (!tab?.id) return
+
+  // Activate tab if content script not yet injected (works with or without text selected)
+  try {
+    await chrome.tabs.sendMessage(tab.id, { action: "ping" })
+  } catch {
+    await chrome.scripting.insertCSS({
+      target: { tabId: tab.id },
+      files: ["content-scripts/content.css"],
+    })
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["content-scripts/content.js"],
     })
   }
+
+  // Attempt to show translation — no-op if no text is selected
+  chrome.tabs.sendMessage(tab.id, { action: "showTranslation" }).catch(() => {})
 })
 
 type TranslateMessage = {
