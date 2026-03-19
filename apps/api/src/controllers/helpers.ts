@@ -100,14 +100,15 @@ export function promptBuilder(
   const personalCtx = personalContext
     ? `\nIf it makes sense, take into account this context about me: ${personalContext}.`
     : ''
+  const resolvedTarget = targetLanguage ?? 'English'
 
   const promptContents = `For the text I provide, ${promptAdjustment[0]}:
 
-Translate to ${targetLanguage ?? 'English'} and return a JSON object with these keys:
+Translate to ${resolvedTarget} and return a JSON object with these keys. Write all field values in ${resolvedTarget}:
 
 "language": ${lang}${optField1}
-"contextualTranslation": Best ${targetLanguage} translation of the marked ${promptAdjustment[2]} in this context.
-"phoneticApproximation": English-sound phonetic approximation.${optField3}${optField4}${optField5}${personalCtx}
+"contextualTranslation": Best ${resolvedTarget} translation of the marked ${promptAdjustment[2]} in this context.
+"phoneticApproximation": ${resolvedTarget}-sound phonetic approximation.${optField3}${optField4}${optField5}${personalCtx}
 
 Text: ${text}`
 
