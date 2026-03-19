@@ -10,6 +10,8 @@
  * - Extension -> Dashboard: receives full session from background, writes cookies
  */
 
+import { initSentry, scope } from "@/lib/sentry"
+
 const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD_URL
 
 // Extract project ref from Supabase URL (e.g. "https://abc123.supabase.co" -> "abc123")
@@ -21,7 +23,12 @@ export default defineContentScript({
   matches: [`${import.meta.env.VITE_DASHBOARD_URL}/*`],
   runAt: "document_idle",
   main() {
+    try { initSentry({ context: "auth-bridge" }) } catch { /* Sentry unavailable — auth bridge continues */ }
+
     if (!PROJECT_REF) {
+      scope.captureException(
+        new Error("[auth-bridge] Missing VITE_SUPABASE_URL — PROJECT_REF could not be extracted")
+      )
       return
     }
 

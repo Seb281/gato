@@ -1,7 +1,14 @@
 import { createClient } from "@supabase/supabase-js"
+import { scope } from "@/lib/sentry"
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  scope.captureException(
+    new Error("Missing Supabase configuration: VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY is not set")
+  )
+}
 
 
 /**
@@ -35,7 +42,8 @@ export async function getSupabaseToken(): Promise<string | null> {
   try {
     const { data: { session } } = await supabase.auth.getSession()
     return session?.access_token ?? null
-  } catch {
+  } catch (error) {
+    scope.captureException(error)
     return null
   }
 }
@@ -44,7 +52,8 @@ export async function isAuthenticated(): Promise<boolean> {
   try {
     const { data: { session } } = await supabase.auth.getSession()
     return !!session
-  } catch {
+  } catch (error) {
+    scope.captureException(error)
     return false
   }
 }

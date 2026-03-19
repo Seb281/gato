@@ -1,5 +1,6 @@
 import "./content.css"
 import { createRoot } from "react-dom/client"
+import { initSentry } from "@/lib/sentry"
 import TranslationPopup from "./components/TranslationPopup"
 import highlight from "./helpers/setHighlight"
 import handleSelection from "./helpers/selectText"
@@ -9,6 +10,8 @@ import tooltip from "./components/Tooltip"
 export default defineContentScript({
   matches: ["<all_urls>"],
   main() {
+    try { initSentry({ context: "content" }) } catch { /* Sentry unavailable — extension continues */ }
+
     const sourceLanguage: string = detectPageLanguage()
     chrome.storage.sync.set({ sourceLanguage })
 

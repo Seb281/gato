@@ -13,7 +13,8 @@ const highlight: {
     try {
       range.surroundContents(selectedSpan)
       this.current.push(selectedSpan)
-    } catch (error) {
+    } catch {
+      // Expected DOM edge case: surroundContents throws when range partially intersects a node boundary.
     }
   },
 

@@ -1,3 +1,4 @@
+import { initSentry } from "@/lib/sentry"
 import saveConcept from "./helpers/handleSaveConcept"
 import handleTranslation from "./helpers/handleTranslation"
 import lookupConcept from "./helpers/handleLookupConcept"
@@ -7,7 +8,10 @@ import { fetchUserSettings, saveUserSettings, type UserSettings } from "./helper
 
 const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD_URL
 
+initSentry({ context: "background", isServiceWorker: true })
+
 export default defineBackground(() => {
+
   // Flag to prevent infinite sync loops when setting session from dashboard
   let _isSyncingFromDashboard = false
 
