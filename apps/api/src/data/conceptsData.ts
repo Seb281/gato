@@ -1,5 +1,5 @@
 import { db } from '../db/index.ts'
-import { and, eq, ilike, or, desc, asc, sql } from 'drizzle-orm'
+import { and, eq, ilike, inArray, or, desc, asc, sql } from 'drizzle-orm'
 import { conceptsTable, usersTable } from '../db/schema.ts'
 import type { Concept, NewConcept } from '../db/schema.ts'
 
@@ -108,6 +108,7 @@ const conceptsData = {
       search?: string | undefined
       language?: string | undefined
       state?: string | undefined
+      conceptIds?: number[] | undefined
       sortBy?: 'date' | 'alpha' | undefined
       sortOrder?: 'asc' | 'desc' | undefined
       page?: number | undefined
@@ -115,6 +116,10 @@ const conceptsData = {
     }
   ): Promise<{ concepts: Concept[]; total: number }> {
     const conditions = [eq(conceptsTable.userId, userId)]
+
+    if (params.conceptIds) {
+      conditions.push(inArray(conceptsTable.id, params.conceptIds))
+    }
 
     if (params.search) {
       const term = `%${params.search}%`

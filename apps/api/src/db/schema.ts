@@ -1,4 +1,4 @@
-import { integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core'
+import { integer, pgTable, primaryKey, serial, text, timestamp, unique } from 'drizzle-orm/pg-core'
 
 export const usersTable = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -36,8 +36,38 @@ export const conceptsTable = pgTable('concepts', {
     .$onUpdate(() => new Date()),
 })
 
+export const tagsTable = pgTable(
+  'tags',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => usersTable.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    color: text('color').notNull().default('#6b7280'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.userId, t.name)]
+)
+
+export const conceptTagsTable = pgTable(
+  'concept_tags',
+  {
+    conceptId: integer('concept_id')
+      .notNull()
+      .references(() => conceptsTable.id, { onDelete: 'cascade' }),
+    tagId: integer('tag_id')
+      .notNull()
+      .references(() => tagsTable.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.conceptId, t.tagId] })]
+)
+
 export type User = typeof usersTable.$inferSelect
 export type NewUser = typeof usersTable.$inferInsert
 
 export type Concept = typeof conceptsTable.$inferSelect
 export type NewConcept = typeof conceptsTable.$inferInsert
+
+export type Tag = typeof tagsTable.$inferSelect
+export type NewTag = typeof tagsTable.$inferInsert

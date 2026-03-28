@@ -7,6 +7,7 @@ import {
   getAuthenticatedUserId,
 } from '../middleware/supabaseAuth.ts'
 import conceptsData from '../data/conceptsData.ts'
+import tagsData from '../data/tagsData.ts'
 import { usersData, userContextData } from '../data/usersData.ts'
 
 type SaveConceptBody = {
@@ -27,6 +28,7 @@ type ConceptsQuerystring = {
   search?: string
   language?: string
   state?: string
+  tags?: string
   sortBy?: 'date' | 'alpha'
   sortOrder?: 'asc' | 'desc'
   page?: string
@@ -189,21 +191,43 @@ export async function extensionRoutes(
         return reply.send({ message: 'Concepts retrieved', concepts: [], total: 0 })
       }
 
-      const { search, language, state, sortBy, sortOrder, page, limit } = request.query
+      const { search, language, state, tags, sortBy, sortOrder, page, limit } = request.query
+
+      // If tag filter is provided, resolve matching concept IDs first
+      let tagConceptIds: number[] | undefined
+      if (tags) {
+        const tagIds = tags.split(',').map((id) => parseInt(id.trim(), 10)).filter((id) => !isNaN(id))
+        if (tagIds.length > 0) {
+          tagConceptIds = await tagsData.getConceptIdsWithAllTags(tagIds)
+          if (tagConceptIds.length === 0) {
+            return reply.send({ message: 'Concepts retrieved', concepts: [], total: 0 })
+          }
+        }
+      }
 
       const result = await conceptsData.searchConcepts(user.id, {
         search,
         language,
         state,
+        conceptIds: tagConceptIds,
         sortBy,
         sortOrder,
         page: page ? parseInt(page, 10) : undefined,
         limit: limit ? parseInt(limit, 10) : undefined,
       })
 
+      // Batch-load tags for returned concepts
+      const conceptIds = result.concepts.map((c) => c.id)
+      const tagsMap = await tagsData.getTagsForConcepts(conceptIds)
+
+      const conceptsWithTags = result.concepts.map((c) => ({
+        ...c,
+        tags: tagsMap.get(c.id) ?? [],
+      }))
+
       return reply.send({
         message: 'Concepts retrieved',
-        concepts: result.concepts,
+        concepts: conceptsWithTags,
         total: result.total,
       })
     }

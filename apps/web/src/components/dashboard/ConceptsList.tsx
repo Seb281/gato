@@ -25,6 +25,14 @@ import {
 import { format } from "date-fns";
 import ConceptNotes from "./ConceptNotes";
 import MasteryBadge from "./MasteryBadge";
+import TagBadge from "./TagBadge";
+import TagSelector from "./TagSelector";
+
+type Tag = {
+  id: number;
+  name: string;
+  color: string;
+};
 
 type Concept = {
   id: number;
@@ -39,6 +47,7 @@ type Concept = {
   fixedExpression: string | null;
   userNotes: string | null;
   exampleSentence: string | null;
+  tags: Tag[];
   createdAt: string;
   state: string;
   updatedAt: string;
@@ -63,6 +72,10 @@ export default function ConceptsList() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
 
+  // Tags state
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [tagFilter, setTagFilter] = useState("all");
+
   // Distinct language pairs for filter dropdown
   const [languagePairs, setLanguagePairs] = useState<string[]>([]);
 
@@ -77,25 +90,33 @@ export default function ConceptsList() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Fetch language pairs once on mount
+  // Fetch language pairs and tags once on mount
   useEffect(() => {
-    async function fetchLanguagePairs() {
+    async function fetchFilters() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        const res = await fetch(`${API_URL}/saved-concepts/languages`, {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
+        const headers = { Authorization: `Bearer ${session.access_token}` };
+
+        const [langRes, tagsRes] = await Promise.all([
+          fetch(`${API_URL}/saved-concepts/languages`, { headers }),
+          fetch(`${API_URL}/tags`, { headers }),
+        ]);
+
+        if (langRes.ok) {
+          const data = await langRes.json();
           setLanguagePairs(data.languages);
         }
+        if (tagsRes.ok) {
+          const data = await tagsRes.json();
+          setAllTags(data.tags);
+        }
       } catch (error) {
-        console.error("Failed to fetch language pairs:", error);
+        console.error("Failed to fetch filters:", error);
       }
     }
-    fetchLanguagePairs();
+    fetchFilters();
   }, [supabase, API_URL]);
 
   // Fetch concepts with search/filter/sort
@@ -115,6 +136,7 @@ export default function ConceptsList() {
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (languageFilter !== "all") params.set("language", languageFilter);
       if (stateFilter !== "all") params.set("state", stateFilter);
+      if (tagFilter !== "all") params.set("tags", tagFilter);
       params.set("sortBy", sortBy);
       params.set("sortOrder", sortOrder);
       params.set("page", page.toString());
@@ -137,7 +159,7 @@ export default function ConceptsList() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, API_URL, debouncedSearch, languageFilter, stateFilter, sortBy, sortOrder, page]);
+  }, [supabase, API_URL, debouncedSearch, languageFilter, stateFilter, tagFilter, sortBy, sortOrder, page]);
 
   useEffect(() => {
     fetchConcepts();
@@ -218,6 +240,21 @@ export default function ConceptsList() {
               <SelectItem value="mastered">Mastered</SelectItem>
             </SelectContent>
           </Select>
+          {allTags.length > 0 && (
+            <Select value={tagFilter} onValueChange={(v) => { setTagFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Tag" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All tags</SelectItem>
+                {allTags.map((tag) => (
+                  <SelectItem key={tag.id} value={tag.id.toString()}>
+                    {tag.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Select value={`${sortBy}-${sortOrder}`} onValueChange={(v) => { const [by, order] = v.split("-"); setSortBy(by as "date" | "alpha"); setSortOrder(order as "asc" | "desc"); setPage(1); }}>
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Sort" />
@@ -246,12 +283,12 @@ export default function ConceptsList() {
             </div>
           </div>
           <h3 className="text-lg font-medium">
-            {debouncedSearch || languageFilter !== "all" || stateFilter !== "all"
+            {debouncedSearch || languageFilter !== "all" || stateFilter !== "all" || tagFilter !== "all"
               ? "No matching concepts"
               : "No saved concepts yet"}
           </h3>
           <p className="text-muted-foreground max-w-sm mx-auto">
-            {debouncedSearch || languageFilter !== "all" || stateFilter !== "all"
+            {debouncedSearch || languageFilter !== "all" || stateFilter !== "all" || tagFilter !== "all"
               ? "Try adjusting your search or filters."
               : "Start using the Context Translator extension to save words and phrases you want to learn."}
           </p>
@@ -306,6 +343,15 @@ export default function ConceptsList() {
                   <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                     <Volume2 className="size-3.5 shrink-0" />
                     <span className="italic">{concept.phoneticApproximation}</span>
+                  </div>
+                )}
+
+                {/* Tags (always visible if any) */}
+                {concept.tags && concept.tags.length > 0 && (
+                  <div className="flex gap-1 flex-wrap">
+                    {concept.tags.map((tag) => (
+                      <TagBadge key={tag.id} name={tag.name} color={tag.color} />
+                    ))}
                   </div>
                 )}
 
@@ -377,6 +423,24 @@ export default function ConceptsList() {
                         );
                       }}
                     />
+
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground">Tags</p>
+                      <TagSelector
+                        conceptId={concept.id}
+                        assignedTags={concept.tags ?? []}
+                        allTags={allTags}
+                        onTagsChange={(tags) => {
+                          setConcepts((prev) =>
+                            prev.map((c) =>
+                              c.id === concept.id
+                                ? { ...c, tags }
+                                : c
+                            )
+                          );
+                        }}
+                      />
+                    </div>
 
                     <p className="text-xs text-muted-foreground">
                       Last updated{" "}
