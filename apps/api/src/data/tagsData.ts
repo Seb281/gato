@@ -43,6 +43,12 @@ const tagsData = {
     return result[0]
   },
 
+  async findTagById(tagId: number, userId: number): Promise<Tag | undefined> {
+    return db.query.tagsTable.findFirst({
+      where: and(eq(tagsTable.id, tagId), eq(tagsTable.userId, userId)),
+    })
+  },
+
   async addTagToConcept(conceptId: number, tagId: number): Promise<void> {
     await db
       .insert(conceptTagsTable)

@@ -5,6 +5,7 @@ import {
 } from '../middleware/supabaseAuth.ts'
 import { usersData } from '../data/usersData.ts'
 import tagsData from '../data/tagsData.ts'
+import conceptsData from '../data/conceptsData.ts'
 
 type CreateTagBody = {
   name: string
@@ -164,6 +165,26 @@ export async function tagRoutes(
         return reply.code(400).send({ error: 'tagId is required' })
       }
 
+      const supabaseId = getAuthenticatedUserId(request)
+      if (!supabaseId) {
+        return reply.code(401).send({ error: 'Unauthorized' })
+      }
+
+      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+      if (!user) {
+        return reply.code(401).send({ error: 'User not found' })
+      }
+
+      const concept = await conceptsData.findConceptById(conceptId, user.id)
+      if (!concept) {
+        return reply.code(404).send({ error: 'Concept not found' })
+      }
+
+      const tag = await tagsData.findTagById(tagId, user.id)
+      if (!tag) {
+        return reply.code(404).send({ error: 'Tag not found' })
+      }
+
       await tagsData.addTagToConcept(conceptId, tagId)
       return reply.code(201).send({ message: 'Tag assigned' })
     }
@@ -179,6 +200,26 @@ export async function tagRoutes(
 
       if (isNaN(conceptId) || isNaN(tagId)) {
         return reply.code(400).send({ error: 'Invalid IDs' })
+      }
+
+      const supabaseId = getAuthenticatedUserId(request)
+      if (!supabaseId) {
+        return reply.code(401).send({ error: 'Unauthorized' })
+      }
+
+      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+      if (!user) {
+        return reply.code(401).send({ error: 'User not found' })
+      }
+
+      const concept = await conceptsData.findConceptById(conceptId, user.id)
+      if (!concept) {
+        return reply.code(404).send({ error: 'Concept not found' })
+      }
+
+      const tag = await tagsData.findTagById(tagId, user.id)
+      if (!tag) {
+        return reply.code(404).send({ error: 'Tag not found' })
       }
 
       await tagsData.removeTagFromConcept(conceptId, tagId)

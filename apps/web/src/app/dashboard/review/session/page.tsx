@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
@@ -30,9 +30,12 @@ export default function ReviewSessionPage() {
     resetSession,
   } = useReviewSession();
 
+  const hasStarted = useRef(false);
   useEffect(() => {
+    if (hasStarted.current) return;
+    hasStarted.current = true;
     startSession(mode, count);
-  }, []);
+  }, [startSession, mode, count]);
 
   if (loading) {
     return (

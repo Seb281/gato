@@ -79,7 +79,8 @@ export function useReviewSession() {
 
   const submitAnswer = useCallback(
     async (quality: string, correct: boolean) => {
-      if (!currentQuestion) return;
+      const question = questions[currentIndex];
+      if (!question) return;
 
       try {
         const {
@@ -88,7 +89,7 @@ export function useReviewSession() {
         if (!session) return;
 
         // Fire and forget — don't block UI on the API call
-        fetch(`${API_URL}/review/${currentQuestion.conceptId}/result`, {
+        fetch(`${API_URL}/review/${question.conceptId}/result`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -100,8 +101,8 @@ export function useReviewSession() {
         setResults((prev) => [
           ...prev,
           {
-            conceptId: currentQuestion.conceptId,
-            concept: currentQuestion.concept,
+            conceptId: question.conceptId,
+            concept: question.concept,
             quality,
             correct,
           },
@@ -112,7 +113,7 @@ export function useReviewSession() {
         console.error("Failed to submit answer:", error);
       }
     },
-    [supabase, API_URL, currentQuestion]
+    [supabase, API_URL, questions, currentIndex]
   );
 
   const resetSession = useCallback(() => {

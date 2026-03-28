@@ -254,6 +254,8 @@ async function seed() {
       grammarRules: concept.grammarRules,
       commonness: concept.commonness,
       fixedExpression: concept.fixedExpression,
+      userNotes: concept.userNotes ?? null,
+      exampleSentence: concept.exampleSentence ?? null,
       state: concept.state,
       createdAt,
     })

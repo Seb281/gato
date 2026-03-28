@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,13 @@ export default function MultipleChoiceQuiz({
 }: MultipleChoiceQuizProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const [answered, setAnswered] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const correct = question.correctAnswer ?? question.translation;
   const options = question.options ?? [correct];
@@ -29,7 +36,7 @@ export default function MultipleChoiceQuiz({
 
     // Auto-advance after a short delay
     const isCorrect = option === correct;
-    setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       onAnswer(isCorrect ? "good" : "again", isCorrect);
       setSelected(null);
       setAnswered(false);

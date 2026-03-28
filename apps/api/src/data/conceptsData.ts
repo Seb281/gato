@@ -192,10 +192,10 @@ const conceptsData = {
     return newlySavedConcept
   },
 
-  async deleteConcept(conceptId: number): Promise<Array<Concept>> {
+  async deleteConcept(conceptId: number, userId: number): Promise<Array<Concept>> {
     const deletedConcept = await db
       .delete(conceptsTable)
-      .where(eq(conceptsTable.id, conceptId))
+      .where(and(eq(conceptsTable.id, conceptId), eq(conceptsTable.userId, userId)))
       .returning()
     return deletedConcept
   },

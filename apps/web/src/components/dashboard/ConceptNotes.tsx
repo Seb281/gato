@@ -35,6 +35,13 @@ export default function ConceptNotes({
     setNotes(userNotes ?? "");
   }, [userNotes]);
 
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
   function handleNotesChange(value: string) {
     setNotes(value);
 

@@ -546,7 +546,17 @@ Keep it simple and practical. Only return the JSON, nothing else.`
         return reply.code(400).send({ error: 'Invalid concept ID' })
       }
 
-      const deletedConcept = await conceptsData.deleteConcept(conceptId)
+      const supabaseId = getAuthenticatedUserId(request)
+      if (!supabaseId) {
+        return reply.code(401).send({ error: 'Unauthorized' })
+      }
+
+      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+      if (!user) {
+        return reply.code(401).send({ error: 'User not found' })
+      }
+
+      const deletedConcept = await conceptsData.deleteConcept(conceptId, user.id)
 
       if (deletedConcept.length === 0) {
         return reply.code(404).send({ error: 'Concept not found' })
