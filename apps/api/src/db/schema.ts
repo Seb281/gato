@@ -26,6 +26,8 @@ export const conceptsTable = pgTable('concepts', {
   grammarRules: text('grammar_rules'),
   commonness: text('commonness'),
   fixedExpression: text('fixed_expression'),
+  userNotes: text('user_notes'),
+  exampleSentence: text('example_sentence'),
   state: text('state').notNull().default('new'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at')

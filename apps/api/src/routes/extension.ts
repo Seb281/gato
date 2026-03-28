@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyPluginOptions, FastifyRequest, FastifyReply } from 'fastify'
-import { translate, enrichConceptInBackground } from '../controllers/translationController.ts'
+import { generateText } from 'ai'
+import { translate, enrichConceptInBackground, resolveModel } from '../controllers/translationController.ts'
 import {
   requireAuth,
   getAuthenticatedUserEmail,
@@ -16,7 +17,10 @@ type SaveConceptBody = {
 }
 
 type UpdateConceptBody = {
-  translation: string
+  translation?: string
+  userNotes?: string | null
+  exampleSentence?: string | null
+  state?: string
 }
 
 type ConceptsQuerystring = {
@@ -205,7 +209,7 @@ export async function extensionRoutes(
     }
   )
 
-  // Protected endpoint - update a concept's translation
+  // Protected endpoint - update a concept (translation, notes, state)
   fastify.patch<{ Params: { id: string }; Body: UpdateConceptBody }>(
     '/saved-concepts/:id',
     { preHandler: [requireAuth] },
@@ -215,17 +219,92 @@ export async function extensionRoutes(
         return reply.code(400).send({ error: 'Invalid concept ID' })
       }
 
-      const { translation } = request.body
-      if (!translation) {
-        return reply.code(400).send({ error: 'Missing required field: translation' })
+      const supabaseId = getAuthenticatedUserId(request)
+      if (!supabaseId) {
+        return reply.code(401).send({ error: 'Unauthorized' })
       }
 
-      const updated = await conceptsData.updateConceptTranslation(conceptId, translation)
+      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+      if (!user) {
+        return reply.code(401).send({ error: 'User not found' })
+      }
+
+      const { translation, userNotes, exampleSentence, state } = request.body
+
+      const validStates = ['new', 'learning', 'familiar', 'mastered']
+      if (state !== undefined && !validStates.includes(state)) {
+        return reply.code(400).send({ error: `Invalid state. Must be one of: ${validStates.join(', ')}` })
+      }
+
+      // Build fields object with only provided values
+      const fields: Record<string, string | null> = {}
+      if (translation !== undefined) fields.translation = translation
+      if (userNotes !== undefined) fields.userNotes = userNotes
+      if (exampleSentence !== undefined) fields.exampleSentence = exampleSentence
+      if (state !== undefined) fields.state = state
+
+      if (Object.keys(fields).length === 0) {
+        return reply.code(400).send({ error: 'At least one field must be provided' })
+      }
+
+      const updated = await conceptsData.updateConcept(conceptId, user.id, fields)
       if (!updated) {
         return reply.code(404).send({ error: 'Concept not found' })
       }
 
       return reply.send({ message: 'Concept updated', concept: updated })
+    }
+  )
+
+  // Protected endpoint - AI-generated example sentence for a concept
+  fastify.post<{ Params: { id: string } }>(
+    '/saved-concepts/:id/suggest-example',
+    { preHandler: [requireAuth] },
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      const conceptId = parseInt(request.params.id, 10)
+      if (isNaN(conceptId)) {
+        return reply.code(400).send({ error: 'Invalid concept ID' })
+      }
+
+      const supabaseId = getAuthenticatedUserId(request)
+      if (!supabaseId) {
+        return reply.code(401).send({ error: 'Unauthorized' })
+      }
+
+      const email = await getAuthenticatedUserEmail(request)
+      if (!email) {
+        return reply.code(401).send({ error: 'Could not get user email' })
+      }
+
+      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+      if (!user) {
+        return reply.code(401).send({ error: 'User not found' })
+      }
+
+      const concept = await conceptsData.findConceptById(conceptId, user.id)
+      if (!concept) {
+        return reply.code(404).send({ error: 'Concept not found' })
+      }
+
+      const settings = await userContextData.retrieveUserContext(email)
+      const model = resolveModel(settings)
+
+      const prompt = `Generate a natural, everyday example sentence using the word/phrase "${concept.concept}" (${concept.sourceLanguage}).
+Include the translation in ${concept.targetLanguage}.
+Format your response as JSON: { "exampleSentence": "<sentence in ${concept.sourceLanguage}> — <translation in ${concept.targetLanguage}>" }
+Keep it simple and practical. Only return the JSON, nothing else.`
+
+      const { text } = await generateText({ model, prompt, temperature: 0.7 })
+
+      let exampleSentence: string
+      try {
+        const parsed = JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim())
+        exampleSentence = parsed.exampleSentence
+      } catch {
+        exampleSentence = text.trim()
+      }
+
+      return reply.send({ exampleSentence })
     }
   )
 

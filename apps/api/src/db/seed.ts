@@ -29,7 +29,9 @@ const concepts = [
     grammarRules: 'Reflexive verb phrase. Conjugate "quedarse" and keep "en blanco" fixed.',
     commonness: 'Common in conversational Spanish',
     fixedExpression: 'quedarse en blanco',
-    state: 'learned',
+    userNotes: 'This happened to me during my Spanish presentation last week!',
+    exampleSentence: 'Me quedé en blanco cuando el profesor me hizo la pregunta. — I went blank when the teacher asked me the question.',
+    state: 'mastered',
   },
   {
     sourceLanguage: 'Spanish',
@@ -41,7 +43,7 @@ const concepts = [
     grammarRules: 'Regular -ar verb. Can be transitive or used with "de" (aprovecharse de).',
     commonness: 'Very common',
     fixedExpression: null,
-    state: 'new',
+    state: 'learning',
   },
   {
     sourceLanguage: 'Spanish',
@@ -65,7 +67,7 @@ const concepts = [
     grammarRules: 'Regular -ar verb. "El estreno" is the noun form (premiere/first use).',
     commonness: 'Common in everyday speech',
     fixedExpression: null,
-    state: 'learned',
+    state: 'mastered',
   },
   // French -> English
   {
@@ -78,7 +80,7 @@ const concepts = [
     grammarRules: 'Masculine noun (le dépaysement). Derived from "pays" (country) with prefix "dé-".',
     commonness: 'Moderately common, often cited as untranslatable',
     fixedExpression: null,
-    state: 'new',
+    state: 'familiar',
   },
   {
     sourceLanguage: 'French',
@@ -90,7 +92,7 @@ const concepts = [
     grammarRules: 'Masculine noun (le bricolage). "Bricoler" is the verb form, "bricoleur" the person.',
     commonness: 'Very common',
     fixedExpression: null,
-    state: 'learned',
+    state: 'mastered',
   },
   {
     sourceLanguage: 'French',
@@ -115,7 +117,7 @@ const concepts = [
     grammarRules: 'Masculine noun (der Feierabend). Compound of "Feier" (celebration) + "Abend" (evening).',
     commonness: 'Extremely common in daily German',
     fixedExpression: null,
-    state: 'new',
+    state: 'learning',
   },
   {
     sourceLanguage: 'German',
@@ -127,7 +129,9 @@ const concepts = [
     grammarRules: 'Neuter noun (das Fernweh). Compound: "fern" (far) + "Weh" (ache/pain).',
     commonness: 'Common, especially among younger Germans',
     fixedExpression: null,
-    state: 'learned',
+    userNotes: 'Love this word — the opposite of homesickness. Very relatable.',
+    exampleSentence: 'Seit dem letzten Urlaub habe ich ständig Fernweh. — Since the last vacation, I constantly have wanderlust.',
+    state: 'mastered',
   },
   {
     sourceLanguage: 'German',
@@ -164,7 +168,7 @@ const concepts = [
     grammarRules: 'Reflexive -are verb. Irregular: mi arrangio, ti arrangi, si arrangia...',
     commonness: 'Very common, culturally defining',
     fixedExpression: null,
-    state: 'learned',
+    state: 'mastered',
   },
   // Portuguese -> English
   {
@@ -177,6 +181,7 @@ const concepts = [
     grammarRules: 'Feminine noun (a saudade). Can be plural: "saudades". "Matar saudades" = to catch up with someone missed.',
     commonness: 'Extremely common, central to Portuguese/Brazilian identity',
     fixedExpression: null,
+    exampleSentence: 'Tenho muita saudade dos meus amigos no Brasil. — I deeply miss my friends in Brazil.',
     state: 'new',
   },
   // Japanese -> English
@@ -202,7 +207,7 @@ const concepts = [
     grammarRules: 'Noun compound (侘寂). 侘 (wabi) = rustic simplicity, 寂 (sabi) = beauty of aging.',
     commonness: 'Well-known concept, used globally in design/philosophy',
     fixedExpression: null,
-    state: 'learned',
+    state: 'mastered',
   },
 ]
 

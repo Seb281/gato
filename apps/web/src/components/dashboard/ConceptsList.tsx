@@ -23,6 +23,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { format } from "date-fns";
+import ConceptNotes from "./ConceptNotes";
+import MasteryBadge from "./MasteryBadge";
 
 type Concept = {
   id: number;
@@ -35,6 +37,8 @@ type Concept = {
   grammarRules: string | null;
   commonness: string | null;
   fixedExpression: string | null;
+  userNotes: string | null;
+  exampleSentence: string | null;
   createdAt: string;
   state: string;
   updatedAt: string;
@@ -209,7 +213,9 @@ export default function ConceptsList() {
             <SelectContent>
               <SelectItem value="all">All status</SelectItem>
               <SelectItem value="new">New</SelectItem>
-              <SelectItem value="learned">Learned</SelectItem>
+              <SelectItem value="learning">Learning</SelectItem>
+              <SelectItem value="familiar">Familiar</SelectItem>
+              <SelectItem value="mastered">Mastered</SelectItem>
             </SelectContent>
           </Select>
           <Select value={`${sortBy}-${sortOrder}`} onValueChange={(v) => { const [by, order] = v.split("-"); setSortBy(by as "date" | "alpha"); setSortOrder(order as "asc" | "desc"); setPage(1); }}>
@@ -314,14 +320,19 @@ export default function ConceptsList() {
                       <span className="text-xs text-muted-foreground">
                         Status:
                       </span>
-                      <Badge
-                        variant={
-                          concept.state === "learned" ? "default" : "secondary"
-                        }
-                        className="text-xs capitalize"
-                      >
-                        {concept.state}
-                      </Badge>
+                      <MasteryBadge
+                        conceptId={concept.id}
+                        state={concept.state}
+                        onStateChange={(newState) => {
+                          setConcepts((prev) =>
+                            prev.map((c) =>
+                              c.id === concept.id
+                                ? { ...c, state: newState }
+                                : c
+                            )
+                          );
+                        }}
+                      />
                     </div>
 
                     {concept.commonUsage && (
@@ -351,6 +362,21 @@ export default function ConceptsList() {
                         <p className="text-sm">{concept.fixedExpression}</p>
                       </div>
                     )}
+
+                    <ConceptNotes
+                      conceptId={concept.id}
+                      userNotes={concept.userNotes}
+                      exampleSentence={concept.exampleSentence}
+                      onUpdate={(fields) => {
+                        setConcepts((prev) =>
+                          prev.map((c) =>
+                            c.id === concept.id
+                              ? { ...c, ...fields }
+                              : c
+                          )
+                        );
+                      }}
+                    />
 
                     <p className="text-xs text-muted-foreground">
                       Last updated{" "}

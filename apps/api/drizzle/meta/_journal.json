@@ -15,6 +15,13 @@
       "when": 1774698987077,
       "tag": "0001_slimy_blazing_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774704608350,
+      "tag": "0002_luxuriant_blob",
+      "breakpoints": true
     }
   ]
 }

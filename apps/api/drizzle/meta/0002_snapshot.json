@@ -1,0 +1,229 @@
+{
+  "id": "aa78b9b6-a97d-4abc-81f1-79974296112c",
+  "prevId": "08aae944-83da-4415-83ab-e9b98a895d9c",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.concepts": {
+      "name": "concepts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_language": {
+          "name": "source_language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_language": {
+          "name": "target_language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "concept": {
+          "name": "concept",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "translation": {
+          "name": "translation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phonetic_approximation": {
+          "name": "phonetic_approximation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "common_usage": {
+          "name": "common_usage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "grammar_rules": {
+          "name": "grammar_rules",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "commonness": {
+          "name": "commonness",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fixed_expression": {
+          "name": "fixed_expression",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_notes": {
+          "name": "user_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "example_sentence": {
+          "name": "example_sentence",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'new'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "concepts_user_id_users_id_fk": {
+          "name": "concepts_user_id_users_id_fk",
+          "tableFrom": "concepts",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "supabase_id": {
+          "name": "supabase_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "targetLanguage": {
+          "name": "targetLanguage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "context": {
+          "name": "context",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "custom_api_key": {
+          "name": "custom_api_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferred_provider": {
+          "name": "preferred_provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'google'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_supabase_id_unique": {
+          "name": "users_supabase_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "supabase_id"
+          ]
+        },
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

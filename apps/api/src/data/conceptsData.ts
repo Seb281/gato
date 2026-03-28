@@ -36,6 +36,18 @@ const conceptsData = {
     })
   },
 
+  async findConceptById(
+    conceptId: number,
+    userId: number
+  ): Promise<Concept | undefined> {
+    return db.query.conceptsTable.findFirst({
+      where: and(
+        eq(conceptsTable.id, conceptId),
+        eq(conceptsTable.userId, userId)
+      ),
+    })
+  },
+
   async findExistingConcept(
     userId: number,
     concept: string,
@@ -54,11 +66,20 @@ const conceptsData = {
     })
   },
 
-  async updateConceptTranslation(conceptId: number, translation: string): Promise<Concept | undefined> {
+  async updateConcept(
+    conceptId: number,
+    userId: number,
+    fields: {
+      translation?: string | undefined
+      userNotes?: string | null | undefined
+      exampleSentence?: string | null | undefined
+      state?: string | undefined
+    }
+  ): Promise<Concept | undefined> {
     const result = await db
       .update(conceptsTable)
-      .set({ translation })
-      .where(eq(conceptsTable.id, conceptId))
+      .set(fields)
+      .where(and(eq(conceptsTable.id, conceptId), eq(conceptsTable.userId, userId)))
       .returning()
     return result[0]
   },
