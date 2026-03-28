@@ -5,10 +5,10 @@ export default function ReviewResultsPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] space-y-4">
       <p className="text-muted-foreground">
-        Session results will appear here after completing a review.
+        Session results are displayed at the end of each review session.
       </p>
       <Button variant="outline" asChild>
-        <Link href="/dashboard/review">Back to Review</Link>
+        <Link href="/dashboard/review">Start a Review</Link>
       </Button>
     </div>
   );

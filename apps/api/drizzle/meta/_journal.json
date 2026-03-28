@@ -29,6 +29,13 @@
       "when": 1774705199203,
       "tag": "0003_safe_thor",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774705766041,
+      "tag": "0004_glamorous_mindworm",
+      "breakpoints": true
     }
   ]
 }

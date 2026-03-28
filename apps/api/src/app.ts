@@ -9,6 +9,7 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') })
 
 import { extensionRoutes } from './routes/extension.ts'
 import { tagRoutes } from './routes/tags.ts'
+import { reviewRoutes } from './routes/review.ts'
 
 const PORT = parseInt(process.env.PORT || '3001', 10)
 
@@ -30,6 +31,7 @@ export async function startServer() {
     // Register routes
     await app.register(extensionRoutes)
     await app.register(tagRoutes)
+    await app.register(reviewRoutes)
 
     // Start server
     await app.listen({ port: PORT, host: '0.0.0.0' })
