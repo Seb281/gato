@@ -1,5 +1,9 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, Upload } from "lucide-react";
+import ExportButton from "@/components/dashboard/ExportButton";
+import ImportDialog from "@/components/dashboard/ImportDialog";
 
 export default function ImportExportPage() {
   return (
@@ -19,11 +23,11 @@ export default function ImportExportPage() {
               Export
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <p className="text-muted-foreground text-sm">
               Export your vocabulary as CSV, JSON, or Anki-compatible format.
-              Coming in Phase 6.
             </p>
+            <ExportButton />
           </CardContent>
         </Card>
 
@@ -34,11 +38,12 @@ export default function ImportExportPage() {
               Import
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <p className="text-muted-foreground text-sm">
               Import vocabulary from CSV or JSON files. Duplicates are
-              automatically detected. Coming in Phase 6.
+              automatically detected.
             </p>
+            <ImportDialog />
           </CardContent>
         </Card>
       </div>

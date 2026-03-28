@@ -199,6 +199,18 @@ const conceptsData = {
       .returning()
     return deletedConcept
   },
+
+  async getAllConceptsForExport(userId: number): Promise<Concept[]> {
+    return db.query.conceptsTable.findMany({
+      where: eq(conceptsTable.userId, userId),
+      orderBy: asc(conceptsTable.createdAt),
+    })
+  },
+
+  async bulkInsertConcepts(concepts: NewConcept[]): Promise<Concept[]> {
+    if (concepts.length === 0) return []
+    return db.insert(conceptsTable).values(concepts).returning()
+  },
 }
 
 export default conceptsData

@@ -11,6 +11,23 @@ import tagsData from '../data/tagsData.ts'
 import { usersData, userContextData } from '../data/usersData.ts'
 import statsData from '../data/statsData.ts'
 
+type ExportQuerystring = {
+  format?: 'csv' | 'json' | 'anki'
+}
+
+type ImportConceptItem = {
+  concept: string
+  translation: string
+  sourceLanguage: string
+  targetLanguage: string
+  state?: string
+  userNotes?: string | null
+}
+
+type ImportBody = {
+  concepts: ImportConceptItem[]
+}
+
 type SaveConceptBody = {
   concept: string
   translation: string
@@ -121,6 +138,189 @@ export async function extensionRoutes(
       return reply.code(201).send({
         message: 'Concept saved',
         concept: saved,
+      })
+    }
+  )
+
+  // Protected endpoint - export all concepts
+  fastify.get<{ Querystring: ExportQuerystring }>(
+    '/saved-concepts/export',
+    { preHandler: [requireAuth] },
+    async (request: FastifyRequest<{ Querystring: ExportQuerystring }>, reply: FastifyReply) => {
+      const supabaseId = getAuthenticatedUserId(request)
+      if (!supabaseId) {
+        return reply.code(401).send({ error: 'Unauthorized' })
+      }
+
+      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+      if (!user) {
+        return reply.code(404).send({ error: 'User not found' })
+      }
+
+      const concepts = await conceptsData.getAllConceptsForExport(user.id)
+      const format = request.query.format ?? 'json'
+
+      if (format === 'csv') {
+        const header = 'concept,translation,sourceLanguage,targetLanguage,state,userNotes,createdAt'
+        const rows = concepts.map((c) => {
+          const escape = (v: string | null | undefined) => {
+            if (!v) return ''
+            // Wrap in quotes and escape internal quotes
+            return `"${v.replace(/"/g, '""')}"`
+          }
+          return [
+            escape(c.concept),
+            escape(c.translation),
+            escape(c.sourceLanguage),
+            escape(c.targetLanguage),
+            escape(c.state),
+            escape(c.userNotes),
+            escape(c.createdAt?.toISOString()),
+          ].join(',')
+        })
+        const csv = [header, ...rows].join('\n')
+
+        return reply
+          .header('Content-Type', 'text/csv; charset=utf-8')
+          .header('Content-Disposition', 'attachment; filename="vocabulary-export.csv"')
+          .send(csv)
+      }
+
+      if (format === 'anki') {
+        // Anki TSV: front\tback
+        const rows = concepts.map((c) => {
+          const front = c.concept
+          const backParts = [c.translation]
+          if (c.phoneticApproximation) backParts.push(`Pronunciation: ${c.phoneticApproximation}`)
+          if (c.grammarRules) backParts.push(`Grammar: ${c.grammarRules}`)
+          if (c.commonUsage) backParts.push(`Usage: ${c.commonUsage}`)
+          if (c.exampleSentence) backParts.push(`Example: ${c.exampleSentence}`)
+          const back = backParts.join('<br>')
+          // Escape tabs in content
+          return `${front.replace(/\t/g, ' ')}\t${back.replace(/\t/g, ' ')}`
+        })
+        const tsv = rows.join('\n')
+
+        return reply
+          .header('Content-Type', 'text/tab-separated-values; charset=utf-8')
+          .header('Content-Disposition', 'attachment; filename="vocabulary-export.txt"')
+          .send(tsv)
+      }
+
+      // Default: JSON
+      const data = concepts.map((c) => ({
+        concept: c.concept,
+        translation: c.translation,
+        sourceLanguage: c.sourceLanguage,
+        targetLanguage: c.targetLanguage,
+        state: c.state,
+        userNotes: c.userNotes,
+        exampleSentence: c.exampleSentence,
+        phoneticApproximation: c.phoneticApproximation,
+        commonUsage: c.commonUsage,
+        grammarRules: c.grammarRules,
+        createdAt: c.createdAt?.toISOString(),
+      }))
+
+      return reply
+        .header('Content-Type', 'application/json; charset=utf-8')
+        .header('Content-Disposition', 'attachment; filename="vocabulary-export.json"')
+        .send(JSON.stringify(data, null, 2))
+    }
+  )
+
+  // Protected endpoint - import concepts
+  fastify.post<{ Body: ImportBody }>(
+    '/saved-concepts/import',
+    { preHandler: [requireAuth] },
+    async (request: FastifyRequest<{ Body: ImportBody }>, reply: FastifyReply) => {
+      const supabaseId = getAuthenticatedUserId(request)
+      if (!supabaseId) {
+        return reply.code(401).send({ error: 'Unauthorized' })
+      }
+
+      const email = await getAuthenticatedUserEmail(request)
+      if (!email) {
+        return reply.code(401).send({ error: 'Could not get user email' })
+      }
+
+      const userFromAuth = (request as any).user
+      const name = userFromAuth.user_metadata?.full_name ?? userFromAuth.user_metadata?.name
+      const user = await usersData.findOrCreateUser({
+        supabaseId,
+        email,
+        ...(name && { name }),
+      })
+
+      const { concepts } = request.body
+      if (!Array.isArray(concepts) || concepts.length === 0) {
+        return reply.code(400).send({ error: 'No concepts provided' })
+      }
+
+      const validStates = ['new', 'learning', 'familiar', 'mastered']
+      const errors: string[] = []
+      const validConcepts: ImportConceptItem[] = []
+
+      for (let i = 0; i < concepts.length; i++) {
+        const c = concepts[i]!
+        if (!c.concept || !c.translation || !c.sourceLanguage || !c.targetLanguage) {
+          errors.push(`Row ${i + 1}: missing required fields (concept, translation, sourceLanguage, targetLanguage)`)
+          continue
+        }
+        if (c.state && !validStates.includes(c.state)) {
+          errors.push(`Row ${i + 1}: invalid state "${c.state}"`)
+          continue
+        }
+        validConcepts.push(c)
+      }
+
+      // Deduplicate against existing concepts
+      let imported = 0
+      let skipped = 0
+      const toInsert: Array<{
+        userId: number
+        concept: string
+        translation: string
+        sourceLanguage: string
+        targetLanguage: string
+        state: string
+        userNotes: string | null
+      }> = []
+
+      for (const c of validConcepts) {
+        const existing = await conceptsData.findExistingConcept(
+          user.id,
+          c.concept,
+          c.translation,
+          c.sourceLanguage,
+          c.targetLanguage
+        )
+        if (existing) {
+          skipped++
+          continue
+        }
+        toInsert.push({
+          userId: user.id,
+          concept: c.concept,
+          translation: c.translation,
+          sourceLanguage: c.sourceLanguage,
+          targetLanguage: c.targetLanguage,
+          state: c.state ?? 'new',
+          userNotes: c.userNotes ?? null,
+        })
+      }
+
+      if (toInsert.length > 0) {
+        await conceptsData.bulkInsertConcepts(toInsert)
+        imported = toInsert.length
+      }
+
+      return reply.send({
+        message: 'Import complete',
+        imported,
+        skipped,
+        errors,
+        total: concepts.length,
       })
     }
   )

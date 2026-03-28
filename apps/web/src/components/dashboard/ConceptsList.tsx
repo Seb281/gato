@@ -27,6 +27,7 @@ import ConceptNotes from "./ConceptNotes";
 import MasteryBadge from "./MasteryBadge";
 import TagBadge from "./TagBadge";
 import TagSelector from "./TagSelector";
+import ExportButton from "./ExportButton";
 
 type Tag = {
   id: number;
@@ -269,10 +270,13 @@ export default function ConceptsList() {
         </div>
       </div>
 
-      {/* Results count */}
-      <p className="text-sm text-muted-foreground">
-        {total} {total === 1 ? "concept" : "concepts"} found
-      </p>
+      {/* Results count + Export */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {total} {total === 1 ? "concept" : "concepts"} found
+        </p>
+        {total > 0 && <ExportButton />}
+      </div>
 
       {/* Concept Cards */}
       {concepts.length === 0 ? (
