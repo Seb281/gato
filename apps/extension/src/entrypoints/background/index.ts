@@ -120,8 +120,12 @@ chrome.runtime.onMessage.addListener(
   (message: { action: string; concept: NewConcept }, _, sendResponse) => {
     if (message.action === "saveConcept") {
       saveConcept(message.concept)
-        .then((concept) => {
-          sendResponse({ success: true, concept })
+        .then((result) => {
+          if (result.alreadySaved) {
+            sendResponse({ success: true, alreadySaved: true, concept: result.concept })
+          } else {
+            sendResponse({ success: true, concept: result.concept })
+          }
         })
         .catch((error) => {
           sendResponse({ success: false, error: error.message })

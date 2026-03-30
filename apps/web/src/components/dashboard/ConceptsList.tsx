@@ -79,6 +79,7 @@ export default function ConceptsList() {
 
   // Distinct language pairs for filter dropdown
   const [languagePairs, setLanguagePairs] = useState<string[]>([]);
+  const [error, setError] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -108,13 +109,18 @@ export default function ConceptsList() {
         if (langRes.ok) {
           const data = await langRes.json();
           setLanguagePairs(data.languages);
+        } else {
+          setError(true);
         }
         if (tagsRes.ok) {
           const data = await tagsRes.json();
           setAllTags(data.tags);
+        } else {
+          setError(true);
         }
-      } catch (error) {
-        console.error("Failed to fetch filters:", error);
+      } catch (err) {
+        console.error("Failed to fetch filters:", err);
+        setError(true);
       }
     }
     fetchFilters();
@@ -154,9 +160,12 @@ export default function ConceptsList() {
         const data = await res.json();
         setConcepts(data.concepts);
         setTotal(data.total ?? data.concepts.length);
+      } else {
+        setError(true);
       }
-    } catch (error) {
-      console.error("Failed to fetch concepts:", error);
+    } catch (err) {
+      console.error("Failed to fetch concepts:", err);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -202,6 +211,12 @@ export default function ConceptsList() {
 
   return (
     <div className="space-y-4">
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          Something went wrong loading data. Check your connection and try refreshing.
+        </div>
+      )}
+
       {/* Search & Filter Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">

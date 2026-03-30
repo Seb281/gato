@@ -76,6 +76,10 @@
   --sidebar-ring: oklch(0.546 0.185 258);
 }
 
+html {
+  font-size: 16px;
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);

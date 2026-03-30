@@ -21,12 +21,30 @@ const app = Fastify({
 export async function startServer() {
   try {
     // Register CORS
-    const allowedOrigins = process.env.ALLOWED_ORIGINS!.split(',').map(o => o.trim())
+    const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean)
     await app.register(cors, {
-      origin: allowedOrigins,
+      origin: (origin, cb) => {
+        if (!origin) return cb(null, true)
+        if (origin.startsWith('chrome-extension://')) return cb(null, true)
+        if (allowedOrigins.includes(origin)) return cb(null, true)
+        cb(new Error('Not allowed by CORS'), false)
+      },
       credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    })
+
+    // Global error handlers
+    app.setErrorHandler((error: { statusCode?: number; message: string }, request, reply) => {
+      request.log.error(error)
+      const statusCode = error.statusCode ?? 500
+      reply.code(statusCode).send({
+        error: statusCode < 500 ? error.message : 'Internal Server Error',
+      })
+    })
+
+    app.setNotFoundHandler((_request, reply) => {
+      reply.code(404).send({ error: 'Route not found' })
     })
 
     // Register routes

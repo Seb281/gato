@@ -65,7 +65,7 @@ export default function TranslationPopup({
   const [sourceLanguage, setSourceLanguage] = useState('')
 
   const [status, setStatus] = useState<AuthStatus>('loading')
-  const [saveState, setSaveState] = useState<'idle' | 'saved' | 'alreadySaved'>(
+  const [saveState, setSaveState] = useState<'idle' | 'saved' | 'alreadySaved' | 'error'>(
     'idle',
   )
   const [fromCache, setFromCache] = useState(false)
@@ -151,6 +151,9 @@ export default function TranslationPopup({
           setSaveState('alreadySaved')
         } else if (response?.success) {
           setSaveState('saved')
+        } else {
+          setSaveState('error')
+          setTimeout(() => setSaveState('idle'), 3000)
         }
       },
     )
@@ -206,10 +209,13 @@ export default function TranslationPopup({
         },
       },
       (response) => {
-        if (response?.concept?.alreadySaved) {
+        if (response?.alreadySaved) {
           setSaveState('alreadySaved')
         } else if (response?.success) {
           setSaveState('saved')
+        } else {
+          setSaveState('error')
+          setTimeout(() => setSaveState('idle'), 3000)
         }
       },
     )
@@ -367,6 +373,17 @@ export default function TranslationPopup({
                       </TooltipTrigger>
                       <TooltipContent className='z-[9999999] max-w-[180px] text-center'>
                         Already in your saved concepts
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : saveState === 'error' ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className='h-6 w-6 flex items-center justify-center text-destructive cursor-default'>
+                          <AlertCircle className='h-3.5 w-3.5' />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className='z-[9999999] max-w-[180px] text-center'>
+                        Failed to save. Try again.
                       </TooltipContent>
                     </Tooltip>
                   ) : saveState === 'idle' ? (

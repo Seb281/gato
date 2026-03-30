@@ -53,6 +53,7 @@ export default function ReviewPage() {
   const [selectedMode, setSelectedMode] = useState<string>("flashcard");
   const [selectedCount, setSelectedCount] = useState("10");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     async function fetchDueCount() {
@@ -71,9 +72,12 @@ export default function ReviewPage() {
         if (res.ok) {
           const data = await res.json();
           setDueCount(data.dueCount);
+        } else {
+          setError(true);
         }
-      } catch (error) {
-        console.error("Failed to fetch due count:", error);
+      } catch (err) {
+        console.error("Failed to fetch due count:", err);
+        setError(true);
       } finally {
         setLoading(false);
       }
@@ -97,6 +101,12 @@ export default function ReviewPage() {
           Choose a study mode and start practicing.
         </p>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          Something went wrong loading data. Check your connection and try refreshing.
+        </div>
+      )}
 
       {/* Due count card */}
       <Card>

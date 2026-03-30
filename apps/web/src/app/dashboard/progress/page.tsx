@@ -42,6 +42,7 @@ export default function ProgressPage() {
   const [overview, setOverview] = useState<OverviewStats | null>(null);
   const [activity, setActivity] = useState<ActivityDay[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     async function fetchStats() {
@@ -63,13 +64,18 @@ export default function ProgressPage() {
 
         if (overviewRes.ok) {
           setOverview(await overviewRes.json());
+        } else {
+          setError(true);
         }
         if (activityRes.ok) {
           const data = await activityRes.json();
           setActivity(data.activity);
+        } else {
+          setError(true);
         }
-      } catch (error) {
-        console.error("Failed to fetch stats:", error);
+      } catch (err) {
+        console.error("Failed to fetch stats:", err);
+        setError(true);
       } finally {
         setLoading(false);
       }
@@ -94,6 +100,12 @@ export default function ProgressPage() {
         <h1 className="text-2xl font-bold tracking-tight">Progress</h1>
         <p className="text-muted-foreground">Track your learning journey.</p>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          Something went wrong loading data. Check your connection and try refreshing.
+        </div>
+      )}
 
       {/* Stats cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

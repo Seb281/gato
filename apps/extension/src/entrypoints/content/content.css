@@ -41,7 +41,8 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-:root {
+#context-translator-root,
+#context-translator-tooltip {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -76,7 +77,8 @@
   --sidebar-ring: oklch(0.546 0.185 258);
 }
 
-.dark {
+#context-translator-root.dark,
+#context-translator-tooltip.dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -110,12 +112,15 @@
   --sidebar-ring: oklch(0.68 0.155 258);
 }
 
-* {
+#context-translator-root *,
+#context-translator-tooltip * {
   border-color: var(--border);
   outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
 }
 
-body {
-  background-color: var(--background);
+#context-translator-root {
+  font-size: 16px;
+  line-height: 1.5;
   color: var(--foreground);
+  -webkit-text-size-adjust: 100%;
 }

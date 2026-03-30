@@ -29,6 +29,7 @@ export default function DashboardHome() {
     longestStreak: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -52,17 +53,24 @@ export default function DashboardHome() {
         if (dueRes.ok) {
           const data = await dueRes.json();
           setDueCount(data.dueCount);
+        } else {
+          setError(true);
         }
         if (statsRes.ok) {
           const data = await statsRes.json();
           setStats(data);
+        } else {
+          setError(true);
         }
         if (overviewRes.ok) {
           const data = await overviewRes.json();
           setOverview(data);
+        } else {
+          setError(true);
         }
-      } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
+      } catch (err) {
+        console.error("Failed to fetch dashboard data:", err);
+        setError(true);
       } finally {
         setLoading(false);
       }
@@ -78,6 +86,12 @@ export default function DashboardHome() {
           Welcome back. Here&apos;s your learning overview.
         </p>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          Something went wrong loading data. Check your connection and try refreshing.
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/* Due for Review */}
