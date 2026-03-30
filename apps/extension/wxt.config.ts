@@ -23,16 +23,8 @@ export default defineConfig({
       48: 'icon/icon-48.png',
       128: 'icon/icon-128.png',
     },
-    permissions: ['storage', 'tabs', 'activeTab', 'scripting'],
+    permissions: ['storage', 'tabs', 'activeTab', 'scripting', 'contextMenus'],
     host_permissions: ['https://context-aware-translator-dashboard.vercel.app/*'],
-    commands: {
-      'show-translation': {
-        suggested_key: {
-          default: 'Ctrl+Shift+T',
-          mac: 'Command+Shift+T',
-        },
-        description: 'Show translation for selected text',
-      },
-    },
+    optional_host_permissions: ['https://*/*', 'http://*/*'],
   },
 })

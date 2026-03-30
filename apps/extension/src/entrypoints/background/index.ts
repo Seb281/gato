@@ -15,28 +15,119 @@ export default defineBackground(() => {
   // Flag to prevent infinite sync loops when setting session from dashboard
   let _isSyncingFromDashboard = false
 
-  chrome.commands.onCommand.addListener(async (command: string) => {
-  if (command !== "show-translation") return
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-  if (!tab?.id) return
+  // --- Context Menu Setup ---
 
-  // Activate tab if content script not yet injected (works with or without text selected)
-  try {
-    await chrome.tabs.sendMessage(tab.id, { action: "ping" })
-  } catch {
-    await chrome.scripting.insertCSS({
-      target: { tabId: tab.id },
-      files: ["content-scripts/content.css"],
-    })
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ["content-scripts/content.js"],
+  function setupContextMenu() {
+    chrome.contextMenus.removeAll(() => {
+      chrome.contextMenus.create({
+        id: 'translate-selection',
+        title: 'Translate "%s"',
+        contexts: ['selection'],
+      })
     })
   }
 
-  // Attempt to show translation — no-op if no text is selected
-  chrome.tabs.sendMessage(tab.id, { action: "showTranslation" }).catch(() => {})
-})
+  chrome.runtime.onInstalled.addListener(setupContextMenu)
+  chrome.runtime.onStartup.addListener(setupContextMenu)
+
+  chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+    if (info.menuItemId !== 'translate-selection' || !tab?.id || !info.selectionText) return
+
+    // Inject content script if not already present (activeTab granted by context menu click)
+    let justInjected = false
+    try {
+      await chrome.tabs.sendMessage(tab.id, { action: 'ping' })
+    } catch {
+      await chrome.scripting.insertCSS({
+        target: { tabId: tab.id },
+        files: ['content-scripts/content.css'],
+      })
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content-scripts/content.js'],
+      })
+      justInjected = true
+    }
+
+    // Brief delay after fresh injection to let the content script initialize its listeners
+    if (justInjected) {
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+
+    chrome.tabs.sendMessage(tab.id, {
+      action: 'showTranslation',
+      selectionText: info.selectionText,
+    }).catch(() => {})
+  })
+
+  // --- Per-Site Content Script Registration ---
+
+  const CONTENT_SCRIPT_ID = 'translator-content-script'
+
+  async function syncRegisteredContentScripts() {
+    const { allowedSites = [] } = await chrome.storage.sync.get('allowedSites') as { allowedSites?: string[] }
+
+    try {
+      await chrome.scripting.unregisterContentScripts({ ids: [CONTENT_SCRIPT_ID] })
+    } catch { /* not registered yet */ }
+
+    if (allowedSites.length > 0) {
+      await chrome.scripting.registerContentScripts([{
+        id: CONTENT_SCRIPT_ID,
+        matches: allowedSites,
+        js: ['content-scripts/content.js'],
+        css: ['content-scripts/content.css'],
+        runAt: 'document_idle',
+        persistAcrossSessions: true,
+      }])
+    }
+  }
+
+  chrome.runtime.onInstalled.addListener(syncRegisteredContentScripts)
+  chrome.runtime.onStartup.addListener(syncRegisteredContentScripts)
+
+  // --- Allowed Sites Management ---
+
+  chrome.runtime.onMessage.addListener(
+    (message: { action: string; pattern?: string }, _, sendResponse) => {
+      if (message.action === 'getAllowedSites') {
+        chrome.storage.sync.get('allowedSites').then(({ allowedSites = [] }) => {
+          sendResponse({ success: true, sites: allowedSites })
+        })
+        return true
+      }
+
+      if (message.action === 'addAllowedSite') {
+        const pattern = message.pattern!
+        chrome.storage.sync.get('allowedSites').then(async ({ allowedSites = [] }) => {
+          const sites = allowedSites as string[]
+          if (sites.includes(pattern)) {
+            sendResponse({ success: true, sites, alreadyExists: true })
+            return
+          }
+          const updated = [...sites, pattern]
+          await chrome.storage.sync.set({ allowedSites: updated })
+          await syncRegisteredContentScripts()
+          sendResponse({ success: true, sites: updated })
+        })
+        return true
+      }
+
+      if (message.action === 'removeAllowedSite') {
+        const pattern = message.pattern!
+        chrome.storage.sync.get('allowedSites').then(async ({ allowedSites = [] }) => {
+          const updated = (allowedSites as string[]).filter((s: string) => s !== pattern)
+          await chrome.storage.sync.set({ allowedSites: updated })
+          try { await chrome.permissions.remove({ origins: [pattern] }) } catch { /* ok */ }
+          await syncRegisteredContentScripts()
+          sendResponse({ success: true, sites: updated })
+        })
+        return true
+      }
+
+      return false
+    }
+  )
 
 type TranslateMessage = {
   action: "translate"

@@ -128,7 +128,7 @@ export default defineContentScript({
       }
     }
 
-    // Listen for session pushes from the dashboard's ExtensionBridge component
+    // Listen for messages from the dashboard's ExtensionBridge component
     window.addEventListener('message', (event) => {
       if (event.origin !== DASHBOARD_ORIGIN) return
 
@@ -140,6 +140,21 @@ export default defineContentScript({
         })
       } else if (event.data?.type === 'SUPABASE_SIGNOUT') {
         chrome.runtime.sendMessage({ type: 'DASHBOARD_SIGNOUT' })
+      }
+
+      // Allowed sites management — relay to background and respond to dashboard
+      if (event.data?.type === 'GET_ALLOWED_SITES') {
+        chrome.runtime.sendMessage({ action: 'getAllowedSites' }, (response) => {
+          window.postMessage({ type: 'ALLOWED_SITES_RESPONSE', sites: response?.sites || [] }, DASHBOARD_ORIGIN)
+        })
+      } else if (event.data?.type === 'ADD_ALLOWED_SITE') {
+        chrome.runtime.sendMessage({ action: 'addAllowedSite', pattern: event.data.pattern }, (response) => {
+          window.postMessage({ type: 'ALLOWED_SITES_RESPONSE', sites: response?.sites || [] }, DASHBOARD_ORIGIN)
+        })
+      } else if (event.data?.type === 'REMOVE_ALLOWED_SITE') {
+        chrome.runtime.sendMessage({ action: 'removeAllowedSite', pattern: event.data.pattern }, (response) => {
+          window.postMessage({ type: 'ALLOWED_SITES_RESPONSE', sites: response?.sites || [] }, DASHBOARD_ORIGIN)
+        })
       }
     })
 

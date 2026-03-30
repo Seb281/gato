@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Key, ShieldCheck, AlertCircle, Monitor, Sun, Moon } from "lucide-react";
+import { Loader2, Key, ShieldCheck, AlertCircle, Monitor, Sun, Moon, Globe, Plus, X, WifiOff } from "lucide-react";
 import { useTheme } from "next-themes";
 
 export default function SettingsForm() {
@@ -43,6 +43,11 @@ export default function SettingsForm() {
   // Metadata State
   const [hasCustomApiKey, setHasCustomApiKey] = useState(false);
   const [maskedApiKey, setMaskedApiKey] = useState("");
+
+  // Allowed Sites State
+  const [allowedSites, setAllowedSites] = useState<string[]>([]);
+  const [extensionConnected, setExtensionConnected] = useState(false);
+  const [newSiteUrl, setNewSiteUrl] = useState("");
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -82,6 +87,60 @@ export default function SettingsForm() {
 
     fetchSettings();
   }, [supabase, API_URL]);
+
+  // Communicate with extension via postMessage for allowed sites
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    function handleMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === "ALLOWED_SITES_RESPONSE") {
+        setExtensionConnected(true);
+        setAllowedSites(event.data.sites || []);
+      }
+    }
+
+    window.addEventListener("message", handleMessage);
+
+    // Request current sites from extension (will respond if installed)
+    window.postMessage({ type: "GET_ALLOWED_SITES" }, window.location.origin);
+
+    // If no response after 500ms, extension is not connected
+    timeoutId = setTimeout(() => {
+      setExtensionConnected((prev) => prev); // keep current state
+    }, 500);
+
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      clearTimeout(timeoutId);
+    };
+  }, []);
+
+  function handleAddSite() {
+    const trimmed = newSiteUrl.trim();
+    if (!trimmed) return;
+
+    let pattern: string;
+    try {
+      // Accept bare domains like "example.com" or full URLs
+      const url = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+      pattern = `${url.origin}/*`;
+    } catch {
+      return; // invalid URL
+    }
+
+    if (allowedSites.includes(pattern)) {
+      setNewSiteUrl("");
+      return;
+    }
+
+    window.postMessage({ type: "ADD_ALLOWED_SITE", pattern }, window.location.origin);
+    setNewSiteUrl("");
+  }
+
+  function handleRemoveSite(pattern: string) {
+    window.postMessage({ type: "REMOVE_ALLOWED_SITE", pattern }, window.location.origin);
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -205,6 +264,88 @@ export default function SettingsForm() {
               This context helps the AI understand who you are and adjust translations accordingly.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Globe className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <CardTitle>Allowed Websites</CardTitle>
+              <CardDescription>
+                Sites where the translator activates automatically.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!extensionConnected ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/50 p-3 rounded-lg">
+              <WifiOff className="h-4 w-4 shrink-0" />
+              <p>
+                Install the browser extension to manage allowed websites.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="example.com"
+                  value={newSiteUrl}
+                  onChange={(e) => setNewSiteUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddSite();
+                    }
+                  }}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleAddSite}
+                  disabled={!newSiteUrl.trim()}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {allowedSites.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-3">
+                  No sites enabled yet. Add a website above or use the extension popup.
+                </p>
+              ) : (
+                <div className="max-h-[272px] overflow-y-auto rounded-lg border divide-y">
+                  {allowedSites.map((site) => (
+                    <div
+                      key={site}
+                      className="flex items-center justify-between px-3 py-2 text-sm"
+                    >
+                      <span className="truncate mr-2 text-foreground">
+                        {site.replace("/*", "")}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSite(site)}
+                        className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {allowedSites.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {allowedSites.length} {allowedSites.length === 1 ? "site" : "sites"} enabled
+                </p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

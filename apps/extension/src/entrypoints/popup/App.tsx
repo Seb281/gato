@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge.tsx'
-import { Languages, Check, LogOut, User } from 'lucide-react'
+import { Languages, Check, LogOut, User, X } from 'lucide-react'
 import { LANGUAGE_NAMES } from '@/entrypoints/content/helpers/detectLanguage'
 import { Separator } from '@/components/ui/separator'
 import type { Session } from '@supabase/supabase-js'
@@ -16,8 +16,9 @@ export default function App() {
   const [targetLanguage, setTargetLanguage] = useState('English')
   const [personalContext, setPersonalContext] = useState('')
   const [isSaved, setIsSaved] = useState(false)
-  const [isActivated, setIsActivated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [allowedSites, setAllowedSites] = useState<string[]>([])
+  const [currentSitePattern, setCurrentSitePattern] = useState<string | null>(null)
 
   // Initialize Supabase session and listen for changes
   useEffect(() => {
@@ -128,35 +129,49 @@ export default function App() {
     }
   }
 
+  // Load allowed sites and derive current site pattern
   useEffect(() => {
     chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
-      if (!tab?.id) return
-      chrome.tabs
-        .sendMessage(tab.id, { action: 'ping' })
-        .then(() => setIsActivated(true))
-        .catch(() => setIsActivated(false))
+      if (!tab?.url) return
+      try {
+        const url = new URL(tab.url)
+        if (url.protocol === 'https:' || url.protocol === 'http:') {
+          setCurrentSitePattern(`${url.origin}/*`)
+        }
+      } catch { /* invalid URL, e.g. chrome:// */ }
+    })
+
+    chrome.runtime.sendMessage({ action: 'getAllowedSites' }, (response) => {
+      if (response?.success) setAllowedSites(response.sites)
     })
   }, [])
 
-  async function handleActivate() {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-    if (!tab?.id) return
-    await chrome.scripting.insertCSS({
-      target: { tabId: tab.id },
-      files: ['content-scripts/content.css'],
+  const isCurrentSiteAllowed = currentSitePattern
+    ? allowedSites.includes(currentSitePattern)
+    : false
+
+  async function handleAddCurrentSite() {
+    if (!currentSitePattern) return
+    const granted = await chrome.permissions.request({
+      origins: [currentSitePattern],
     })
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ['content-scripts/content.js'],
-    })
-    setIsActivated(true)
+    if (!granted) return
+
+    chrome.runtime.sendMessage(
+      { action: 'addAllowedSite', pattern: currentSitePattern },
+      (response) => {
+        if (response?.success) setAllowedSites(response.sites)
+      },
+    )
   }
 
-  async function handleDeactivate() {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-    if (!tab?.id) return
-    chrome.tabs.reload(tab.id)
-    setIsActivated(false)
+  function handleRemoveSite(pattern: string) {
+    chrome.runtime.sendMessage(
+      { action: 'removeAllowedSite', pattern },
+      (response) => {
+        if (response?.success) setAllowedSites(response.sites)
+      },
+    )
   }
 
   const handleSignOut = async () => {
@@ -176,38 +191,76 @@ export default function App() {
 
   return (
     <div className='w-[420px]'>
-      <Card className='rounded-none border-0 shadow-none'>
+      <Card className='rounded-none shadow-none'>
         <CardHeader className=''>
           <div className='flex items-center gap-2'>
             <Languages className='h-5 w-5 text-primary' />
             <CardTitle className='text-lg'>Context-Aware Translator</CardTitle>
           </div>
           <p className='text-sm text-muted-foreground mt-1'>
-            Translate any text, in context. Start by activating the extension
-            for this tab by clicking below:
+            Translate any text, in context. Enable on a site for automatic
+            activation, or right-click selected text to translate anywhere.
           </p>
-          <div className='mt-2 flex justify-center items-center gap-2'>
-            {!isActivated ? (
-              <Button variant='link' size='sm' onClick={handleActivate}>
-                Activate on current tab
-              </Button>
-            ) : (
-              <div className='flex justify-around'>
-                <span className='flex items-center gap-1 text-sm text-green-600 dark:text-green-400 font-medium'>
-                  <Check className='h-3.5 w-3.5' />
-                  Active on this tab
-                </span>
+          <div className='mt-2'>
+            {currentSitePattern ? (
+              isCurrentSiteAllowed ? (
+                <div className='flex items-center justify-between'>
+                  <span className='flex items-center gap-1 text-sm text-green-600 dark:text-green-400 font-medium'>
+                    <Check className='h-3.5 w-3.5' />
+                    Enabled on this site
+                  </span>
+                  <Button
+                    variant='link'
+                    size='sm'
+                    onClick={() => handleRemoveSite(currentSitePattern)}
+                    className='text-muted-foreground hover:text-destructive hover:underline'
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ) : (
                 <Button
                   variant='link'
                   size='sm'
-                  onClick={handleDeactivate}
-                  className='text-muted-foreground hover:text-destructive hover:underline'
+                  onClick={handleAddCurrentSite}
+                  className='text-foreground'
                 >
-                  Deactivate
+                  Enable on this site
                 </Button>
-              </div>
+              )
+            ) : (
+              <p className='text-xs text-muted-foreground'>
+                Translation is not available on this page.
+              </p>
             )}
           </div>
+          {allowedSites.length > 0 && (
+            <div className='mt-3 space-y-1'>
+              <p className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
+                Enabled Sites
+              </p>
+              <div className='space-y-0.5 max-h-[100px] overflow-y-auto'>
+                {allowedSites.map((site) => (
+                  <div
+                    key={site}
+                    className='flex items-center justify-between text-sm'
+                  >
+                    <span className='truncate max-w-[280px] text-muted-foreground'>
+                      {site.replace('/*', '')}
+                    </span>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      onClick={() => handleRemoveSite(site)}
+                      className='h-6 w-6 p-0 text-muted-foreground hover:text-destructive'
+                    >
+                      <X className='h-3 w-3' />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardHeader>
 
         <CardContent className='space-y-4'>
@@ -222,7 +275,7 @@ export default function App() {
               id='language'
               value={targetLanguage}
               onChange={(e) => setTargetLanguage(e.target.value)}
-              className='h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
+              className='h-9 rounded-lg bg-secondary px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
             >
               {languages.map((lang) => (
                 <option key={lang.code} value={lang.name}>
@@ -286,58 +339,29 @@ export default function App() {
               How to Use
             </p>
 
-            <div className='space-y-2'>
-              <div className='flex items-start gap-3'>
-                <Badge
-                  variant='outline'
-                  className='shrink-0 w-6 h-6 rounded-full flex items-center justify-center p-0'
-                >
-                  1
-                </Badge>
-                <p className='text-sm text-muted-foreground'>
-                  <span className='font-medium text-foreground'>
-                    Activate on the tab
-                  </span>{' '}
-                  using the button at the top, or just press the shortcut for
-                  the first time
+            <div className='space-y-3'>
+              <div>
+                <p className='text-xs font-medium text-foreground mb-1'>
+                  On any page (no setup needed)
+                </p>
+                <p className='text-xs text-muted-foreground'>
+                  Select text, right-click, and choose{' '}
+                  <span className='font-medium text-foreground'>"Translate"</span>{' '}
+                  from the menu.
                 </p>
               </div>
 
-              <div className='flex items-start gap-3'>
-                <Badge
-                  variant='outline'
-                  className='shrink-0 w-6 h-6 rounded-full flex items-center justify-center p-0'
-                >
-                  2
-                </Badge>
-                <p className='text-sm text-muted-foreground'>
-                  <span className='font-medium text-foreground'>
-                    Select any text
-                  </span>{' '}
-                  on the webpage
+              <div>
+                <p className='text-xs font-medium text-foreground mb-1'>
+                  On enabled sites (automatic)
                 </p>
-              </div>
-
-              <div className='flex items-start gap-3'>
-                <Badge
-                  variant='outline'
-                  className='shrink-0 w-6 h-6 rounded-full flex items-center justify-center p-0'
-                >
-                  3
-                </Badge>
-                <p className='text-sm text-muted-foreground'>
+                <p className='text-xs text-muted-foreground'>
+                  Click{' '}
                   <span className='font-medium text-foreground'>
-                    Press{' '}
-                    <kbd className='px-2 py-0.5 bg-muted rounded text-xs font-mono'>
-                      Ctrl+Shift+T
-                    </kbd>{' '}
-                    or click the{' '}
-                    <kbd className='px-2 py-0.5 bg-muted rounded text-xs font-mono'>
-                      Translate
-                    </kbd>{' '}
-                    tooltip
+                    "Enable on this site"
                   </span>{' '}
-                  to get a contextual translation
+                  above. Then just select text and click the tooltip that
+                  appears. Works across refreshes and restarts.
                 </p>
               </div>
             </div>

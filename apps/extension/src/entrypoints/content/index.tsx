@@ -77,13 +77,59 @@ export default defineContentScript({
       )
     }
 
-chrome.runtime.onMessage.addListener((message: { action: string }): void => {
-      if (message.action === "showTranslation") {
-        // Capture selection when triggered by keyboard shortcut
-        captureSelection()
-        showTranslationPopup()
+    function showTranslationPopupWithText(text: string): void {
+      tooltip.hide()
+      highlight.clear()
+
+      const existingPopup = document.getElementById("context-translator-root")
+      if (existingPopup) existingPopup.remove()
+
+      const container = document.createElement("div")
+      container.id = "context-translator-root"
+      container.classList.toggle("dark", mq.matches)
+      activeContainer = container
+      document.body.appendChild(container)
+
+      const rect = new DOMRect(
+        window.innerWidth / 2 - 250,
+        window.scrollY + 100,
+        0,
+        0
+      )
+
+      const root = createRoot(container)
+      root.render(
+        <TranslationPopup
+          selection={text}
+          selectionRect={rect}
+          contextBefore=""
+          contextAfter=""
+          onClose={(): void => {
+            highlight.clear()
+            if (activeContainer === container) activeContainer = null
+            container.remove()
+          }}
+        />
+      )
+    }
+
+    chrome.runtime.onMessage.addListener(
+      (message: { action: string; selectionText?: string }, _, sendResponse) => {
+        if (message.action === "ping") {
+          sendResponse({ alive: true })
+          return true
+        }
+        if (message.action === "showTranslation") {
+          const hasSelection = captureSelection()
+          if (hasSelection) {
+            showTranslationPopup()
+          } else if (message.selectionText) {
+            showTranslationPopupWithText(message.selectionText)
+          }
+        }
+        return false
       }
-    })
+    )
 
 document.addEventListener("mouseup", () => {
   setTimeout(() => {

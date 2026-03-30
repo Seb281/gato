@@ -52,6 +52,11 @@ coverage/
 *.sqlite
 *.sqlite3
 
+# Docs (internal research / notes)
+docs/
+
 # Misc
 *.local
 *.pem
+
+.mcp.json
