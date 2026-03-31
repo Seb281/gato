@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BarChart3, Flame, Target, Trophy, BookOpen, Loader2 } from "lucide-react";
+import { BarChart3, Flame, Target, Trophy, BookOpen, Loader2, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import ActivityHeatmap from "@/components/dashboard/ActivityHeatmap";
+import AccuracyChart from "@/components/dashboard/AccuracyChart";
 
 type OverviewStats = {
   totalConcepts: number;
@@ -21,6 +22,17 @@ type ActivityDay = {
   conceptsAdded: number;
   reviewsCompleted: number;
   correctReviews: number;
+};
+
+type ReviewSession = {
+  id: string;
+  userId: string;
+  mode: string;
+  totalItems: number;
+  correctItems: number;
+  accuracy: number;
+  durationSeconds: number;
+  completedAt: string;
 };
 
 const STATE_COLORS: Record<string, string> = {
@@ -43,6 +55,7 @@ export default function ProgressPage() {
 
   const [overview, setOverview] = useState<OverviewStats | null>(null);
   const [activity, setActivity] = useState<ActivityDay[]>([]);
+  const [sessions, setSessions] = useState<ReviewSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -59,9 +72,10 @@ export default function ProgressPage() {
 
         const headers = { Authorization: `Bearer ${session.access_token}` };
 
-        const [overviewRes, activityRes] = await Promise.all([
+        const [overviewRes, activityRes, sessionsRes] = await Promise.all([
           fetch(`${API_URL}/stats/overview`, { headers }),
           fetch(`${API_URL}/stats/activity?days=90`, { headers }),
+          fetch(`${API_URL}/review/sessions?limit=30`, { headers }),
         ]);
 
         if (overviewRes.ok) {
@@ -74,6 +88,10 @@ export default function ProgressPage() {
           setActivity(data.activity);
         } else {
           setError(true);
+        }
+        if (sessionsRes.ok) {
+          const data = await sessionsRes.json();
+          setSessions(data.sessions ?? []);
         }
       } catch (err) {
         console.error("Failed to fetch stats:", err);
@@ -181,6 +199,19 @@ export default function ProgressPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Accuracy trend chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="size-5 text-muted-foreground" />
+            Accuracy Trend
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AccuracyChart sessions={sessions} />
+        </CardContent>
+      </Card>
 
       {/* Vocabulary breakdown */}
       {totalForBar > 0 && (
