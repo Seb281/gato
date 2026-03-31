@@ -234,6 +234,9 @@ export default function TranslationPopup({
           sourceLanguage,
           concept: selection,
           translation: translation.contextualTranslation,
+          contextBefore,
+          contextAfter,
+          sourceUrl: window.location.href,
         },
       },
       (response) => {
@@ -296,6 +299,9 @@ export default function TranslationPopup({
           sourceLanguage,
           concept: selection,
           translation: translation.contextualTranslation,
+          contextBefore,
+          contextAfter,
+          sourceUrl: window.location.href,
         },
       },
       (response) => {

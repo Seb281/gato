@@ -57,6 +57,13 @@
       "when": 1774960904819,
       "tag": "0007_charming_young_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1774961590117,
+      "tag": "0008_kind_korvac",
+      "breakpoints": true
     }
   ]
 }

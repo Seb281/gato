@@ -34,6 +34,9 @@ type SaveConceptBody = {
   translation: string
   sourceLanguage: string
   targetLanguage: string
+  contextBefore?: string
+  contextAfter?: string
+  sourceUrl?: string
 }
 
 type UpdateConceptBody = {
@@ -113,7 +116,7 @@ export async function extensionRoutes(
         ...(name && { name }),
       })
 
-      const { concept, translation, sourceLanguage, targetLanguage } = request.body
+      const { concept, translation, sourceLanguage, targetLanguage, contextBefore, contextAfter, sourceUrl } = request.body
 
       if (!concept || !translation || !sourceLanguage || !targetLanguage) {
         return reply.code(400).send({
@@ -139,6 +142,9 @@ export async function extensionRoutes(
         translation,
         sourceLanguage,
         targetLanguage,
+        ...(contextBefore && { contextBefore }),
+        ...(contextAfter && { contextAfter }),
+        ...(sourceUrl && { sourceUrl }),
       })
 
       // Enrich with rich translation data in background (non-blocking)

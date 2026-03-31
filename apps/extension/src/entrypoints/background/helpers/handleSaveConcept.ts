@@ -7,6 +7,9 @@ type NewConcept = {
   sourceLanguage: string
   concept: string
   translation: string
+  contextBefore?: string
+  contextAfter?: string
+  sourceUrl?: string
   id?: number | undefined
   createdAt?: Date | undefined
   state?: "new" | "learned" | undefined
