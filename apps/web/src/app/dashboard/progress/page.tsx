@@ -8,6 +8,7 @@ import { BarChart3, Flame, Target, Trophy, BookOpen, Loader2, TrendingUp } from 
 import Link from "next/link";
 import ActivityHeatmap from "@/components/dashboard/ActivityHeatmap";
 import AccuracyChart from "@/components/dashboard/AccuracyChart";
+import ShareCard from "@/components/dashboard/ShareCard";
 
 type OverviewStats = {
   totalConcepts: number;
@@ -116,9 +117,29 @@ export default function ProgressPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Progress</h1>
-        <p className="text-muted-foreground">Track your learning journey.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Progress</h1>
+          <p className="text-muted-foreground">Track your learning journey.</p>
+        </div>
+        {overview && (
+          <ShareCard
+            totalWords={overview.totalConcepts}
+            masteredCount={overview.conceptsByState?.mastered ?? 0}
+            accuracy={overview.avgAccuracy}
+            streak={overview.currentStreak}
+            distribution={
+              overview.conceptsByState
+                ? {
+                    new: overview.conceptsByState.new ?? 0,
+                    learning: overview.conceptsByState.learning ?? 0,
+                    familiar: overview.conceptsByState.familiar ?? 0,
+                    mastered: overview.conceptsByState.mastered ?? 0,
+                  }
+                : undefined
+            }
+          />
+        )}
       </div>
 
       {error && (
