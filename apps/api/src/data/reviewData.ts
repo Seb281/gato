@@ -1,7 +1,7 @@
 import { db } from '../db/index.ts'
-import { and, eq, lte, gte, lt, sql, ne, inArray, isNull } from 'drizzle-orm'
-import { reviewScheduleTable, conceptsTable } from '../db/schema.ts'
-import type { ReviewSchedule, Concept } from '../db/schema.ts'
+import { and, eq, lte, gte, lt, sql, ne, inArray, isNull, desc } from 'drizzle-orm'
+import { reviewScheduleTable, conceptsTable, reviewSessionsTable } from '../db/schema.ts'
+import type { ReviewSchedule, Concept, ReviewSession } from '../db/schema.ts'
 
 const reviewData = {
   async getDueConcepts(
@@ -252,6 +252,55 @@ const reviewData = {
       LEFT JOIN review_schedule rs ON rs.concept_id = c.id
       WHERE c.user_id = ${userId} AND rs.id IS NULL
     `)
+  },
+
+  async saveSession(
+    userId: number,
+    data: {
+      mode: string
+      totalItems: number
+      correctItems: number
+      accuracy: number
+      durationSeconds?: number | null
+    }
+  ): Promise<ReviewSession> {
+    const result = await db
+      .insert(reviewSessionsTable)
+      .values({
+        userId,
+        mode: data.mode,
+        totalItems: data.totalItems,
+        correctItems: data.correctItems,
+        accuracy: data.accuracy,
+        durationSeconds: data.durationSeconds ?? null,
+      })
+      .returning()
+    return result[0]!
+  },
+
+  async getSessionHistory(
+    userId: number,
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<{ sessions: ReviewSession[]; total: number }> {
+    const [sessions, countResult] = await Promise.all([
+      db
+        .select()
+        .from(reviewSessionsTable)
+        .where(eq(reviewSessionsTable.userId, userId))
+        .orderBy(desc(reviewSessionsTable.completedAt))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(reviewSessionsTable)
+        .where(eq(reviewSessionsTable.userId, userId)),
+    ])
+
+    return {
+      sessions,
+      total: countResult[0]?.count ?? 0,
+    }
   },
 }
 

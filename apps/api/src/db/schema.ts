@@ -103,6 +103,17 @@ export const dailyActivityTable = pgTable(
   (t) => [unique().on(t.userId, t.date)]
 )
 
+export const reviewSessionsTable = pgTable('review_sessions', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => usersTable.id, { onDelete: 'cascade' }),
+  mode: text('mode').notNull(),
+  totalItems: integer('total_items').notNull(),
+  correctItems: integer('correct_items').notNull(),
+  accuracy: integer('accuracy').notNull(),
+  durationSeconds: integer('duration_seconds'),
+  completedAt: timestamp('completed_at').defaultNow().notNull(),
+})
+
 export type User = typeof usersTable.$inferSelect
 export type NewUser = typeof usersTable.$inferInsert
 
@@ -115,3 +126,5 @@ export type NewTag = typeof tagsTable.$inferInsert
 export type ReviewSchedule = typeof reviewScheduleTable.$inferSelect
 
 export type DailyActivity = typeof dailyActivityTable.$inferSelect
+
+export type ReviewSession = typeof reviewSessionsTable.$inferSelect

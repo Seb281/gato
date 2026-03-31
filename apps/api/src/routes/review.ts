@@ -24,6 +24,19 @@ type QuizQuerystring = {
   count?: string
 }
 
+type SessionBody = {
+  mode: string
+  totalItems: number
+  correctItems: number
+  accuracy: number
+  durationSeconds?: number | null
+}
+
+type SessionQuerystring = {
+  limit?: string
+  offset?: string
+}
+
 export async function reviewRoutes(
   fastify: FastifyInstance,
   _options: FastifyPluginOptions
@@ -214,6 +227,62 @@ export async function reviewRoutes(
       }))
 
       return reply.send({ questions })
+    }
+  )
+
+  // POST /review/sessions — save a completed review session
+  fastify.post<{ Body: SessionBody }>(
+    '/review/sessions',
+    { preHandler: [requireAuth] },
+    async (request: FastifyRequest<{ Body: SessionBody }>, reply: FastifyReply) => {
+      const supabaseId = getAuthenticatedUserId(request)
+      if (!supabaseId) {
+        return reply.code(401).send({ error: 'Unauthorized' })
+      }
+
+      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+      if (!user) {
+        return reply.code(401).send({ error: 'User not found' })
+      }
+
+      const { mode, totalItems, correctItems, accuracy, durationSeconds } = request.body
+
+      if (!mode || totalItems == null || correctItems == null || accuracy == null) {
+        return reply.code(400).send({ error: 'Missing required fields: mode, totalItems, correctItems, accuracy' })
+      }
+
+      const session = await reviewData.saveSession(user.id, {
+        mode,
+        totalItems,
+        correctItems,
+        accuracy,
+        durationSeconds: durationSeconds ?? null,
+      })
+
+      return reply.send({ message: 'Session saved', session })
+    }
+  )
+
+  // GET /review/sessions — paginated session history
+  fastify.get<{ Querystring: SessionQuerystring }>(
+    '/review/sessions',
+    { preHandler: [requireAuth] },
+    async (request: FastifyRequest<{ Querystring: SessionQuerystring }>, reply: FastifyReply) => {
+      const supabaseId = getAuthenticatedUserId(request)
+      if (!supabaseId) {
+        return reply.code(401).send({ error: 'Unauthorized' })
+      }
+
+      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+      if (!user) {
+        return reply.send({ sessions: [], total: 0 })
+      }
+
+      const limit = request.query.limit ? parseInt(request.query.limit, 10) : 20
+      const offset = request.query.offset ? parseInt(request.query.offset, 10) : 0
+
+      const result = await reviewData.getSessionHistory(user.id, limit, offset)
+      return reply.send(result)
     }
   )
 }
