@@ -24,6 +24,12 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { languageToBCP47 } from "@/lib/languageCodes";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import ConceptNotes from "./ConceptNotes";
 import MasteryBadge from "./MasteryBadge";
 import TagBadge from "./TagBadge";
@@ -50,12 +56,35 @@ type Concept = {
   userNotes: string | null;
   exampleSentence: string | null;
   tags: Tag[];
+  nextReviewAt: string | null;
   createdAt: string;
   state: string;
   updatedAt: string;
 };
 
 const PAGE_SIZE = 30;
+
+function getReviewStatus(nextReviewAt: string | null): {
+  color: string;
+  label: string;
+} {
+  if (!nextReviewAt) {
+    return { color: "bg-neutral-400", label: "Never reviewed" };
+  }
+
+  const now = new Date();
+  const reviewDate = new Date(nextReviewAt);
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+
+  if (reviewDate < startOfToday) {
+    return { color: "bg-red-500", label: "Overdue" };
+  }
+  if (reviewDate < endOfToday) {
+    return { color: "bg-amber-500", label: "Due today" };
+  }
+  return { color: "bg-emerald-500", label: "Up to date" };
+}
 
 export default function ConceptsList() {
   const supabase = createClient();
@@ -77,6 +106,9 @@ export default function ConceptsList() {
   // Tags state
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [tagFilter, setTagFilter] = useState("all");
+
+  // Review status filter
+  const [reviewStatusFilter, setReviewStatusFilter] = useState("all");
 
   // Distinct language pairs for filter dropdown
   const [languagePairs, setLanguagePairs] = useState<string[]>([]);
@@ -160,6 +192,7 @@ export default function ConceptsList() {
       if (languageFilter !== "all") params.set("language", languageFilter);
       if (stateFilter !== "all") params.set("state", stateFilter);
       if (tagFilter !== "all") params.set("tags", tagFilter);
+      if (reviewStatusFilter !== "all") params.set("reviewStatus", reviewStatusFilter);
       params.set("sortBy", sortBy);
       params.set("sortOrder", sortOrder);
       params.set("page", page.toString());
@@ -185,7 +218,7 @@ export default function ConceptsList() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, API_URL, debouncedSearch, languageFilter, stateFilter, tagFilter, sortBy, sortOrder, page]);
+  }, [supabase, API_URL, debouncedSearch, languageFilter, stateFilter, tagFilter, reviewStatusFilter, sortBy, sortOrder, page]);
 
   useEffect(() => {
     fetchConcepts();
@@ -287,6 +320,18 @@ export default function ConceptsList() {
               </SelectContent>
             </Select>
           )}
+          <Select value={reviewStatusFilter} onValueChange={(v) => { setReviewStatusFilter(v); setPage(1); }}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Review" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All review</SelectItem>
+              <SelectItem value="overdue">Overdue</SelectItem>
+              <SelectItem value="due-today">Due today</SelectItem>
+              <SelectItem value="reviewed">Up to date</SelectItem>
+              <SelectItem value="new">Never reviewed</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={`${sortBy}-${sortOrder}`} onValueChange={(v) => { const [by, order] = v.split("-"); setSortBy(by as "date" | "alpha"); setSortOrder(order as "asc" | "desc"); setPage(1); }}>
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Sort" />
@@ -320,16 +365,16 @@ export default function ConceptsList() {
             </div>
           </div>
           <h3 className="text-lg font-medium">
-            {debouncedSearch || languageFilter !== "all" || stateFilter !== "all" || tagFilter !== "all"
+            {debouncedSearch || languageFilter !== "all" || stateFilter !== "all" || tagFilter !== "all" || reviewStatusFilter !== "all"
               ? "No matching concepts"
               : "No saved concepts yet"}
           </h3>
           <p className="text-muted-foreground max-w-sm mx-auto">
-            {debouncedSearch || languageFilter !== "all" || stateFilter !== "all" || tagFilter !== "all"
+            {debouncedSearch || languageFilter !== "all" || stateFilter !== "all" || tagFilter !== "all" || reviewStatusFilter !== "all"
               ? "No matching concepts. Try a different search term or clear your filters."
               : "Install the browser extension, select any text on a webpage, and right-click \u2192 Translate to start building your vocabulary."}
           </p>
-          {(debouncedSearch || languageFilter !== "all" || stateFilter !== "all" || tagFilter !== "all") && (
+          {(debouncedSearch || languageFilter !== "all" || stateFilter !== "all" || tagFilter !== "all" || reviewStatusFilter !== "all") && (
             <Button
               variant="outline"
               onClick={() => {
@@ -338,6 +383,7 @@ export default function ConceptsList() {
                 setLanguageFilter("all");
                 setStateFilter("all");
                 setTagFilter("all");
+                setReviewStatusFilter("all");
                 setSortBy("date");
                 setSortOrder("desc");
                 setPage(1);
@@ -361,9 +407,24 @@ export default function ConceptsList() {
             >
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
-                  <Badge variant="outline" className="text-xs font-normal">
-                    {concept.sourceLanguage} &rarr; {concept.targetLanguage}
-                  </Badge>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant="outline" className="text-xs font-normal">
+                      {concept.sourceLanguage} &rarr; {concept.targetLanguage}
+                    </Badge>
+                    <TooltipProvider delayDuration={200}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            className={`${getReviewStatus(concept.nextReviewAt).color} size-2 rounded-full inline-block shrink-0`}
+                            aria-label={getReviewStatus(concept.nextReviewAt).label}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {getReviewStatus(concept.nextReviewAt).label}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <Button
                     variant="ghost"
                     size="icon"

@@ -8,6 +8,7 @@ import {
 } from '../middleware/supabaseAuth.ts'
 import conceptsData from '../data/conceptsData.ts'
 import tagsData from '../data/tagsData.ts'
+import reviewData from '../data/reviewData.ts'
 import { usersData, userContextData } from '../data/usersData.ts'
 import statsData from '../data/statsData.ts'
 
@@ -47,6 +48,7 @@ type ConceptsQuerystring = {
   language?: string
   state?: string
   tags?: string
+  reviewStatus?: 'overdue' | 'due-today' | 'reviewed' | 'new'
   sortBy?: 'date' | 'alpha'
   sortOrder?: 'asc' | 'desc'
   page?: string
@@ -395,16 +397,40 @@ export async function extensionRoutes(
         return reply.send({ message: 'Concepts retrieved', concepts: [], total: 0 })
       }
 
-      const { search, language, state, tags, sortBy, sortOrder, page, limit } = request.query
+      const { search, language, state, tags, reviewStatus, sortBy, sortOrder, page, limit } = request.query
 
       // If tag filter is provided, resolve matching concept IDs first
-      let tagConceptIds: number[] | undefined
+      let filteredConceptIds: number[] | undefined
       if (tags) {
         const tagIds = tags.split(',').map((id) => parseInt(id.trim(), 10)).filter((id) => !isNaN(id))
         if (tagIds.length > 0) {
-          tagConceptIds = await tagsData.getConceptIdsWithAllTags(tagIds)
-          if (tagConceptIds.length === 0) {
+          filteredConceptIds = await tagsData.getConceptIdsWithAllTags(tagIds)
+          if (filteredConceptIds.length === 0) {
             return reply.send({ message: 'Concepts retrieved', concepts: [], total: 0 })
+          }
+        }
+      }
+
+      // If review status filter is provided, resolve matching concept IDs
+      if (reviewStatus) {
+        const validStatuses = ['overdue', 'due-today', 'reviewed', 'new'] as const
+        if (validStatuses.includes(reviewStatus as typeof validStatuses[number])) {
+          const reviewConceptIds = await reviewData.getConceptIdsByReviewStatus(
+            user.id,
+            reviewStatus as typeof validStatuses[number]
+          )
+          if (reviewConceptIds.length === 0) {
+            return reply.send({ message: 'Concepts retrieved', concepts: [], total: 0 })
+          }
+          // Intersect with tag filter if both are present
+          if (filteredConceptIds) {
+            const reviewSet = new Set(reviewConceptIds)
+            filteredConceptIds = filteredConceptIds.filter((id) => reviewSet.has(id))
+            if (filteredConceptIds.length === 0) {
+              return reply.send({ message: 'Concepts retrieved', concepts: [], total: 0 })
+            }
+          } else {
+            filteredConceptIds = reviewConceptIds
           }
         }
       }
@@ -413,25 +439,29 @@ export async function extensionRoutes(
         search,
         language,
         state,
-        conceptIds: tagConceptIds,
+        conceptIds: filteredConceptIds,
         sortBy,
         sortOrder,
         page: page ? parseInt(page, 10) : undefined,
         limit: limit ? parseInt(limit, 10) : undefined,
       })
 
-      // Batch-load tags for returned concepts
+      // Batch-load tags and review schedules for returned concepts
       const conceptIds = result.concepts.map((c) => c.id)
-      const tagsMap = await tagsData.getTagsForConcepts(conceptIds)
+      const [tagsMap, reviewMap] = await Promise.all([
+        tagsData.getTagsForConcepts(conceptIds),
+        reviewData.getReviewSchedulesForConcepts(conceptIds),
+      ])
 
-      const conceptsWithTags = result.concepts.map((c) => ({
+      const conceptsWithMeta = result.concepts.map((c) => ({
         ...c,
         tags: tagsMap.get(c.id) ?? [],
+        nextReviewAt: reviewMap.get(c.id)?.nextReviewAt?.toISOString() ?? null,
       }))
 
       return reply.send({
         message: 'Concepts retrieved',
-        concepts: conceptsWithTags,
+        concepts: conceptsWithMeta,
         total: result.total,
       })
     }

@@ -1,5 +1,5 @@
 import { db } from '../db/index.ts'
-import { and, eq, lte, sql, ne } from 'drizzle-orm'
+import { and, eq, lte, gte, lt, sql, ne, inArray, isNull } from 'drizzle-orm'
 import { reviewScheduleTable, conceptsTable } from '../db/schema.ts'
 import type { ReviewSchedule, Concept } from '../db/schema.ts'
 
@@ -146,6 +146,89 @@ const reviewData = {
       .limit(count)
 
     return rows.map((r) => r.translation)
+  },
+
+  async getReviewSchedulesForConcepts(
+    conceptIds: number[]
+  ): Promise<Map<number, { nextReviewAt: Date | null }>> {
+    if (conceptIds.length === 0) return new Map()
+
+    const rows = await db
+      .select({
+        conceptId: reviewScheduleTable.conceptId,
+        nextReviewAt: reviewScheduleTable.nextReviewAt,
+      })
+      .from(reviewScheduleTable)
+      .where(inArray(reviewScheduleTable.conceptId, conceptIds))
+
+    const map = new Map<number, { nextReviewAt: Date | null }>()
+    for (const row of rows) {
+      map.set(row.conceptId, { nextReviewAt: row.nextReviewAt })
+    }
+    return map
+  },
+
+  async getConceptIdsByReviewStatus(
+    userId: number,
+    status: 'overdue' | 'due-today' | 'reviewed' | 'new'
+  ): Promise<number[]> {
+    const now = new Date()
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000)
+
+    if (status === 'new') {
+      // Concepts with no review_schedule entry
+      const rows = await db
+        .select({ id: conceptsTable.id })
+        .from(conceptsTable)
+        .leftJoin(reviewScheduleTable, eq(conceptsTable.id, reviewScheduleTable.conceptId))
+        .where(
+          and(
+            eq(conceptsTable.userId, userId),
+            isNull(reviewScheduleTable.id)
+          )
+        )
+      return rows.map((r) => r.id)
+    }
+
+    if (status === 'overdue') {
+      const rows = await db
+        .select({ conceptId: reviewScheduleTable.conceptId })
+        .from(reviewScheduleTable)
+        .where(
+          and(
+            eq(reviewScheduleTable.userId, userId),
+            lt(reviewScheduleTable.nextReviewAt, startOfDay)
+          )
+        )
+      return rows.map((r) => r.conceptId)
+    }
+
+    if (status === 'due-today') {
+      const rows = await db
+        .select({ conceptId: reviewScheduleTable.conceptId })
+        .from(reviewScheduleTable)
+        .where(
+          and(
+            eq(reviewScheduleTable.userId, userId),
+            gte(reviewScheduleTable.nextReviewAt, startOfDay),
+            lt(reviewScheduleTable.nextReviewAt, endOfDay)
+          )
+        )
+      return rows.map((r) => r.conceptId)
+    }
+
+    // status === 'reviewed' (up to date: next review is after today)
+    const rows = await db
+      .select({ conceptId: reviewScheduleTable.conceptId })
+      .from(reviewScheduleTable)
+      .where(
+        and(
+          eq(reviewScheduleTable.userId, userId),
+          gte(reviewScheduleTable.nextReviewAt, endOfDay)
+        )
+      )
+    return rows.map((r) => r.conceptId)
   },
 
   async ensureSchedulesExist(userId: number): Promise<void> {
