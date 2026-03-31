@@ -231,6 +231,18 @@ const reviewData = {
     return rows.map((r) => r.conceptId)
   },
 
+  async getScheduleForConcept(
+    conceptId: number,
+    userId: number
+  ): Promise<ReviewSchedule | undefined> {
+    return db.query.reviewScheduleTable.findFirst({
+      where: and(
+        eq(reviewScheduleTable.conceptId, conceptId),
+        eq(reviewScheduleTable.userId, userId)
+      ),
+    })
+  },
+
   async ensureSchedulesExist(userId: number): Promise<void> {
     // Create review schedules for all concepts that don't have one yet
     await db.execute(sql`

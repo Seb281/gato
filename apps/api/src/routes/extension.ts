@@ -558,6 +558,58 @@ export async function extensionRoutes(
     }
   )
 
+  // Protected endpoint - get a single concept with tags and review schedule
+  fastify.get<{ Params: { id: string } }>(
+    '/saved-concepts/:id',
+    { preHandler: [requireAuth] },
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      const conceptId = parseInt(request.params.id, 10)
+      if (isNaN(conceptId)) {
+        return reply.code(400).send({ error: 'Invalid concept ID' })
+      }
+
+      const supabaseId = getAuthenticatedUserId(request)
+      if (!supabaseId) {
+        return reply.code(401).send({ error: 'Unauthorized' })
+      }
+
+      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+      if (!user) {
+        return reply.code(404).send({ error: 'User not found' })
+      }
+
+      const concept = await conceptsData.findConceptById(conceptId, user.id)
+      if (!concept) {
+        return reply.code(404).send({ error: 'Concept not found' })
+      }
+
+      // Get tags for this concept
+      const tagsMap = await tagsData.getTagsForConcepts([conceptId])
+      const tags = tagsMap.get(conceptId) ?? []
+
+      // Get review schedule if it exists
+      const schedule = await reviewData.getScheduleForConcept(conceptId, user.id)
+
+      return reply.send({
+        concept: {
+          ...concept,
+          tags,
+          schedule: schedule
+            ? {
+                easeFactor: schedule.easeFactor,
+                interval: schedule.interval,
+                repetitions: schedule.repetitions,
+                nextReviewAt: schedule.nextReviewAt,
+                lastReviewedAt: schedule.lastReviewedAt,
+                totalReviews: schedule.totalReviews,
+                correctReviews: schedule.correctReviews,
+              }
+            : null,
+        },
+      })
+    }
+  )
+
   // Protected endpoint - update a concept (translation, notes, state)
   fastify.patch<{ Params: { id: string }; Body: UpdateConceptBody }>(
     '/saved-concepts/:id',

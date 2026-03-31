@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -697,7 +698,13 @@ export default function ConceptsList() {
                   </Button>
                 </div>
                 <CardTitle className="text-xl leading-tight">
-                  {concept.concept}
+                  <Link
+                    href={`/dashboard/vocabulary/${concept.id}`}
+                    className="hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {concept.concept}
+                  </Link>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
