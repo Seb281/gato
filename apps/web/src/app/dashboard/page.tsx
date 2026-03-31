@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import GoalRing from "@/components/dashboard/GoalRing";
+import { checkMilestones } from "@/components/dashboard/MilestoneToast";
 
 export default function DashboardHome() {
   const supabase = createClient();
@@ -67,6 +68,9 @@ export default function DashboardHome() {
           fetch(`${API_URL}/stats/overview`, { headers }),
         ]);
 
+        let statsData: { totalReviewed: number; dueNow: number; avgAccuracy: number } | null = null;
+        let overviewData: { totalConcepts: number; currentStreak: number; longestStreak: number; conceptsByState?: { new?: number; learning?: number; familiar?: number; mastered?: number } } | null = null;
+
         if (dueRes.ok) {
           const data = await dueRes.json();
           setDueCount(data.dueCount);
@@ -74,16 +78,26 @@ export default function DashboardHome() {
           setError(true);
         }
         if (statsRes.ok) {
-          const data = await statsRes.json();
-          setStats(data);
+          statsData = await statsRes.json();
+          setStats(statsData);
         } else {
           setError(true);
         }
         if (overviewRes.ok) {
-          const data = await overviewRes.json();
-          setOverview(data);
+          overviewData = await overviewRes.json();
+          setOverview(overviewData);
         } else {
           setError(true);
+        }
+
+        // Check milestones with fresh data from both endpoints
+        if (overviewData) {
+          checkMilestones({
+            totalConcepts: overviewData.totalConcepts,
+            currentStreak: overviewData.currentStreak,
+            totalReviewed: statsData?.totalReviewed,
+            conceptsByState: overviewData.conceptsByState,
+          });
         }
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);

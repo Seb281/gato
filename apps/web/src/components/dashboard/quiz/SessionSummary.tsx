@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, Trophy, RotateCcw, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { SessionResult } from "@/hooks/useReviewSession";
+import { createClient } from "@/lib/supabase/client";
+import { checkMilestones } from "@/components/dashboard/MilestoneToast";
 
 type SessionSummaryProps = {
   results: SessionResult[];
@@ -19,6 +22,41 @@ export default function SessionSummary({
   const correct = results.filter((r) => r.correct).length;
   const total = results.length;
   const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+  useEffect(() => {
+    async function fetchAndCheckMilestones() {
+      try {
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const API_URL = process.env.NEXT_PUBLIC_API_URL;
+        const headers = { Authorization: `Bearer ${session.access_token}` };
+
+        const [overviewRes, statsRes] = await Promise.all([
+          fetch(`${API_URL}/stats/overview`, { headers }),
+          fetch(`${API_URL}/review/stats`, { headers }),
+        ]);
+
+        const overviewData = overviewRes.ok ? await overviewRes.json() : null;
+        const statsData = statsRes.ok ? await statsRes.json() : null;
+
+        checkMilestones({
+          totalConcepts: overviewData?.totalConcepts,
+          currentStreak: overviewData?.currentStreak,
+          totalReviewed: statsData?.totalReviewed,
+          conceptsByState: overviewData?.conceptsByState,
+          lastSessionAccuracy: accuracy,
+        });
+      } catch {
+        // Silently fail — milestones are non-critical
+      }
+    }
+
+    fetchAndCheckMilestones();
+  }, [accuracy]);
 
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-lg mx-auto">
