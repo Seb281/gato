@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/actions";
 import ExtensionBridge from "@/components/ExtensionBridge";
+import DashboardShortcuts from "@/components/DashboardShortcuts";
 import Sidebar from "@/components/dashboard/Sidebar";
 import MobileNav from "@/components/dashboard/MobileNav";
 
@@ -24,6 +25,7 @@ export default async function DashboardLayout({
       </div>
       <MobileNav signOutAction={signOut} />
       <ExtensionBridge />
+      <DashboardShortcuts />
     </div>
   );
 }

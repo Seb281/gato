@@ -406,6 +406,7 @@ export default function ConceptsList() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
+            data-search-input
           />
         </div>
         <div className="flex gap-2 flex-wrap">
