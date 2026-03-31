@@ -375,6 +375,107 @@ chrome.runtime.onMessage.addListener(
   }
 )
 
+// --- Review / Quiz Handlers ---
+
+chrome.runtime.onMessage.addListener(
+  (message: { action: string }, _, sendResponse) => {
+    if (message.action === "getDueCount") {
+      getSupabaseToken()
+        .then(async (token) => {
+          if (!token) {
+            sendResponse({ dueCount: 0 })
+            return
+          }
+          const response = await fetch(
+            `${import.meta.env.VITE_BASE_URL}/review/due?countOnly=true`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          )
+          if (!response.ok) {
+            sendResponse({ dueCount: 0 })
+            return
+          }
+          const data = await response.json()
+          sendResponse({ dueCount: data.dueCount ?? 0 })
+        })
+        .catch(() => {
+          sendResponse({ dueCount: 0 })
+        })
+      return true
+    }
+    return false
+  }
+)
+
+chrome.runtime.onMessage.addListener(
+  (message: { action: string; count?: number }, _, sendResponse) => {
+    if (message.action === "getQuizItems") {
+      const count = message.count ?? 5
+      getSupabaseToken()
+        .then(async (token) => {
+          if (!token) {
+            sendResponse({ items: [] })
+            return
+          }
+          const response = await fetch(
+            `${import.meta.env.VITE_BASE_URL}/quiz/generate?type=flashcard&count=${count}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          )
+          if (!response.ok) {
+            sendResponse({ items: [] })
+            return
+          }
+          const data = await response.json()
+          sendResponse({ items: data.items ?? data })
+        })
+        .catch(() => {
+          sendResponse({ items: [] })
+        })
+      return true
+    }
+    return false
+  }
+)
+
+chrome.runtime.onMessage.addListener(
+  (message: { action: string; conceptId: number; quality: number }, _, sendResponse) => {
+    if (message.action === "submitReview") {
+      getSupabaseToken()
+        .then(async (token) => {
+          if (!token) {
+            sendResponse({ success: false, error: "Not authenticated" })
+            return
+          }
+          const response = await fetch(
+            `${import.meta.env.VITE_BASE_URL}/review/${message.conceptId}/result`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ quality: message.quality }),
+            }
+          )
+          if (!response.ok) {
+            sendResponse({ success: false, error: response.statusText })
+            return
+          }
+          const data = await response.json()
+          sendResponse({ success: true, ...data })
+        })
+        .catch((error) => {
+          sendResponse({ success: false, error: error.message })
+        })
+      return true
+    }
+    return false
+  }
+)
+
 // --- Auth Bridge Sync Handlers ---
 
 // Return the extension's current session to the auth-bridge content script

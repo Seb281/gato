@@ -5,11 +5,12 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge.tsx'
-import { Languages, Check, LogOut, User, X, Bell } from 'lucide-react'
+import { Languages, Check, LogOut, User, X, Bell, BookOpen } from 'lucide-react'
 import { LANGUAGE_NAMES } from '@/entrypoints/content/helpers/detectLanguage'
 import { Separator } from '@/components/ui/separator'
 import type { Session } from '@supabase/supabase-js'
 import AuthForm from './AuthForm'
+import QuickReview from './QuickReview'
 
 function formatHour(hour: number): string {
   const period = hour >= 12 ? 'PM' : 'AM'
@@ -27,6 +28,8 @@ export default function App() {
   const [currentSitePattern, setCurrentSitePattern] = useState<string | null>(null)
   const [reminderEnabled, setReminderEnabled] = useState(false)
   const [reminderHour, setReminderHour] = useState(9)
+  const [dueCount, setDueCount] = useState(0)
+  const [showReview, setShowReview] = useState(false)
 
   // Initialize Supabase session and listen for changes
   useEffect(() => {
@@ -35,6 +38,7 @@ export default function App() {
       setIsLoading(false)
       if (session) {
         fetchSettingsFromApi()
+        fetchDueCount()
       }
     })
 
@@ -44,8 +48,10 @@ export default function App() {
       setSession(session)
       if (session) {
         fetchSettingsFromApi()
+        fetchDueCount()
       } else {
         setPersonalContext('')
+        setDueCount(0)
       }
     })
 
@@ -95,6 +101,12 @@ export default function App() {
         }
       },
     )
+  }
+
+  const fetchDueCount = () => {
+    chrome.runtime.sendMessage({ action: 'getDueCount' }, (response) => {
+      setDueCount(response?.dueCount ?? 0)
+    })
   }
 
   const languages: Array<{ code: string; name: string }> = []
@@ -217,6 +229,17 @@ export default function App() {
     )
   }
 
+  if (showReview) {
+    return (
+      <QuickReview
+        onBack={() => {
+          setShowReview(false)
+          fetchDueCount()
+        }}
+      />
+    )
+  }
+
   return (
     <div className='w-[420px]'>
       <Card className='rounded-none shadow-none'>
@@ -292,6 +315,20 @@ export default function App() {
         </CardHeader>
 
         <CardContent className='space-y-4'>
+          {session && dueCount > 0 && (
+            <div className='flex items-center justify-between bg-primary/5 p-3 rounded-lg border border-primary/20'>
+              <div className='flex items-center gap-2'>
+                <BookOpen className='h-4 w-4 text-primary' />
+                <span className='text-sm font-medium'>
+                  {dueCount} {dueCount === 1 ? 'word' : 'words'} due
+                </span>
+              </div>
+              <Button size='sm' onClick={() => setShowReview(true)}>
+                Quick Review
+              </Button>
+            </div>
+          )}
+
           <div className='space-y-2'>
             <Label
               htmlFor='language'
