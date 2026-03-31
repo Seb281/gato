@@ -190,22 +190,22 @@ export default function DashboardHome() {
             </Card>
 
             {/* Due for Review */}
-            <Card>
+            <Card className="flex flex-col">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
                   <GraduationCap className="size-5 text-muted-foreground" />
                   Review
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-col flex-1 justify-between">
                 {loading ? (
                   <Loader2 className="size-5 animate-spin text-muted-foreground" />
                 ) : dueCount === 0 ? (
-                  <p className="text-muted-foreground mb-4">
+                  <p className="text-muted-foreground">
                     All caught up! No items due for review.
                   </p>
                 ) : (
-                  <p className="text-muted-foreground mb-4">
+                  <p className="text-muted-foreground">
                     You have{" "}
                     <span className="font-semibold text-foreground">
                       {dueCount}
@@ -213,7 +213,7 @@ export default function DashboardHome() {
                     {dueCount === 1 ? "item" : "items"} ready for review.
                   </p>
                 )}
-                <Button asChild>
+                <Button asChild className="mt-4">
                   <Link href="/dashboard/review">
                     {dueCount && dueCount > 0 ? "Start Review" : "Go to Review"}
                     <ArrowRight className="size-4 ml-2" />

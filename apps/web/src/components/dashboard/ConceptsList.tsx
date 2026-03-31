@@ -408,6 +408,8 @@ export default function ConceptsList() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
+            id="concepts-search"
+            name="search"
             placeholder="Search words or translations..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}

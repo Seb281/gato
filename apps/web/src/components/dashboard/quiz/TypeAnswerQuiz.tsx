@@ -86,6 +86,8 @@ export default function TypeAnswerQuiz({
           }}
         >
           <Input
+            id="type-answer"
+            name="answer"
             autoFocus
             placeholder="Type your answer..."
             value={input}

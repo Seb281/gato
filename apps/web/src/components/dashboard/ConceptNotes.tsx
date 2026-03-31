@@ -120,6 +120,8 @@ export default function ConceptNotes({
           )}
         </div>
         <Textarea
+          id="concept-notes"
+          name="notes"
           placeholder="Add your own notes..."
           value={notes}
           onChange={(e) => handleNotesChange(e.target.value)}

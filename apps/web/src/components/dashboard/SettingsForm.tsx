@@ -29,6 +29,7 @@ export default function SettingsForm() {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -180,7 +181,7 @@ export default function SettingsForm() {
       const token = session.access_token;
 
       const payload: any = {
-        name: firstName || null,
+        name: firstName.trim() || null,
         targetLanguage,
         personalContext,
         preferredProvider,
@@ -204,11 +205,14 @@ export default function SettingsForm() {
 
       if (res.ok) {
         const data = await res.json();
+        setFirstName(data.name || "");
         setHasCustomApiKey(data.hasCustomApiKey);
         if (data.maskedApiKey) {
           setMaskedApiKey(data.maskedApiKey);
         }
         setCustomApiKey(""); // Clear input after save
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
       }
     } catch (error) {
       console.error("Failed to save settings:", error);
@@ -406,6 +410,8 @@ export default function SettingsForm() {
             <div className="space-y-3">
               <div className="flex gap-2">
                 <Input
+                  id="allowed-site"
+                  name="site"
                   placeholder="example.com"
                   value={newSiteUrl}
                   onChange={(e) => setNewSiteUrl(e.target.value)}
@@ -522,7 +528,10 @@ export default function SettingsForm() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-3">
+        {saveSuccess && (
+          <span className="text-sm text-emerald-500 font-medium">Settings saved</span>
+        )}
         <Button type="submit" disabled={saving}>
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {saving ? "Saving..." : "Save Settings"}

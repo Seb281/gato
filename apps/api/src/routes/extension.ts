@@ -918,6 +918,25 @@ Keep it simple and practical. Only return the JSON, nothing else.`
         message: message.trim(),
       })
 
+      // Send email notification (non-blocking)
+      const resendKey = process.env.RESEND_API_KEY
+      if (resendKey) {
+        const email = await getAuthenticatedUserEmail(request)
+        fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${resendKey}`,
+          },
+          body: JSON.stringify({
+            from: 'Context Translator <feedback@resend.dev>',
+            to: 'sebastian.giupana@gmail.com',
+            subject: `[Feedback] ${category} from ${email ?? 'unknown'}`,
+            text: `Category: ${category}\nFrom: ${email ?? 'unknown'}\n\n${message.trim()}`,
+          }),
+        }).catch(console.error)
+      }
+
       return reply.send({ message: 'Feedback submitted. Thank you!' })
     }
   )

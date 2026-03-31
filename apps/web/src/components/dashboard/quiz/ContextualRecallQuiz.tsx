@@ -91,6 +91,8 @@ export default function ContextualRecallQuiz({
           }}
         >
           <Input
+            id="contextual-answer"
+            name="answer"
             autoFocus
             placeholder="Type the missing word..."
             value={input}

@@ -213,7 +213,7 @@ export default function ReviewPage() {
         <div className="flex items-center gap-3 justify-end">
           <span className="text-sm text-muted-foreground">Items:</span>
           <Select value={selectedCount} onValueChange={setSelectedCount}>
-            <SelectTrigger className="w-[80px]">
+            <SelectTrigger id="review-count" className="w-[80px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
