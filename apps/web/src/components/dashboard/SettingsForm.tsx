@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Key, ShieldCheck, AlertCircle, Monitor, Sun, Moon, Globe, Plus, X, WifiOff } from "lucide-react";
+import { Loader2, Key, ShieldCheck, AlertCircle, Monitor, Sun, Moon, Globe, Plus, X, WifiOff, Target } from "lucide-react";
 import { useTheme } from "next-themes";
 
 export default function SettingsForm() {
@@ -39,6 +39,8 @@ export default function SettingsForm() {
   const [personalContext, setPersonalContext] = useState("");
   const [preferredProvider, setPreferredProvider] = useState("google");
   const [customApiKey, setCustomApiKey] = useState("");
+  const [dailyGoal, setDailyGoal] = useState(10);
+  const [customGoalInput, setCustomGoalInput] = useState("");
   
   // Metadata State
   const [hasCustomApiKey, setHasCustomApiKey] = useState(false);
@@ -73,6 +75,9 @@ export default function SettingsForm() {
           setTargetLanguage(data.targetLanguage || "English");
           setPersonalContext(data.personalContext || "");
           setPreferredProvider(data.preferredProvider || "google");
+          if (data.dailyGoal != null) {
+            setDailyGoal(data.dailyGoal);
+          }
           setHasCustomApiKey(data.hasCustomApiKey);
           if (data.maskedApiKey) {
             setMaskedApiKey(data.maskedApiKey);
@@ -156,6 +161,7 @@ export default function SettingsForm() {
         targetLanguage,
         personalContext,
         preferredProvider,
+        dailyGoal,
       };
 
       // Only send API key if user typed a new one
@@ -201,6 +207,8 @@ export default function SettingsForm() {
     { value: "dark", label: "Dark", icon: Moon },
   ] as const;
 
+  const GOAL_PRESETS = [5, 10, 15, 20] as const;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -234,6 +242,63 @@ export default function SettingsForm() {
       </Card>
 
     <form onSubmit={handleSave} className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Target className="size-5 text-muted-foreground" />
+            <div>
+              <CardTitle>Daily Goal</CardTitle>
+              <CardDescription>
+                Set your target number of reviews per day.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {GOAL_PRESETS.map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  setDailyGoal(value);
+                  setCustomGoalInput("");
+                }}
+                className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                  dailyGoal === value
+                    ? "bg-primary/15 text-foreground ring-1 ring-primary/50 font-medium"
+                    : "bg-secondary hover:bg-secondary/80"
+                }`}
+              >
+                {value}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="customGoal" className="text-sm text-muted-foreground whitespace-nowrap">
+              Custom:
+            </Label>
+            <Input
+              id="customGoal"
+              type="number"
+              min={1}
+              max={100}
+              placeholder="e.g. 25"
+              value={customGoalInput}
+              onChange={(e) => {
+                const val = e.target.value;
+                setCustomGoalInput(val);
+                const num = parseInt(val, 10);
+                if (num >= 1 && num <= 100) {
+                  setDailyGoal(num);
+                }
+              }}
+              className="w-24"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Translation Preferences</CardTitle>

@@ -6,6 +6,7 @@ import {
   BookOpen,
   GraduationCap,
   BarChart3,
+  Target,
   ArrowRight,
   Loader2,
 } from "lucide-react";
@@ -13,6 +14,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
+import GoalRing from "@/components/dashboard/GoalRing";
 
 export default function DashboardHome() {
   const supabase = createClient();
@@ -28,6 +30,8 @@ export default function DashboardHome() {
     totalConcepts: number;
     currentStreak: number;
     longestStreak: number;
+    dailyGoal?: number;
+    todayReviews?: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -93,10 +97,13 @@ export default function DashboardHome() {
 
   const totalConcepts = overview?.totalConcepts ?? 0;
   const totalReviewed = stats?.totalReviewed ?? 0;
-  const allOnboardingComplete =
-    totalConcepts > 0 && totalReviewed > 0;
+  const allOnboardingComplete = totalConcepts > 0 && totalReviewed > 0;
   const showOnboarding =
     !loading && !onboardingDismissed && !allOnboardingComplete;
+
+  const dailyGoal = overview?.dailyGoal ?? 10;
+  const todayReviews = overview?.todayReviews ?? 0;
+  const goalMet = todayReviews >= dailyGoal;
 
   return (
     <div className="space-y-6">
@@ -122,8 +129,38 @@ export default function DashboardHome() {
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {/* Today's Progress */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="size-5 text-muted-foreground" />
+                  Today&apos;s Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center gap-4">
+                {loading ? (
+                  <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <GoalRing current={todayReviews} goal={dailyGoal} />
+                    {goalMet && (
+                      <p className="text-sm font-medium text-emerald-500">
+                        Goal met!
+                      </p>
+                    )}
+                    <Button asChild>
+                      <Link href="/dashboard/review">
+                        Start Review
+                        <ArrowRight className="size-4 ml-2" />
+                      </Link>
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Due for Review */}
-            <Card className="md:col-span-2 lg:col-span-2">
+            <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
                   <GraduationCap className="size-5 text-muted-foreground" />
