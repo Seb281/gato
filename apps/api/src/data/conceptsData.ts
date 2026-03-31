@@ -211,6 +211,25 @@ const conceptsData = {
     if (concepts.length === 0) return []
     return db.insert(conceptsTable).values(concepts).returning()
   },
+
+  async bulkDeleteConcepts(userId: number, ids: number[]): Promise<number> {
+    if (ids.length === 0) return 0
+    const result = await db
+      .delete(conceptsTable)
+      .where(and(eq(conceptsTable.userId, userId), inArray(conceptsTable.id, ids)))
+      .returning()
+    return result.length
+  },
+
+  async bulkUpdateConceptState(userId: number, ids: number[], state: string): Promise<number> {
+    if (ids.length === 0) return 0
+    const result = await db
+      .update(conceptsTable)
+      .set({ state })
+      .where(and(eq(conceptsTable.userId, userId), inArray(conceptsTable.id, ids)))
+      .returning()
+    return result.length
+  },
 }
 
 export default conceptsData

@@ -118,6 +118,24 @@ const tagsData = {
 
     return rows.map((r) => r.conceptId)
   },
+
+  async bulkAddTag(conceptIds: number[], tagId: number): Promise<void> {
+    if (conceptIds.length === 0) return
+    const values = conceptIds.map((conceptId) => ({ conceptId, tagId }))
+    await db.insert(conceptTagsTable).values(values).onConflictDoNothing()
+  },
+
+  async bulkRemoveTag(conceptIds: number[], tagId: number): Promise<void> {
+    if (conceptIds.length === 0) return
+    await db
+      .delete(conceptTagsTable)
+      .where(
+        and(
+          inArray(conceptTagsTable.conceptId, conceptIds),
+          eq(conceptTagsTable.tagId, tagId)
+        )
+      )
+  },
 }
 
 export default tagsData

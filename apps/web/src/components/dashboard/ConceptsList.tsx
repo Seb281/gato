@@ -13,6 +13,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Trash2,
   Loader2,
@@ -21,6 +36,9 @@ import {
   Volume2,
   ChevronLeft,
   ChevronRight,
+  X,
+  Tags,
+  Check,
 } from "lucide-react";
 import { format } from "date-fns";
 import { languageToBCP47 } from "@/lib/languageCodes";
@@ -128,6 +146,11 @@ export default function ConceptsList() {
     speechSynthesis.speak(utterance);
     setTimeout(() => setSpeakingId(null), 500);
   }
+
+  // Selection state for bulk operations
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -248,7 +271,113 @@ export default function ConceptsList() {
     }
   }
 
+  function toggleSelect(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelectedIds(new Set(concepts.map((c) => c.id)));
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  async function handleBulkDelete() {
+    setBulkLoading(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const res = await fetch(`${API_URL}/saved-concepts/bulk`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+
+      if (res.ok) {
+        clearSelection();
+        setDeleteDialogOpen(false);
+        fetchConcepts();
+      }
+    } catch (error) {
+      console.error("Failed to bulk delete:", error);
+    } finally {
+      setBulkLoading(false);
+    }
+  }
+
+  async function handleBulkStateChange(state: string) {
+    setBulkLoading(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const res = await fetch(`${API_URL}/saved-concepts/bulk`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ ids: Array.from(selectedIds), state }),
+      });
+
+      if (res.ok) {
+        clearSelection();
+        fetchConcepts();
+      }
+    } catch (error) {
+      console.error("Failed to bulk update state:", error);
+    } finally {
+      setBulkLoading(false);
+    }
+  }
+
+  async function handleBulkAddTag(tagId: number) {
+    setBulkLoading(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const res = await fetch(`${API_URL}/saved-concepts/bulk`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ ids: Array.from(selectedIds), addTagId: tagId }),
+      });
+
+      if (res.ok) {
+        clearSelection();
+        fetchConcepts();
+      }
+    } catch (error) {
+      console.error("Failed to bulk add tag:", error);
+    } finally {
+      setBulkLoading(false);
+    }
+  }
+
   const totalPages = Math.ceil(total / PAGE_SIZE);
+  const hasSelection = selectedIds.size > 0;
 
   if (loading) {
     return (
@@ -346,6 +475,122 @@ export default function ConceptsList() {
         </div>
       </div>
 
+      {/* Bulk Selection Bar */}
+      {hasSelection && (
+        <div className="flex items-center justify-between rounded-lg border bg-muted/50 px-4 py-2">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">
+              {selectedIds.size} selected
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={selectAll}
+            >
+              Select All
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={clearSelection}
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Change State Popover */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 text-xs" disabled={bulkLoading}>
+                  Change State
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[160px] p-1" align="end">
+                <div className="flex flex-col">
+                  {[
+                    { value: "new", label: "New", dotClass: "bg-neutral-400" },
+                    { value: "learning", label: "Learning", dotClass: "bg-blue-400" },
+                    { value: "familiar", label: "Familiar", dotClass: "bg-amber-400" },
+                    { value: "mastered", label: "Mastered", dotClass: "bg-emerald-400" },
+                  ].map((level) => (
+                    <button
+                      key={level.value}
+                      className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => handleBulkStateChange(level.value)}
+                    >
+                      <span className={`size-2 rounded-full ${level.dotClass}`} />
+                      {level.label}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Add Tag Popover */}
+            {allTags.length > 0 && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-7 text-xs gap-1" disabled={bulkLoading}>
+                    <Tags className="size-3" />
+                    Add Tag
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[180px] p-1" align="end">
+                  <div className="flex flex-col">
+                    {allTags.map((tag) => (
+                      <button
+                        key={tag.id}
+                        className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                        onClick={() => handleBulkAddTag(tag.id)}
+                      >
+                        <span
+                          className="size-3 rounded-full shrink-0"
+                          style={{ backgroundColor: tag.color }}
+                        />
+                        {tag.name}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+
+            {/* Delete with Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="h-7 text-xs" disabled={bulkLoading}>
+                  {bulkLoading ? (
+                    <Loader2 className="size-3 animate-spin mr-1" />
+                  ) : (
+                    <Trash2 className="size-3 mr-1" />
+                  )}
+                  Delete
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete {selectedIds.size} {selectedIds.size === 1 ? "concept" : "concepts"}?</DialogTitle>
+                  <DialogDescription>
+                    This action cannot be undone. The selected concepts will be permanently removed.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkLoading}>
+                    {bulkLoading && <Loader2 className="size-4 animate-spin mr-2" />}
+                    Delete
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+      )}
+
       {/* Results count + Export */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
@@ -398,13 +643,22 @@ export default function ConceptsList() {
           {concepts.map((concept) => (
             <Card
               key={concept.id}
-              className="relative group cursor-pointer"
+              className={`relative group cursor-pointer ${selectedIds.has(concept.id) ? "ring-2 ring-primary" : ""}`}
               onClick={() =>
                 setExpandedId(
                   expandedId === concept.id ? null : concept.id
                 )
               }
             >
+              <div
+                className={`absolute top-3 left-3 z-10 transition-opacity ${hasSelection ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Checkbox
+                  checked={selectedIds.has(concept.id)}
+                  onCheckedChange={() => toggleSelect(concept.id)}
+                />
+              </div>
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-1.5">

@@ -43,6 +43,17 @@ type UpdateConceptBody = {
   state?: string
 }
 
+type BulkDeleteBody = {
+  ids: number[]
+}
+
+type BulkUpdateBody = {
+  ids: number[]
+  state?: string
+  addTagId?: number
+  removeTagId?: number
+}
+
 type ConceptsQuerystring = {
   search?: string
   language?: string
@@ -374,6 +385,86 @@ export async function extensionRoutes(
 
       const languages = await conceptsData.getLanguagePairs(user.id)
       return reply.send({ languages })
+    }
+  )
+
+  // Protected endpoint - bulk delete concepts
+  fastify.delete<{ Body: BulkDeleteBody }>(
+    '/saved-concepts/bulk',
+    { preHandler: [requireAuth] },
+    async (request: FastifyRequest<{ Body: BulkDeleteBody }>, reply: FastifyReply) => {
+      const supabaseId = getAuthenticatedUserId(request)
+      if (!supabaseId) {
+        return reply.code(401).send({ error: 'Unauthorized' })
+      }
+
+      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+      if (!user) {
+        return reply.code(401).send({ error: 'User not found' })
+      }
+
+      const { ids } = request.body
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return reply.code(400).send({ error: 'ids array is required and must not be empty' })
+      }
+
+      const deleted = await conceptsData.bulkDeleteConcepts(user.id, ids)
+      return reply.send({ message: 'Concepts deleted', deleted })
+    }
+  )
+
+  // Protected endpoint - bulk update concepts (state or tags)
+  fastify.patch<{ Body: BulkUpdateBody }>(
+    '/saved-concepts/bulk',
+    { preHandler: [requireAuth] },
+    async (request: FastifyRequest<{ Body: BulkUpdateBody }>, reply: FastifyReply) => {
+      const supabaseId = getAuthenticatedUserId(request)
+      if (!supabaseId) {
+        return reply.code(401).send({ error: 'Unauthorized' })
+      }
+
+      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+      if (!user) {
+        return reply.code(401).send({ error: 'User not found' })
+      }
+
+      const { ids, state, addTagId, removeTagId } = request.body
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return reply.code(400).send({ error: 'ids array is required and must not be empty' })
+      }
+
+      if (state === undefined && addTagId === undefined && removeTagId === undefined) {
+        return reply.code(400).send({ error: 'At least one action (state, addTagId, removeTagId) must be provided' })
+      }
+
+      const validStates = ['new', 'learning', 'familiar', 'mastered']
+      if (state !== undefined && !validStates.includes(state)) {
+        return reply.code(400).send({ error: `Invalid state. Must be one of: ${validStates.join(', ')}` })
+      }
+
+      let updated = 0
+
+      if (state !== undefined) {
+        updated = await conceptsData.bulkUpdateConceptState(user.id, ids, state)
+      }
+
+      if (addTagId !== undefined) {
+        const tag = await tagsData.findTagById(addTagId, user.id)
+        if (!tag) {
+          return reply.code(404).send({ error: 'Tag not found' })
+        }
+        await tagsData.bulkAddTag(ids, addTagId)
+      }
+
+      if (removeTagId !== undefined) {
+        const tag = await tagsData.findTagById(removeTagId, user.id)
+        if (!tag) {
+          return reply.code(404).send({ error: 'Tag not found' })
+        }
+        await tagsData.bulkRemoveTag(ids, removeTagId)
+      }
+
+      return reply.send({ message: 'Concepts updated', updated })
     }
   )
 
