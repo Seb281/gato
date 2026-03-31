@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Check, X } from "lucide-react";
 import type { Question } from "@/hooks/useReviewSession";
+import { useQuizKeyboard } from "@/hooks/useQuizKeyboard";
 
 type TypeAnswerQuizProps = {
   question: Question;
@@ -43,6 +44,18 @@ export default function TypeAnswerQuiz({
     setInput("");
     setSubmitted(false);
   }
+
+  const keyboardHandlers = useMemo(() => {
+    const h: Record<string, () => void> = {};
+    if (submitted) {
+      h["Space"] = () => handleContinue();
+      h["Enter"] = () => handleContinue();
+    }
+    return h;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitted]);
+
+  useQuizKeyboard(keyboardHandlers);
 
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-lg mx-auto">

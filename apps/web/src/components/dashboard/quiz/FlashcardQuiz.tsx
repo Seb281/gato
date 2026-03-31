@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eye } from "lucide-react";
 import type { Question } from "@/hooks/useReviewSession";
+import { useQuizKeyboard } from "@/hooks/useQuizKeyboard";
 
 type FlashcardQuizProps = {
   question: Question;
@@ -23,6 +24,22 @@ export default function FlashcardQuiz({
     onAnswer(quality, correct);
     setRevealed(false);
   }
+
+  const keyboardHandlers = useMemo(() => {
+    const h: Record<string, () => void> = {};
+    if (revealed) {
+      h["1"] = () => handleRate("again");
+      h["2"] = () => handleRate("hard");
+      h["3"] = () => handleRate("good");
+      h["4"] = () => handleRate("easy");
+    } else {
+      h["Space"] = () => setRevealed(true);
+    }
+    return h;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revealed]);
+
+  useQuizKeyboard(keyboardHandlers);
 
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-lg mx-auto">
