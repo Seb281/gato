@@ -3,9 +3,10 @@ import saveConcept from "./helpers/handleSaveConcept"
 import handleTranslation from "./helpers/handleTranslation"
 import lookupConcept from "./helpers/handleLookupConcept"
 import updateConcept from "./helpers/handleUpdateConcept"
-import { isAuthenticated, supabase } from "./helpers/supabaseAuth"
+import { getSupabaseToken, isAuthenticated, supabase } from "./helpers/supabaseAuth"
 import { fetchUserSettings, saveUserSettings, type UserSettings } from "./helpers/handleUserSettings"
 
+const BASE_URL = import.meta.env.VITE_BASE_URL
 const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD_URL
 
 initSentry({ context: "background", isServiceWorker: true })
@@ -14,6 +15,86 @@ export default defineBackground(() => {
 
   // Flag to prevent infinite sync loops when setting session from dashboard
   let _isSyncingFromDashboard = false
+
+  // --- Review Badge ---
+
+  async function updateBadge() {
+    const token = await getSupabaseToken()
+    if (!token) {
+      chrome.action.setBadgeText({ text: '' })
+      return
+    }
+
+    try {
+      const response = await fetch(`${BASE_URL}/review/due?countOnly=true`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!response.ok) {
+        chrome.action.setBadgeText({ text: '' })
+        return
+      }
+      const { dueCount } = await response.json() as { dueCount: number }
+      chrome.action.setBadgeText({ text: dueCount > 0 ? String(dueCount) : '' })
+      chrome.action.setBadgeBackgroundColor({ color: '#334155' })
+    } catch {
+      chrome.action.setBadgeText({ text: '' })
+    }
+  }
+
+  // --- Review Reminders (Browser Notifications) ---
+
+  async function checkReviewReminder() {
+    const { reminderEnabled, reminderHour } = await chrome.storage.sync.get(['reminderEnabled', 'reminderHour']) as {
+      reminderEnabled?: boolean
+      reminderHour?: number
+    }
+
+    if (!reminderEnabled) return
+
+    const currentHour = new Date().getHours()
+    if (currentHour !== reminderHour) return
+
+    const token = await getSupabaseToken()
+    if (!token) return
+
+    try {
+      const response = await fetch(`${BASE_URL}/review/due?countOnly=true`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!response.ok) return
+      const { dueCount } = await response.json() as { dueCount: number }
+
+      if (dueCount > 0) {
+        chrome.notifications.create('review-reminder', {
+          type: 'basic',
+          iconUrl: 'icon/icon-128.png',
+          title: 'Time to review!',
+          message: `You have ${dueCount} words waiting.`,
+        })
+      }
+    } catch { /* silently ignore */ }
+  }
+
+  // Open dashboard review page when notification is clicked
+  chrome.notifications.onClicked.addListener((notificationId) => {
+    if (notificationId === 'review-reminder') {
+      chrome.tabs.create({ url: `${DASHBOARD_URL}/dashboard/review` })
+      chrome.notifications.clear(notificationId)
+    }
+  })
+
+  // --- Alarms ---
+
+  chrome.alarms.create('update-badge', { periodInMinutes: 30 })
+  chrome.alarms.create('review-reminder', { periodInMinutes: 60 })
+
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === 'update-badge') {
+      updateBadge()
+    } else if (alarm.name === 'review-reminder') {
+      checkReviewReminder()
+    }
+  })
 
   // --- Context Menu Setup ---
 
@@ -27,8 +108,14 @@ export default defineBackground(() => {
     })
   }
 
-  chrome.runtime.onInstalled.addListener(setupContextMenu)
-  chrome.runtime.onStartup.addListener(setupContextMenu)
+  chrome.runtime.onInstalled.addListener(() => {
+    setupContextMenu()
+    updateBadge()
+  })
+  chrome.runtime.onStartup.addListener(() => {
+    setupContextMenu()
+    updateBadge()
+  })
 
   chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     if (info.menuItemId !== 'translate-selection' || !tab?.id || !info.selectionText) return
@@ -216,6 +303,7 @@ chrome.runtime.onMessage.addListener(
             sendResponse({ success: true, alreadySaved: true, concept: result.concept })
           } else {
             sendResponse({ success: true, concept: result.concept })
+            updateBadge()
           }
         })
         .catch((error) => {
