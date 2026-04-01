@@ -23,6 +23,8 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '@/components/ui/tooltip'
+import { useTranslation } from '@/lib/i18n/useTranslation'
+import type { TranslationResponse, EnrichmentResponse } from '@/types/translation'
 
 interface TranslationPopupProps {
   selection: string
@@ -30,17 +32,6 @@ interface TranslationPopupProps {
   contextBefore: string
   contextAfter: string
   onClose: () => void
-}
-
-interface TranslationResponse {
-  language: string
-  fixedExpression?: string
-  contextualTranslation: string
-  phoneticApproximation: string
-  commonUsage?: string
-  grammarRules?: string
-  commonness?: string
-  relatedWords?: string | Array<{ word: string; translation: string; relation: string }>
 }
 
 type AuthStatus = 'loading' | 'logged_in' | 'logged_out'
@@ -52,12 +43,14 @@ export default function TranslationPopup({
   contextAfter,
   onClose,
 }: TranslationPopupProps) {
+  const { t } = useTranslation()
   const [translation, setTranslation] = useState<TranslationResponse>({
     language: '',
     contextualTranslation: '',
-    phoneticApproximation: '',
   })
   const [isLoading, setIsLoading] = useState(true)
+  const [enrichment, setEnrichment] = useState<EnrichmentResponse | null>(null)
+  const [isEnriching, setIsEnriching] = useState(false)
   const [showMore, setShowMore] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
@@ -140,10 +133,15 @@ export default function TranslationPopup({
       setFromCache(false)
       setRetranslated(false)
       setSaveState('idle')
+      setEnrichment(null)
+      setShowMore(false)
       chrome.runtime.sendMessage(
         {
           action: 'translate',
           text: `${contextBefore} [${selection}] ${contextAfter}`,
+          selection,
+          contextBefore,
+          contextAfter,
           concept: selection,
           forceRefresh: true,
         },
@@ -191,6 +189,9 @@ export default function TranslationPopup({
       {
         action: 'translate',
         text: `${contextBefore} [${selection}] ${contextAfter}`,
+        selection,
+        contextBefore,
+        contextAfter,
         concept: selection,
       },
       (response: {
@@ -256,10 +257,15 @@ export default function TranslationPopup({
   function handleRetranslate() {
     setIsLoading(true)
     setFromCache(false)
+    setEnrichment(null)
+    setShowMore(false)
     chrome.runtime.sendMessage(
       {
         action: 'translate',
         text: `${contextBefore} [${selection}] ${contextAfter}`,
+        selection,
+        contextBefore,
+        contextAfter,
         concept: selection,
         forceRefresh: true,
       },
@@ -390,16 +396,14 @@ export default function TranslationPopup({
             <AlertCircle className='h-10 w-10 text-muted-foreground' />
             <div className='space-y-2'>
               <h3 className='text-base font-semibold'>
-                Translation unavailable
+                {t('ext.popup.translationUnavailable')}
               </h3>
               <p className='text-sm text-muted-foreground leading-relaxed'>
-                The shared translation service has reached its usage limit.
-                Connect your own AI API key to keep translating without
-                interruption.
+                {t('ext.popup.usageLimitDesc')}
               </p>
             </div>
             <p className='text-xs text-muted-foreground'>
-              Dashboard → Settings → AI Provider
+              {t('ext.popup.dashboardHint')}
             </p>
           </div>
         )}
@@ -411,7 +415,7 @@ export default function TranslationPopup({
             <div className='flex items-center gap-2'>
               <Languages className='h-5 w-5 text-primary' />
               <CardTitle className='text-lg'>
-                Context-Aware Translation
+                {t('ext.popup.title')}
               </CardTitle>
             </div>
             <Button
@@ -429,7 +433,7 @@ export default function TranslationPopup({
           <div className='space-y-2'>
             <div className='flex items-center justify-between'>
               <span className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                Selected Text
+                {t('ext.popup.selectedText')}
               </span>
               <div className='flex items-center gap-1'>
                 {(contextBefore || contextAfter) && (
@@ -445,7 +449,7 @@ export default function TranslationPopup({
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent className='z-[9999999]'>
-                      Show surrounding context
+                      {t('ext.popup.showContext')}
                     </TooltipContent>
                   </Tooltip>
                 )}
@@ -458,7 +462,7 @@ export default function TranslationPopup({
                         </div>
                       </TooltipTrigger>
                       <TooltipContent className='z-[9999999] max-w-[180px] text-center'>
-                        Saved! Visit the dashboard to review your concepts.
+                        {t('ext.popup.savedTooltip')}
                       </TooltipContent>
                     </Tooltip>
                   ) : saveState === 'alreadySaved' && !retranslated ? (
@@ -469,7 +473,7 @@ export default function TranslationPopup({
                         </div>
                       </TooltipTrigger>
                       <TooltipContent className='z-[9999999] max-w-[180px] text-center'>
-                        Already in your saved concepts
+                        {t('ext.popup.alreadySaved')}
                       </TooltipContent>
                     </Tooltip>
                   ) : saveState === 'error' ? (
@@ -480,7 +484,7 @@ export default function TranslationPopup({
                         </div>
                       </TooltipTrigger>
                       <TooltipContent className='z-[9999999] max-w-[180px] text-center'>
-                        Failed to save. Try again.
+                        {t('ext.popup.saveFailed')}
                       </TooltipContent>
                     </Tooltip>
                   ) : saveState === 'idle' ? (
@@ -496,7 +500,7 @@ export default function TranslationPopup({
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent className='z-[9999999]'>
-                        Save concept for review
+                        {t('ext.popup.saveConcept')}
                       </TooltipContent>
                     </Tooltip>
                   ) : null)}
@@ -515,7 +519,7 @@ export default function TranslationPopup({
                     onClick={handleUpdateTranslation}
                     className='flex-1 h-7 text-xs'
                   >
-                    Update translation
+                    {t('ext.popup.updateTranslation')}
                   </Button>
                   <Button
                     variant='outline'
@@ -523,7 +527,7 @@ export default function TranslationPopup({
                     onClick={handleAddSeparate}
                     className='flex-1 h-7 text-xs'
                   >
-                    Add new
+                    {t('ext.popup.addNew')}
                   </Button>
                 </div>
               )}
@@ -532,7 +536,7 @@ export default function TranslationPopup({
           {showContext && (contextBefore || contextAfter) && (
             <div className='space-y-2'>
               <span className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                Context
+                {t('ext.popup.context')}
               </span>
               <div className='rounded-lg bg-accent/30 p-3 text-sm leading-relaxed'>
                 <span className='text-muted-foreground'>{contextBefore}</span>{' '}
@@ -558,7 +562,7 @@ export default function TranslationPopup({
                 <div className='space-y-1.5'>
                   <div className='flex items-center justify-between'>
                     <span className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                      Translation
+                      {t('ext.popup.translation')}
                     </span>
                     {targetLanguage && (
                       <div className='relative' ref={langDropdownRef}>
@@ -580,7 +584,7 @@ export default function TranslationPopup({
                             </Badge>
                           </TooltipTrigger>
                           <TooltipContent className='z-[9999999]'>
-                            Change target language
+                            {t('ext.popup.changeLanguage')}
                           </TooltipContent>
                         </Tooltip>
                         {showLangDropdown && (
@@ -618,97 +622,162 @@ export default function TranslationPopup({
                       onClick={handleRetranslate}
                       className='w-full'
                     >
-                      Re-translate
+                      {t('ext.popup.retranslate')}
                     </Button>
                   )}
                 </div>
 
-                {translation.phoneticApproximation && (
-                  <div className='space-y-1.5'>
-                    <div className='flex items-center gap-2'>
-                      <button
-                        onClick={handleSpeak}
-                        title="Listen to pronunciation"
-                        className={`inline-flex items-center justify-center rounded p-0.5 transition-colors ${isSpeaking ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-                      >
-                        <Volume2 className="h-4 w-4" />
-                      </button>
-                      <span className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                        Pronunciation
-                      </span>
-                    </div>
-                    <p className='text-sm text-muted-foreground italic pl-6'>
-                      {translation.phoneticApproximation}
-                    </p>
-                  </div>
-                )}
+                {/* Speak button - always available */}
+                <div className='flex items-center gap-2'>
+                  <button
+                    onClick={handleSpeak}
+                    title="Listen to pronunciation"
+                    className={`inline-flex items-center justify-center rounded p-0.5 transition-colors ${isSpeaking ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    <Volume2 className="h-4 w-4" />
+                  </button>
+                </div>
 
-                {(translation.fixedExpression &&
-                  translation.fixedExpression !== 'no') ||
-                (translation.commonUsage &&
-                  translation.commonUsage !== 'no') ||
-                translation.grammarRules ||
-                translation.commonness ? (
-                  <div className='space-y-3'>
-                    <div
-                      onClick={() => setShowMore(!showMore)}
-                      className='flex items-center gap-2 cursor-pointer group'
-                    >
-                      <div className='flex-1 h-px bg-border' />
-                      <ChevronDown
-                        className={`h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:text-foreground ${showMore ? 'rotate-180' : ''}`}
-                      />
-                      <div className='flex-1 h-px bg-border' />
-                    </div>
+                {/* On-demand enrichment section */}
+                {(() => {
+                  // Use LLM inline data if already present (fallback path), otherwise use enrichment state
+                  const data = translation.provider === 'llm' && translation.phoneticApproximation
+                    ? translation
+                    : enrichment
 
-                    {showMore && (
-                      <>
-                        {translation.fixedExpression &&
-                          translation.fixedExpression !== 'no' && (
+                  if (!data && !showMore) {
+                    return (
+                      <div className='space-y-3'>
+                        <div
+                          onClick={() => {
+                            setShowMore(true)
+                            if (!enrichment && !isEnriching && translation.provider !== 'llm') {
+                              setIsEnriching(true)
+                              chrome.runtime.sendMessage(
+                                {
+                                  action: 'enrich',
+                                  text: selection,
+                                  translation: translation.contextualTranslation,
+                                  targetLanguage,
+                                  sourceLanguage: translation.language,
+                                },
+                                (response: { success: boolean; enrichment?: EnrichmentResponse }) => {
+                                  if (chrome.runtime.lastError) {
+                                    setIsEnriching(false)
+                                    return
+                                  }
+                                  setIsEnriching(false)
+                                  if (response?.success && response.enrichment) {
+                                    setEnrichment(response.enrichment)
+                                  }
+                                },
+                              )
+                            }
+                          }}
+                          className='flex items-center gap-2 cursor-pointer group'
+                        >
+                          <div className='flex-1 h-px bg-border' />
+                          <ChevronDown
+                            className='h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:text-foreground'
+                          />
+                          <div className='flex-1 h-px bg-border' />
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  if (showMore && isEnriching) {
+                    return (
+                      <div className='space-y-3'>
+                        <div
+                          onClick={() => setShowMore(false)}
+                          className='flex items-center gap-2 cursor-pointer group'
+                        >
+                          <div className='flex-1 h-px bg-border' />
+                          <ChevronDown className='h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:text-foreground rotate-180' />
+                          <div className='flex-1 h-px bg-border' />
+                        </div>
+                        <div className='space-y-3'>
+                          <Skeleton className='h-4 w-full' />
+                          <Skeleton className='h-4 w-3/4' />
+                          <Skeleton className='h-4 w-5/6' />
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  if (showMore && data) {
+                    return (
+                      <div className='space-y-3'>
+                        <div
+                          onClick={() => setShowMore(false)}
+                          className='flex items-center gap-2 cursor-pointer group'
+                        >
+                          <div className='flex-1 h-px bg-border' />
+                          <ChevronDown className='h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:text-foreground rotate-180' />
+                          <div className='flex-1 h-px bg-border' />
+                        </div>
+
+                        {data.phoneticApproximation && (
+                          <div className='space-y-1.5'>
+                            <div className='flex items-center gap-2'>
+                              <Volume2 className='h-4 w-4 text-muted-foreground' />
+                              <span className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
+                                {t('ext.popup.pronunciation')}
+                              </span>
+                            </div>
+                            <p className='text-sm text-muted-foreground italic pl-6'>
+                              {data.phoneticApproximation}
+                            </p>
+                          </div>
+                        )}
+
+                        {data.fixedExpression &&
+                          data.fixedExpression !== 'no' && (
                             <InfoItem
-                              label='Part of an Expression'
-                              value={translation.fixedExpression}
+                              label={t('ext.popup.expression')}
+                              value={data.fixedExpression}
                               icon={<Info className='h-4 w-4 text-blue-500' />}
                             />
                           )}
 
-                        {translation.commonUsage &&
-                          translation.commonUsage !== 'no' && (
+                        {data.commonUsage &&
+                          data.commonUsage !== 'no' && (
                             <InfoItem
-                              label='Usage Note'
-                              value={translation.commonUsage}
+                              label={t('ext.popup.usageNote')}
+                              value={data.commonUsage}
                               icon={<Info className='h-4 w-4 text-amber-500' />}
                             />
                           )}
 
-                        {translation.grammarRules && (
+                        {data.grammarRules && (
                           <InfoItem
-                            label='Grammar'
-                            value={translation.grammarRules}
+                            label={t('ext.popup.grammar')}
+                            value={data.grammarRules}
                             icon={<Info className='h-4 w-4 text-green-500' />}
                           />
                         )}
 
-                        {translation.commonness && (
+                        {data.commonness && (
                           <div className='space-y-1.5'>
                             <div className='flex items-center gap-2'>
                               <BarChart2 className='h-4 w-4 text-muted-foreground' />
                               <span className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                                Frequency
+                                {t('ext.popup.frequency')}
                               </span>
                             </div>
                             <Badge
                               variant='outline'
                               className='text-xs max-w-full ml-5'
                             >
-                              {translation.commonness}
+                              {data.commonness}
                             </Badge>
                           </div>
                         )}
 
                         {(() => {
                           try {
-                            const raw = translation.relatedWords
+                            const raw = data.relatedWords
                             if (!raw) return null
                             const words: Array<{ word: string; translation: string; relation: string }> =
                               typeof raw === 'string' ? JSON.parse(raw) : raw
@@ -718,7 +787,7 @@ export default function TranslationPopup({
                                 <div className='flex items-center gap-2'>
                                   <Info className='h-4 w-4 text-purple-500' />
                                   <span className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                                    Related
+                                    {t('ext.popup.related')}
                                   </span>
                                 </div>
                                 <p className='text-sm leading-relaxed pl-6'>
@@ -733,10 +802,28 @@ export default function TranslationPopup({
                             )
                           } catch { return null }
                         })()}
-                      </>
-                    )}
-                  </div>
-                ) : null}
+                      </div>
+                    )
+                  }
+
+                  // showMore but no data and not enriching (enrichment failed or not available)
+                  if (showMore) {
+                    return (
+                      <div className='space-y-3'>
+                        <div
+                          onClick={() => setShowMore(false)}
+                          className='flex items-center gap-2 cursor-pointer group'
+                        >
+                          <div className='flex-1 h-px bg-border' />
+                          <ChevronDown className='h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:text-foreground rotate-180' />
+                          <div className='flex-1 h-px bg-border' />
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  return null
+                })()}
               </>
             )}
           </div>

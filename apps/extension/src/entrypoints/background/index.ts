@@ -1,6 +1,7 @@
 import { initSentry } from "@/lib/sentry"
 import saveConcept from "./helpers/handleSaveConcept"
 import handleTranslation from "./helpers/handleTranslation"
+import handleEnrichment from "./helpers/handleEnrichment"
 import lookupConcept from "./helpers/handleLookupConcept"
 import updateConcept from "./helpers/handleUpdateConcept"
 import { getSupabaseToken, isAuthenticated, supabase } from "./helpers/supabaseAuth"
@@ -229,6 +230,23 @@ type TranslateMessage = {
   text: string
   concept?: string
   forceRefresh?: boolean
+  selection?: string
+  contextBefore?: string
+  contextAfter?: string
+}
+
+type EnrichMessage = {
+  action: "enrich"
+  text: string
+  translation: string
+  targetLanguage: string
+  sourceLanguage: string
+}
+
+type EnrichResponse = {
+  success: boolean
+  enrichment?: object
+  error?: string
 }
 
 type TranslateResponse = {
@@ -275,7 +293,10 @@ chrome.runtime.onMessage.addListener(
             message.text,
             targetLanguage,
             sourceLanguage,
-            personalContext
+            personalContext,
+            message.selection,
+            message.contextBefore,
+            message.contextAfter,
           )
           return { translateObject, fromCache: false, targetLanguage, sourceLanguage }
         })
@@ -306,6 +327,31 @@ chrome.runtime.onMessage.addListener(
           sendResponse({ success: false, error: error.message })
         })
 
+      return true
+    }
+    return false
+  }
+)
+
+chrome.runtime.onMessage.addListener(
+  (
+    message: EnrichMessage,
+    _sender: chrome.runtime.MessageSender,
+    sendResponse: (response: EnrichResponse) => void
+  ): boolean => {
+    if (message.action === "enrich") {
+      handleEnrichment(
+        message.text,
+        message.translation,
+        message.targetLanguage,
+        message.sourceLanguage,
+      )
+        .then((enrichment) => {
+          sendResponse({ success: true, enrichment })
+        })
+        .catch((error) => {
+          sendResponse({ success: false, error: error.message })
+        })
       return true
     }
     return false
@@ -399,6 +445,38 @@ chrome.runtime.onMessage.addListener(
         .catch((error) => {
           sendResponse({ success: false, error: error.message })
         })
+      return true
+    }
+    return false
+  }
+)
+
+// --- i18n Translation Fetch ---
+
+chrome.runtime.onMessage.addListener(
+  (message: { action: string; language?: string; version?: string }, _, sendResponse) => {
+    if (message.action === "fetchTranslations") {
+      const { language, version } = message
+      if (!language || !version) {
+        sendResponse({ success: false, error: "Missing language or version" })
+        return true
+      }
+
+      fetch(
+        `${BASE_URL}/i18n/translations?language=${encodeURIComponent(language)}&version=${encodeURIComponent(version)}`
+      )
+        .then(async (res) => {
+          if (!res.ok) {
+            sendResponse({ success: false, error: res.statusText })
+            return
+          }
+          const data = await res.json()
+          sendResponse({ success: true, translations: data.translations })
+        })
+        .catch((error) => {
+          sendResponse({ success: false, error: error.message })
+        })
+
       return true
     }
     return false

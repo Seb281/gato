@@ -17,19 +17,21 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { Tags, ArrowUpDown, Settings, LogOut } from "lucide-react";
+import { Tags, ArrowUpDown, Settings, LogOut, Languages } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const TABS = [
-  { label: "Home", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "Words", icon: BookOpen, href: "/dashboard/vocabulary" },
-  { label: "Review", icon: GraduationCap, href: "/dashboard/review" },
-  { label: "Progress", icon: BarChart3, href: "/dashboard/progress" },
+  { labelKey: "nav.home", icon: LayoutDashboard, href: "/dashboard" },
+  { labelKey: "nav.words", icon: BookOpen, href: "/dashboard/vocabulary" },
+  { labelKey: "nav.review", icon: GraduationCap, href: "/dashboard/review" },
+  { labelKey: "nav.progress", icon: BarChart3, href: "/dashboard/progress" },
 ];
 
 const MORE_ITEMS = [
-  { label: "Tags", icon: Tags, href: "/dashboard/tags" },
-  { label: "Import / Export", icon: ArrowUpDown, href: "/dashboard/import-export" },
-  { label: "Settings", icon: Settings, href: "/dashboard/settings" },
+  { labelKey: "nav.translate", icon: Languages, href: "/dashboard/translate" },
+  { labelKey: "nav.tags", icon: Tags, href: "/dashboard/tags" },
+  { labelKey: "nav.importExport", icon: ArrowUpDown, href: "/dashboard/import-export" },
+  { labelKey: "nav.settings", icon: Settings, href: "/dashboard/settings" },
 ];
 
 export default function MobileNav({
@@ -38,6 +40,7 @@ export default function MobileNav({
   signOutAction: () => void;
 }) {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   // Hide mobile nav during review session
@@ -65,7 +68,7 @@ export default function MobileNav({
             )}
           >
             <tab.icon className="size-5" />
-            {tab.label}
+            {t(tab.labelKey)}
           </Link>
         ))}
         <Sheet open={open} onOpenChange={setOpen}>
@@ -77,11 +80,11 @@ export default function MobileNav({
               )}
             >
               <Menu className="size-5" />
-              More
+              {t("nav.more")}
             </button>
           </SheetTrigger>
           <SheetContent side="bottom" className="pb-safe">
-            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            <SheetTitle className="sr-only">{t("nav.navigation")}</SheetTitle>
             <div className="space-y-1 py-2">
               {MORE_ITEMS.map((item) => (
                 <Link
@@ -96,7 +99,7 @@ export default function MobileNav({
                   )}
                 >
                   <item.icon className="size-5" />
-                  {item.label}
+                  {t(item.labelKey)}
                 </Link>
               ))}
               <div className="my-2" />
@@ -107,7 +110,7 @@ export default function MobileNav({
                   onClick={() => setOpen(false)}
                 >
                   <LogOut className="size-5" />
-                  Sign Out
+                  {t("nav.signOut")}
                 </button>
               </form>
             </div>

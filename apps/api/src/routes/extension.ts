@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyPluginOptions, FastifyRequest, FastifyReply } from 'fastify'
 import { generateText } from 'ai'
-import { translate, enrichConceptInBackground, resolveModel } from '../controllers/translationController.ts'
+import { translate, enrich, enrichConceptInBackground, resolveModel } from '../controllers/translationController.ts'
 import {
   requireAuth,
   getAuthenticatedUserEmail,
@@ -91,8 +91,9 @@ export async function extensionRoutes(
   fastify: FastifyInstance,
   _options: FastifyPluginOptions
 ) {
-  // Public endpoint - no auth required
+  // Public endpoints - no auth required (but use auth if present)
   fastify.post('/translation', translate)
+  fastify.post('/translation/enrich', enrich)
 
   // Protected endpoint - save a concept
   fastify.post<{ Body: SaveConceptBody }>(
@@ -463,7 +464,7 @@ export async function extensionRoutes(
         if (!tag) {
           return reply.code(404).send({ error: 'Tag not found' })
         }
-        await tagsData.bulkAddTag(ids, addTagId)
+        await tagsData.bulkAddTag(ids, addTagId, user.id)
       }
 
       if (removeTagId !== undefined) {
@@ -471,7 +472,7 @@ export async function extensionRoutes(
         if (!tag) {
           return reply.code(404).send({ error: 'Tag not found' })
         }
-        await tagsData.bulkRemoveTag(ids, removeTagId)
+        await tagsData.bulkRemoveTag(ids, removeTagId, user.id)
       }
 
       return reply.send({ message: 'Concepts updated', updated })

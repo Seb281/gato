@@ -64,7 +64,7 @@ export async function reviewRoutes(
         return reply.send({ dueCount })
       }
 
-      const limit = request.query.limit ? parseInt(request.query.limit, 10) : 20
+      const limit = parseInt(request.query.limit ?? '', 10) || 20
       const concepts = await reviewData.getDueConcepts(user.id, limit)
       const dueCount = await reviewData.getDueCount(user.id)
 
@@ -181,7 +181,7 @@ export async function reviewRoutes(
       // Ensure schedules exist
       await reviewData.ensureSchedulesExist(user.id)
 
-      const count = request.query.count ? parseInt(request.query.count, 10) : 10
+      const count = parseInt(request.query.count ?? '', 10) || 10
       const type = request.query.type ?? 'flashcard'
 
       // For contextual-recall, fetch concepts with context data; fall back to due, then any
@@ -305,8 +305,8 @@ export async function reviewRoutes(
         return reply.send({ sessions: [], total: 0 })
       }
 
-      const limit = request.query.limit ? parseInt(request.query.limit, 10) : 20
-      const offset = request.query.offset ? parseInt(request.query.offset, 10) : 0
+      const limit = parseInt(request.query.limit ?? '', 10) || 20
+      const offset = parseInt(request.query.offset ?? '', 10) || 0
 
       const result = await reviewData.getSessionHistory(user.id, limit, offset)
       return reply.send(result)

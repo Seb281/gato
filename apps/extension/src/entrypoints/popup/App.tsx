@@ -1,61 +1,45 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/entrypoints/background/helpers/supabaseAuth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge.tsx'
-import { Languages, Check, LogOut, User, X, Bell, BookOpen, PanelRight, MessageSquare } from 'lucide-react'
-import { LANGUAGE_NAMES } from '@/entrypoints/content/helpers/detectLanguage'
+import { Languages, Check, LogOut, User, BookOpen, PanelRight } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import type { Session } from '@supabase/supabase-js'
+import { useTranslation } from '@/lib/i18n/useTranslation'
 import AuthForm from './AuthForm'
-import QuickReview from './QuickReview'
 
-function formatHour(hour: number): string {
-  const period = hour >= 12 ? 'PM' : 'AM'
-  const display = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
-  return `${display}:00 ${period}`
+async function openSidePanelToTab(tab?: string) {
+  if (tab) await chrome.storage.session.set({ sidepanelTab: tab })
+  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  if (activeTab?.windowId) {
+    chrome.sidePanel.open({ windowId: activeTab.windowId })
+    window.close()
+  }
 }
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
-  const [targetLanguage, setTargetLanguage] = useState('English')
-  const [personalContext, setPersonalContext] = useState('')
-  const [isSaved, setIsSaved] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [allowedSites, setAllowedSites] = useState<string[]>([])
   const [currentSitePattern, setCurrentSitePattern] = useState<string | null>(null)
-  const [reminderEnabled, setReminderEnabled] = useState(false)
-  const [reminderHour, setReminderHour] = useState(9)
   const [dueCount, setDueCount] = useState(0)
-  const [showReview, setShowReview] = useState(false)
+  const { t } = useTranslation()
 
-  // Initialize Supabase session and listen for changes
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setIsLoading(false)
-      if (session) {
-        fetchSettingsFromApi()
-        fetchDueCount()
-      }
+      if (session) fetchDueCount()
     })
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
-      if (session) {
-        fetchSettingsFromApi()
-        fetchDueCount()
-      } else {
-        setPersonalContext('')
-        setDueCount(0)
-      }
+      if (session) fetchDueCount()
+      else setDueCount(0)
     })
 
-    // React to session written by background (e.g. auth-bridge dashboard sync)
     const handleStorageChange = (
       changes: Record<string, chrome.storage.StorageChange>,
     ) => {
@@ -63,8 +47,6 @@ export default function App() {
       if (!hasAuthChange) return
       supabase.auth.getSession().then(({ data: { session } }) => {
         setSession(session)
-        if (session) fetchSettingsFromApi()
-        else setPersonalContext('')
       })
     }
     chrome.storage.local.onChanged.addListener(handleStorageChange)
@@ -75,116 +57,10 @@ export default function App() {
     }
   }, [])
 
-  // Fetch user settings from API
-  const fetchSettingsFromApi = () => {
-    chrome.runtime.sendMessage(
-      { action: 'fetchUserSettings' },
-      (response: {
-        success: boolean
-        settings?: {
-          targetLanguage: string | null
-          personalContext: string | null
-          theme?: string | null
-        }
-        error?: string
-      }) => {
-        if (response?.success && response.settings) {
-          const { targetLanguage: apiTargetLang, personalContext: apiContext, theme: apiTheme } =
-            response.settings
-          if (apiTargetLang) {
-            setTargetLanguage(apiTargetLang)
-            chrome.storage.sync.set({ targetLanguage: apiTargetLang })
-          }
-          if (apiContext) {
-            setPersonalContext(apiContext)
-            chrome.storage.sync.set({ personalContext: apiContext })
-          }
-          // Sync theme from dashboard
-          if (apiTheme) {
-            chrome.storage.sync.set({ theme: apiTheme })
-            applyTheme(apiTheme)
-          }
-        }
-      },
-    )
-  }
-
-  function applyTheme(themePref: string) {
-    if (themePref === 'dark') {
-      document.documentElement.classList.add('dark')
-    } else if (themePref === 'light') {
-      document.documentElement.classList.remove('dark')
-    } else {
-      // system
-      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      document.documentElement.classList.toggle('dark', isDark)
-    }
-  }
-
   const fetchDueCount = () => {
     chrome.runtime.sendMessage({ action: 'getDueCount' }, (response) => {
       setDueCount(response?.dueCount ?? 0)
     })
-  }
-
-  const languages: Array<{ code: string; name: string }> = []
-
-  for (const lang in LANGUAGE_NAMES) {
-    languages.push({ code: lang, name: LANGUAGE_NAMES[lang] })
-  }
-
-  useEffect(() => {
-    chrome.storage.sync.get(['targetLanguage', 'personalContext'], (result) => {
-      if (result.targetLanguage)
-        setTargetLanguage(result.targetLanguage as string)
-      if (result.personalContext)
-        setPersonalContext(result.personalContext as string)
-    })
-  }, [])
-
-  // Load reminder settings from storage
-  useEffect(() => {
-    chrome.storage.sync.get(['reminderEnabled', 'reminderHour'], (result) => {
-      if (result.reminderEnabled !== undefined)
-        setReminderEnabled(result.reminderEnabled as boolean)
-      if (result.reminderHour !== undefined)
-        setReminderHour(result.reminderHour as number)
-    })
-  }, [])
-
-  function handleReminderToggle(enabled: boolean) {
-    setReminderEnabled(enabled)
-    chrome.storage.sync.set({ reminderEnabled: enabled })
-  }
-
-  function handleReminderHourChange(hour: number) {
-    setReminderHour(hour)
-    chrome.storage.sync.set({ reminderHour: hour })
-  }
-
-  function handleSave() {
-    // Save to local storage
-    chrome.storage.sync.set(
-      {
-        targetLanguage,
-        personalContext,
-      },
-      () => {
-        setIsSaved(true)
-        setTimeout(() => setIsSaved(false), 2000)
-      },
-    )
-
-    // Also save to API if signed in
-    if (session) {
-      chrome.runtime.sendMessage({
-        action: 'saveUserSettings',
-        settings: {
-          targetLanguage,
-          personalContext,
-        },
-      })
-    }
   }
 
   // Load allowed sites and derive current site pattern
@@ -236,64 +112,31 @@ export default function App() {
     await supabase.auth.signOut()
   }
 
-  const maxChars = 150
-  const remainingChars = maxChars - personalContext.length
-
   if (isLoading) {
     return (
-      <div className='w-[420px] p-8 flex items-center justify-center'>
-        <p className='text-sm text-muted-foreground'>Loading session...</p>
+      <div className='w-[380px] p-8 flex items-center justify-center'>
+        <p className='text-sm text-muted-foreground'>{t('ext.loadingSession')}</p>
       </div>
     )
   }
 
-  if (showReview) {
-    return (
-      <QuickReview
-        onBack={() => {
-          setShowReview(false)
-          fetchDueCount()
-        }}
-      />
-    )
-  }
-
   return (
-    <div className='w-[420px]'>
+    <div className='w-[380px]'>
       <Card className='rounded-none shadow-none'>
-        <CardHeader className=''>
+        <CardHeader>
           <div className='flex items-center gap-2'>
             <Languages className='h-5 w-5 text-primary' />
-            <CardTitle className='text-lg'>Context-Aware Translator</CardTitle>
+            <CardTitle className='text-lg'>{t('ext.title')}</CardTitle>
           </div>
-          <div className='flex items-center justify-between'>
-            <p className='text-sm text-muted-foreground mt-1 flex-1'>
-              Translate any text, in context. Enable on a site for automatic
-              activation, or right-click selected text to translate anywhere.
-            </p>
-            <Button
-              variant='ghost'
-              size='sm'
-              onClick={async () => {
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-                if (tab?.windowId) {
-                  chrome.sidePanel.open({ windowId: tab.windowId })
-                  window.close()
-                }
-              }}
-              className='ml-2 shrink-0 text-muted-foreground hover:text-foreground'
-              title='Open Side Panel'
-            >
-              <PanelRight className='h-4 w-4' />
-            </Button>
-          </div>
+
+          {/* Current site toggle */}
           <div className='mt-2'>
             {currentSitePattern ? (
               isCurrentSiteAllowed ? (
                 <div className='flex items-center justify-between'>
                   <span className='flex items-center gap-1 text-sm text-green-600 dark:text-green-400 font-medium'>
                     <Check className='h-3.5 w-3.5' />
-                    Enabled on this site
+                    {t('ext.enabledOnSite')}
                   </span>
                   <Button
                     variant='link'
@@ -301,7 +144,7 @@ export default function App() {
                     onClick={() => handleRemoveSite(currentSitePattern)}
                     className='text-muted-foreground hover:text-destructive hover:underline'
                   >
-                    Remove
+                    {t('ext.remove')}
                   </Button>
                 </div>
               ) : (
@@ -311,271 +154,73 @@ export default function App() {
                   onClick={handleAddCurrentSite}
                   className='text-foreground'
                 >
-                  Enable on this site
+                  {t('ext.enableSite')}
                 </Button>
               )
             ) : (
               <p className='text-xs text-muted-foreground'>
-                Translation is not available on this page.
+                {t('ext.notAvailable')}
               </p>
             )}
           </div>
-          {allowedSites.length > 0 && (
-            <div className='mt-3 space-y-1'>
-              <p className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                Enabled Sites
-              </p>
-              <div className='space-y-0.5 max-h-[100px] overflow-y-auto'>
-                {allowedSites.map((site) => (
-                  <div
-                    key={site}
-                    className='flex items-center justify-between text-sm'
-                  >
-                    <span className='truncate max-w-[280px] text-muted-foreground'>
-                      {site.replace('/*', '')}
-                    </span>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      onClick={() => handleRemoveSite(site)}
-                      className='h-6 w-6 p-0 text-muted-foreground hover:text-destructive'
-                    >
-                      <X className='h-3 w-3' />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </CardHeader>
 
-        <CardContent className='space-y-4'>
+        <CardContent className='space-y-3'>
+          {/* Due count badge */}
           {session && dueCount > 0 && (
             <div className='flex items-center justify-between bg-primary/5 p-3 rounded-lg border border-primary/20'>
               <div className='flex items-center gap-2'>
                 <BookOpen className='h-4 w-4 text-primary' />
                 <span className='text-sm font-medium'>
-                  {dueCount} {dueCount === 1 ? 'word' : 'words'} due
+                  {t('ext.wordsDue', { count: dueCount, words: dueCount === 1 ? 'word' : 'words' })}
                 </span>
               </div>
-              <Button size='sm' onClick={() => setShowReview(true)}>
-                Quick Review
+              <Button size='sm' onClick={() => openSidePanelToTab('review')}>
+                {t('ext.quickReview')}
               </Button>
             </div>
           )}
 
-          <div className='space-y-2'>
-            <Label
-              htmlFor='language'
-              className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'
-            >
-              Target Language
-            </Label>
-            <select
-              id='language'
-              value={targetLanguage}
-              onChange={(e) => setTargetLanguage(e.target.value)}
-              className='h-9 rounded-lg bg-secondary px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
-            >
-              {languages.map((lang) => (
-                <option key={lang.code} value={lang.name}>
-                  {lang.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className='space-y-2'>
-            <Label
-              htmlFor='context'
-              className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'
-            >
-              Personal Context
-              <span className='text-muted-foreground font-normal text-xs ml-1 normal-case'>
-                (optional)
-              </span>
-            </Label>
-            <Textarea
-              id='context'
-              value={personalContext}
-              onChange={(e) => {
-                if (e.target.value.length <= maxChars) {
-                  setPersonalContext(e.target.value)
-                }
-              }}
-              placeholder="e.g., I'm a software engineer learning Spanish..."
-              className='resize-none'
-              rows={3}
-              maxLength={maxChars}
-            />
-            <div className='flex justify-between items-center'>
-              <p className='text-xs text-muted-foreground'>
-                Help improve translation relevance
-              </p>
-              <Badge
-                variant={remainingChars < 20 ? 'destructive' : 'secondary'}
-                className='text-xs'
-              >
-                {remainingChars} left
-              </Badge>
-            </div>
-          </div>
-
-          <Button onClick={handleSave} variant='default' className='w-full'>
-            {isSaved ? (
-              <>
-                <Check className='w-4 h-4 mr-2' />
-                Saved!
-              </>
-            ) : (
-              'Save Settings'
-            )}
-          </Button>
-
-          <Separator />
-
-          <div className='space-y-2'>
-            <p className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-              How to Use
-            </p>
-
-            <div className='space-y-3'>
-              <div>
-                <p className='text-xs font-medium text-foreground mb-1'>
-                  On any page (no setup needed)
-                </p>
-                <p className='text-xs text-muted-foreground'>
-                  Select text, right-click, and choose{' '}
-                  <span className='font-medium text-foreground'>"Translate"</span>{' '}
-                  from the menu.
-                </p>
-              </div>
-
-              <div>
-                <p className='text-xs font-medium text-foreground mb-1'>
-                  On enabled sites (automatic)
-                </p>
-                <p className='text-xs text-muted-foreground'>
-                  Click{' '}
-                  <span className='font-medium text-foreground'>
-                    "Enable on this site"
-                  </span>{' '}
-                  above. Then just select text and click the tooltip that
-                  appears. Works across refreshes and restarts.
-                </p>
-              </div>
-            </div>
-          </div>
-          <Separator />
-
-          <div className='space-y-2'>
-            <p className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-              Daily Reminder
-            </p>
-            <div className='flex items-center justify-between'>
-              <div className='flex items-center gap-2'>
-                <Bell className='h-3.5 w-3.5 text-muted-foreground' />
-                <span className='text-sm'>Review reminder</span>
-              </div>
-              <button
-                type='button'
-                role='switch'
-                aria-checked={reminderEnabled}
-                onClick={() => handleReminderToggle(!reminderEnabled)}
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                  reminderEnabled ? 'bg-primary' : 'bg-input'
-                }`}
-              >
-                <span
-                  className={`pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform ${
-                    reminderEnabled ? 'translate-x-4' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
-            {reminderEnabled && (
-              <div className='flex items-center gap-2 pl-5.5'>
-                <Label
-                  htmlFor='reminder-hour'
-                  className='text-xs text-muted-foreground'
-                >
-                  Notify at
-                </Label>
-                <select
-                  id='reminder-hour'
-                  value={reminderHour}
-                  onChange={(e) =>
-                    handleReminderHourChange(Number(e.target.value))
-                  }
-                  className='h-7 rounded-md bg-secondary px-2 py-0.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
-                >
-                  {Array.from({ length: 17 }, (_, i) => i + 6).map((hour) => (
-                    <option key={hour} value={hour}>
-                      {formatHour(hour)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-
-          <Separator />
-
+          {/* Open Side Panel */}
           <Button
             variant='outline'
             className='w-full'
-            onClick={() =>
-              chrome.tabs.create({
-                url: `${import.meta.env.VITE_DASHBOARD_URL}/dashboard/feedback`,
-              })
-            }
+            onClick={() => openSidePanelToTab()}
           >
-            <MessageSquare className='h-4 w-4 mr-2' />
-            Send Feedback
+            <PanelRight className='h-4 w-4 mr-2' />
+            {t('ext.openSidePanel')}
           </Button>
 
           <Separator />
 
+          {/* Auth section */}
           {!session ? (
             <AuthForm supabase={supabase} />
           ) : (
-            <>
-              <Button
-                variant='outline'
-                className='w-full'
-                onClick={() =>
-                  chrome.tabs.create({
-                    url: import.meta.env.VITE_DASHBOARD_URL,
-                  })
-                }
-              >
-                Open Dashboard
-              </Button>
-              <div className='flex items-center justify-between'>
-                <div className='flex items-center gap-2'>
-                  <div className='w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center'>
-                    <User className='h-4 w-4 text-primary' />
-                  </div>
-                  <div className='flex flex-col'>
-                    <span className='text-xs font-medium truncate max-w-[150px]'>
-                      {session.user.email}
-                    </span>
-                    <span className='text-[10px] text-muted-foreground'>
-                      Signed in
-                    </span>
-                  </div>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center gap-2'>
+                <div className='w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center'>
+                  <User className='h-4 w-4 text-primary' />
                 </div>
-                <Button
-                  variant='ghost'
-                  size='sm'
-                  onClick={handleSignOut}
-                  className='text-muted-foreground hover:text-destructive'
-                >
-                  <LogOut className='h-4 w-4 mr-1' />
-                  Logout
-                </Button>
+                <div className='flex flex-col'>
+                  <span className='text-xs font-medium truncate max-w-[180px]'>
+                    {session.user.email}
+                  </span>
+                  <span className='text-[10px] text-muted-foreground'>
+                    {t('ext.signedIn')}
+                  </span>
+                </div>
               </div>
-            </>
+              <Button
+                variant='ghost'
+                size='sm'
+                onClick={handleSignOut}
+                className='text-muted-foreground hover:text-destructive'
+              >
+                <LogOut className='h-4 w-4 mr-1' />
+                {t('ext.logout')}
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>

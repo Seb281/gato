@@ -3,8 +3,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { useTranslation } from '@/lib/i18n/useTranslation'
 
 export default function AuthForm({ supabase }: { supabase: SupabaseClient }) {
+  const { t } = useTranslation()
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -39,7 +41,7 @@ export default function AuthForm({ supabase }: { supabase: SupabaseClient }) {
         }
       }
     } catch {
-      setError('An unexpected error occurred')
+      setError(t('ext.auth.unexpectedError'))
     } finally {
       setLoading(false)
     }
@@ -48,12 +50,12 @@ export default function AuthForm({ supabase }: { supabase: SupabaseClient }) {
   if (awaitingGoogleAuth) {
     return (
       <div className="text-center space-y-2">
-        <p className="text-sm font-medium">Waiting for Google sign-in...</p>
+        <p className="text-sm font-medium">{t('ext.auth.waitingGoogle')}</p>
         <p className="text-xs text-muted-foreground">
-          Complete sign-in in the opened tab. This will update automatically.
+          {t('ext.auth.waitingGoogleDesc')}
         </p>
         <Button variant="link" size="sm" onClick={() => setAwaitingGoogleAuth(false)}>
-          Cancel
+          {t('ext.auth.cancel')}
         </Button>
       </div>
     )
@@ -62,9 +64,9 @@ export default function AuthForm({ supabase }: { supabase: SupabaseClient }) {
   if (confirmationSent) {
     return (
       <div className='text-center space-y-2'>
-        <p className='text-sm font-medium'>Check your email</p>
+        <p className='text-sm font-medium'>{t('ext.auth.checkEmail')}</p>
         <p className='text-xs text-muted-foreground'>
-          We sent a confirmation link to <strong>{email}</strong>
+          {t('ext.auth.confirmationSent')} <strong>{email}</strong>
         </p>
         <Button
           variant='link'
@@ -75,7 +77,7 @@ export default function AuthForm({ supabase }: { supabase: SupabaseClient }) {
             setPassword('')
           }}
         >
-          Back to Sign In
+          {t('ext.auth.backToSignIn')}
         </Button>
       </div>
     )
@@ -95,19 +97,19 @@ export default function AuthForm({ supabase }: { supabase: SupabaseClient }) {
           <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
           <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
         </svg>
-        Continue with Google
+        {t('ext.auth.continueWithGoogle')}
       </Button>
       <div className="relative my-2">
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">or</span>
+          <span className="bg-background px-2 text-muted-foreground">{t('ext.auth.or')}</span>
         </div>
       </div>
     <form onSubmit={handleSubmit} className='space-y-3'>
       <div className='space-y-1.5'>
-        <Label htmlFor='email' className='text-xs'>Email</Label>
+        <Label htmlFor='email' className='text-xs'>{t('ext.auth.email')}</Label>
         <Input
           id='email'
           type='email'
@@ -118,7 +120,7 @@ export default function AuthForm({ supabase }: { supabase: SupabaseClient }) {
         />
       </div>
       <div className='space-y-1.5'>
-        <Label htmlFor='password' className='text-xs'>Password</Label>
+        <Label htmlFor='password' className='text-xs'>{t('ext.auth.password')}</Label>
         <Input
           id='password'
           type='password'
@@ -133,16 +135,16 @@ export default function AuthForm({ supabase }: { supabase: SupabaseClient }) {
         <p className='text-xs text-destructive'>{error}</p>
       )}
       <Button type='submit' className='w-full' disabled={loading}>
-        {loading ? (isSignUp ? 'Creating account...' : 'Signing in...') : (isSignUp ? 'Sign Up' : 'Sign In')}
+        {loading ? (isSignUp ? t('ext.auth.creatingAccount') : t('ext.auth.signingIn')) : (isSignUp ? t('ext.auth.signUp') : t('ext.auth.signIn'))}
       </Button>
       <p className='text-xs text-center text-muted-foreground'>
-        {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+        {isSignUp ? t('ext.auth.alreadyHaveAccount') : t('ext.auth.dontHaveAccount')}{' '}
         <button
           type='button'
           onClick={() => { setIsSignUp(!isSignUp); setError(null) }}
           className='text-primary underline-offset-4 hover:underline'
         >
-          {isSignUp ? 'Sign In' : 'Sign Up'}
+          {isSignUp ? t('ext.auth.signIn') : t('ext.auth.signUp')}
         </button>
       </p>
     </form>

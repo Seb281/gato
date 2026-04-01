@@ -142,4 +142,16 @@ export type ReviewSchedule = typeof reviewScheduleTable.$inferSelect
 
 export type DailyActivity = typeof dailyActivityTable.$inferSelect
 
+export const uiTranslationsTable = pgTable(
+  'ui_translations',
+  {
+    id: serial('id').primaryKey(),
+    language: text('language').notNull(),
+    version: text('version').notNull(),
+    translations: text('translations').notNull(), // JSON string
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.language, t.version)]
+)
+
 export type ReviewSession = typeof reviewSessionsTable.$inferSelect

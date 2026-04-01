@@ -9,6 +9,7 @@ import Link from "next/link";
 import ActivityHeatmap from "@/components/dashboard/ActivityHeatmap";
 import AccuracyChart from "@/components/dashboard/AccuracyChart";
 import ShareCard from "@/components/dashboard/ShareCard";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 type OverviewStats = {
   totalConcepts: number;
@@ -43,15 +44,16 @@ const STATE_COLORS: Record<string, string> = {
   mastered: "bg-emerald-500",
 };
 
-const STATE_LABELS: Record<string, string> = {
-  new: "New",
-  learning: "Learning",
-  familiar: "Familiar",
-  mastered: "Mastered",
+const STATE_LABEL_KEYS: Record<string, string> = {
+  new: "common.stateNew",
+  learning: "common.stateLearning",
+  familiar: "common.stateFamiliar",
+  mastered: "common.stateMastered",
 };
 
 export default function ProgressPage() {
   const supabase = createClient();
+  const { t } = useTranslation();
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   const [overview, setOverview] = useState<OverviewStats | null>(null);
@@ -119,8 +121,8 @@ export default function ProgressPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Progress</h1>
-          <p className="text-muted-foreground">Track your learning journey.</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("progress.title")}</h1>
+          <p className="text-muted-foreground">{t("progress.subtitle")}</p>
         </div>
         {overview && (
           <ShareCard
@@ -144,7 +146,7 @@ export default function ProgressPage() {
 
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-          Something went wrong loading data. Check your connection and try refreshing.
+          {t("common.error")}
         </div>
       )}
 
@@ -155,12 +157,12 @@ export default function ProgressPage() {
               <BarChart3 className="size-8 text-muted-foreground" />
             </div>
           </div>
-          <h3 className="text-lg font-medium">No progress to show yet</h3>
+          <h3 className="text-lg font-medium">{t("progress.noProgressTitle")}</h3>
           <p className="text-muted-foreground max-w-sm mx-auto">
-            Complete your first review session to start tracking progress.
+            {t("progress.noProgressDesc")}
           </p>
           <Button variant="outline" asChild>
-            <Link href="/dashboard/review">Start a Review</Link>
+            <Link href="/dashboard/review">{t("progress.startReview")}</Link>
           </Button>
         </div>
       ) : (
@@ -171,7 +173,7 @@ export default function ProgressPage() {
         <Card>
           <CardContent className="p-5">
             <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
-              Total Words
+              {t("progress.totalWords")}
             </p>
             <p className="text-3xl font-bold tracking-tighter">
               {overview?.totalConcepts ?? 0}
@@ -182,7 +184,7 @@ export default function ProgressPage() {
         <Card>
           <CardContent className="p-5">
             <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
-              Mastered
+              {t("progress.mastered")}
             </p>
             <p className="text-3xl font-bold tracking-tighter">
               {overview?.conceptsByState?.mastered ?? 0}
@@ -193,7 +195,7 @@ export default function ProgressPage() {
         <Card>
           <CardContent className="p-5">
             <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
-              Accuracy
+              {t("progress.accuracy")}
             </p>
             <p className="text-3xl font-bold tracking-tighter">
               {overview?.avgAccuracy ?? 0}%
@@ -204,17 +206,17 @@ export default function ProgressPage() {
         <Card>
           <CardContent className="p-5">
             <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
-              Streak
+              {t("progress.streak")}
             </p>
             <p className="text-3xl font-bold tracking-tighter">
               {overview?.currentStreak ?? 0}
               <span className="text-sm font-normal text-muted-foreground ml-1">
-                days
+                {t("progress.days")}
               </span>
             </p>
             {overview && overview.longestStreak > 0 && (
               <p className="text-[11px] text-muted-foreground mt-2">
-                Best: {overview.longestStreak} days
+                {t("progress.bestStreak", { count: overview.longestStreak })}
               </p>
             )}
           </CardContent>
@@ -226,7 +228,7 @@ export default function ProgressPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="size-5 text-muted-foreground" />
-            Accuracy Trend
+            {t("progress.accuracyTrend")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -240,7 +242,7 @@ export default function ProgressPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="size-5 text-muted-foreground" />
-              Vocabulary Breakdown
+              {t("progress.vocabularyBreakdown")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -270,7 +272,7 @@ export default function ProgressPage() {
                       className={`w-1.5 h-1.5 rounded-full ${STATE_COLORS[state]}`}
                     />
                     <span className="text-sm">
-                      {STATE_LABELS[state]}{" "}
+                      {t(STATE_LABEL_KEYS[state])}{" "}
                       <span className="text-muted-foreground font-medium">
                         {count}
                       </span>
@@ -286,7 +288,7 @@ export default function ProgressPage() {
       {/* Activity heatmap */}
       <Card>
         <CardHeader>
-          <CardTitle>Activity</CardTitle>
+          <CardTitle>{t("progress.activity")}</CardTitle>
         </CardHeader>
         <CardContent>
           <ActivityHeatmap activity={activity} days={90} />

@@ -11,6 +11,7 @@ import { extensionRoutes } from './routes/extension.ts'
 import { tagRoutes } from './routes/tags.ts'
 import { reviewRoutes } from './routes/review.ts'
 import { statsRoutes } from './routes/stats.ts'
+import { i18nRoutes } from './routes/i18n.ts'
 
 const PORT = parseInt(process.env.PORT || '3001', 10)
 
@@ -52,6 +53,7 @@ export async function startServer() {
     await app.register(tagRoutes)
     await app.register(reviewRoutes)
     await app.register(statsRoutes)
+    await app.register(i18nRoutes)
 
     // Start server
     await app.listen({ port: PORT, host: '0.0.0.0' })
