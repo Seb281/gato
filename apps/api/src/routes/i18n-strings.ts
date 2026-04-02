@@ -410,4 +410,4 @@ export const UI_STRINGS: Record<string, string> = {
 };
 
 export type StringKey = keyof typeof UI_STRINGS;
-export const STRINGS_VERSION = "5";
+export const STRINGS_VERSION = "6";

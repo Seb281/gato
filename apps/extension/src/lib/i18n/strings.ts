@@ -100,6 +100,8 @@ export const UI_STRINGS: Record<string, string> = {
   "settings.saveSettings": "Save Settings",
   "settings.saving": "Saving...",
   "settings.settingsSaved": "Settings saved",
+  "settings.displayLanguage": "Display Language",
+  "settings.displayLanguageDesc": "Choose the language for the dashboard interface.",
 
   // Feedback
   "feedback.title": "Feedback",
@@ -374,4 +376,4 @@ export const UI_STRINGS: Record<string, string> = {
 };
 
 export type StringKey = keyof typeof UI_STRINGS;
-export const STRINGS_VERSION = "4";
+export const STRINGS_VERSION = "6";
