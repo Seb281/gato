@@ -94,6 +94,32 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
     [],
   )
 
+  const doTranslateWithContext = useCallback(
+    (fullText: string, concept: string) => {
+      const currentId = ++requestIdRef.current
+      setIsTranslating(true)
+      setError(false)
+      setResult(null)
+      setEnrichment(null)
+      setShowMore(false)
+      setSaveState('idle')
+
+      chrome.runtime.sendMessage(
+        { action: 'translate', text: fullText, concept },
+        (response) => {
+          if (currentId !== requestIdRef.current) return
+          setIsTranslating(false)
+          if (chrome.runtime.lastError || !response?.success || !response.translateObject) {
+            setError(true)
+          } else {
+            setResult(response.translateObject)
+          }
+        },
+      )
+    },
+    [],
+  )
+
   // Listen for piped text from content script
   useEffect(() => {
     const handler = (
@@ -105,15 +131,20 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
         changes.sidepanelText?.newValue &&
         autoFillEnabled
       ) {
-        const text = changes.sidepanelText.newValue as string
-        setInputText(text)
-        doTranslate(text)
-        chrome.storage.session.remove([
-          'sidepanelText',
-          'sidepanelConcept',
-          'sidepanelContext',
-          'sidepanelTimestamp',
-        ])
+        const fullText = changes.sidepanelText.newValue as string
+        // Read the concept (just the selected text) from storage
+        chrome.storage.session.get('sidepanelConcept', (result) => {
+          const concept = (result.sidepanelConcept as string) || fullText
+          setInputText(concept)
+          // Translate with full context
+          doTranslateWithContext(fullText, concept)
+          chrome.storage.session.remove([
+            'sidepanelText',
+            'sidepanelConcept',
+            'sidepanelContext',
+            'sidepanelTimestamp',
+          ])
+        })
       }
     }
     chrome.storage.onChanged.addListener(handler)

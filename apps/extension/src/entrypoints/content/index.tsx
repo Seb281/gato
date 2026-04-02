@@ -174,10 +174,11 @@ document.addEventListener("mouseup", () => {
     chrome.storage.sync.get('sidepanelAutoTranslate', (syncResult) => {
       if (syncResult.sidepanelAutoTranslate) {
         const selectedText = storedRange?.toString() || ''
+        const contextText = `${storedContext.before} [${selectedText}] ${storedContext.after}`
         chrome.storage.session.set({
-          sidepanelText: selectedText,
+          sidepanelText: contextText,
           sidepanelConcept: selectedText,
-          sidepanelContext: storedContext,
+          sidepanelContext: JSON.stringify(storedContext),
           sidepanelTimestamp: Date.now(),
         })
       }
