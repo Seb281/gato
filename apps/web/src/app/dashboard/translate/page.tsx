@@ -71,6 +71,7 @@ export default function TranslatePage() {
   const [showMore, setShowMore] = useState(false);
   const [enrichment, setEnrichment] = useState<EnrichmentResult | null>(null);
   const [isEnriching, setIsEnriching] = useState(false);
+  const [showContext, setShowContext] = useState(false);
   const [saveState, setSaveState] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
@@ -308,6 +309,26 @@ export default function TranslatePage() {
               placeholder={t("translate.sourcePlaceholder")}
               className="min-h-[200px] resize-none border-0 shadow-none focus-visible:ring-0 p-3 text-lg"
             />
+
+            {/* Context input */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowContext(!showContext)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showContext ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                {t("translate.addContext")}
+              </button>
+              {showContext && (
+                <Textarea
+                  value={personalContext}
+                  onChange={(e) => setPersonalContext(e.target.value)}
+                  placeholder={t("translate.contextPlaceholder")}
+                  className="mt-2 min-h-[60px] resize-none text-sm"
+                />
+              )}
+            </div>
 
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">

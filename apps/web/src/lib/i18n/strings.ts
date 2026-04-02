@@ -37,6 +37,9 @@ export const UI_STRINGS: Record<string, string> = {
   "translate.alreadySaved": "Already saved",
   "translate.saveFailed": "Failed to save",
   "translate.error": "Translation failed. Please try again.",
+  "translate.addContext": "Add context",
+  "translate.contextPlaceholder": "e.g., This is from a cooking recipe...",
+  "translate.contextHint": "Help the translator understand the meaning better",
 
   // Dashboard home
   "home.welcomeBack": "Welcome back, {name}",
@@ -384,4 +387,4 @@ export const UI_STRINGS: Record<string, string> = {
 };
 
 export type StringKey = keyof typeof UI_STRINGS;
-export const STRINGS_VERSION = "4";
+export const STRINGS_VERSION = "5";
