@@ -24,6 +24,14 @@ import { Loader2, Key, ShieldCheck, AlertCircle, Monitor, Sun, Moon, Globe, Plus
 import { useTheme } from "next-themes";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
+const LANGUAGES = [
+  "English", "Spanish", "French", "German", "Italian", "Portuguese",
+  "Russian", "Japanese", "Chinese", "Korean", "Arabic", "Hindi",
+  "Dutch", "Swedish", "Norwegian", "Danish", "Finnish", "Polish",
+  "Turkish", "Greek", "Hebrew", "Thai", "Vietnamese", "Indonesian",
+  "Malay", "Czech", "Slovak", "Hungarian", "Romanian", "Bulgarian",
+];
+
 export default function SettingsForm() {
   const supabase = createClient();
   const { theme, setTheme } = useTheme();
@@ -367,12 +375,18 @@ export default function SettingsForm() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="targetLanguage">{t("settings.targetLanguage")}</Label>
-            <Input
-              id="targetLanguage"
-              placeholder="e.g. Spanish, French, Japanese"
-              value={targetLanguage}
-              onChange={(e) => setTargetLanguage(e.target.value)}
-            />
+            <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+              <SelectTrigger className="max-w-xs">
+                <SelectValue placeholder="Select a language" />
+              </SelectTrigger>
+              <SelectContent>
+                {LANGUAGES.map((lang) => (
+                  <SelectItem key={lang} value={lang}>
+                    {lang}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="context">{t("settings.personalContext")}</Label>
