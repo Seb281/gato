@@ -276,6 +276,7 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.personalContextOptional": "(optional)",
   "ext.personalContextHint": "Help improve translation relevance",
   "ext.saveSettings": "Save Settings",
+  "ext.savePreferences": "Save Preferences",
   "ext.saved": "Saved!",
   "ext.howToUse": "How to Use",
   "ext.anyPage": "On any page (no setup needed)",

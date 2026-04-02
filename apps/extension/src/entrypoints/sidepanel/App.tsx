@@ -569,14 +569,14 @@ function SettingsTab({ session }: { session: Session | null }) {
         </div>
       </div>
 
-      <Button onClick={handleSave} variant="default" className="w-full">
+      <Button onClick={handleSave} variant="outline" className="w-full" size="sm">
         {isSaved ? (
           <>
             <Check className="w-4 h-4 mr-2" />
             {t('ext.saved')}
           </>
         ) : (
-          t('ext.saveSettings')
+          t('ext.savePreferences')
         )}
       </Button>
 
