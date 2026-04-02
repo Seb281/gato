@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Key, ShieldCheck, AlertCircle, Monitor, Sun, Moon, Globe, Plus, X, WifiOff, Target, User } from "lucide-react";
+import { Loader2, Key, ShieldCheck, AlertCircle, Monitor, Sun, Moon, Globe, Plus, X, WifiOff, Target, User, Languages } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
@@ -53,6 +53,7 @@ export default function SettingsForm() {
   const [customApiKey, setCustomApiKey] = useState("");
   const [dailyGoal, setDailyGoal] = useState(10);
   const [customGoalInput, setCustomGoalInput] = useState("");
+  const [displayLanguage, setDisplayLanguage] = useState("English");
   
   // Metadata State
   const [hasCustomApiKey, setHasCustomApiKey] = useState(false);
@@ -91,6 +92,7 @@ export default function SettingsForm() {
           if (data.dailyGoal != null) {
             setDailyGoal(data.dailyGoal);
           }
+          if (data.displayLanguage) setDisplayLanguage(data.displayLanguage);
           setHasCustomApiKey(data.hasCustomApiKey);
           if (data.maskedApiKey) {
             setMaskedApiKey(data.maskedApiKey);
@@ -197,6 +199,7 @@ export default function SettingsForm() {
         preferredProvider,
         dailyGoal,
         theme,
+        displayLanguage,
       };
 
       // Only send API key if user typed a new one
@@ -362,6 +365,32 @@ export default function SettingsForm() {
               className="w-24"
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Languages className="size-5 text-muted-foreground" />
+            <div>
+              <CardTitle>{t("settings.displayLanguage")}</CardTitle>
+              <CardDescription>{t("settings.displayLanguageDesc")}</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Select value={displayLanguage} onValueChange={setDisplayLanguage}>
+            <SelectTrigger className="max-w-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LANGUAGES.map((lang) => (
+                <SelectItem key={lang} value={lang}>
+                  {lang}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
 

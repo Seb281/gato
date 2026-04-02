@@ -511,11 +511,12 @@ function SettingsTab({ session }: { session: Session | null }) {
           targetLanguage: string | null
           personalContext: string | null
           theme?: string | null
+          displayLanguage?: string | null
         }
         error?: string
       }) => {
         if (response?.success && response.settings) {
-          const { targetLanguage: apiTargetLang, personalContext: apiContext, theme: apiTheme } =
+          const { targetLanguage: apiTargetLang, personalContext: apiContext, theme: apiTheme, displayLanguage: apiDisplayLang } =
             response.settings
           if (apiTargetLang) {
             setTargetLanguage(apiTargetLang)
@@ -527,6 +528,9 @@ function SettingsTab({ session }: { session: Session | null }) {
           }
           if (apiTheme) {
             chrome.storage.sync.set({ theme: apiTheme })
+          }
+          if (apiDisplayLang) {
+            chrome.storage.sync.set({ displayLanguage: apiDisplayLang })
           }
         }
       },

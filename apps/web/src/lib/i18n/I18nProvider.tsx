@@ -60,7 +60,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       });
       if (res.ok) {
         const data = await res.json();
-        targetLang = data.targetLanguage || "English";
+        targetLang = data.displayLanguage || "English";
       }
     } catch {
       return;

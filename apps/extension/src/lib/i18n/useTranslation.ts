@@ -23,19 +23,18 @@ export function useTranslation() {
 
   useEffect(() => {
     async function load() {
-      // Read target language from chrome.storage.sync
-      const { targetLanguage = "English" } = await chrome.storage.sync.get(
-        "targetLanguage"
-      );
-      setLanguage(targetLanguage as string);
+      // Read display language from chrome.storage.sync (fallback to targetLanguage for backwards compat)
+      const stored = await chrome.storage.sync.get(["displayLanguage", "targetLanguage"]);
+      const lang = (stored.displayLanguage as string) || (stored.targetLanguage as string) || "English";
+      setLanguage(lang);
 
-      if (targetLanguage === "English") {
+      if (lang === "English") {
         setStrings(UI_STRINGS);
         return;
       }
 
       // Check chrome.storage.local cache
-      const cacheKey = `i18n_${targetLanguage}_${STRINGS_VERSION}`;
+      const cacheKey = `i18n_${lang}_${STRINGS_VERSION}`;
       const cached = await chrome.storage.local.get(cacheKey);
       if (cached[cacheKey]) {
         try {
@@ -55,7 +54,7 @@ export function useTranslation() {
       try {
         const response = await chrome.runtime.sendMessage({
           action: "fetchTranslations",
-          language: targetLanguage,
+          language: lang,
           version: STRINGS_VERSION,
         });
         if (response?.success && response.translations) {

@@ -62,7 +62,7 @@ export async function i18nRoutes(app: FastifyInstance) {
         const restored = translated.map((t) =>
           t.replace(/<x id="(\w+)"\/>/g, '{$1}'),
         )
-        translations = Object.fromEntries(keys.map((k, i) => [k, restored[i]]))
+        translations = Object.fromEntries(keys.map((k, i) => [k, restored[i] ?? '']))
       } else {
         // Fallback to LLM
         const prompt = `You are a professional translator. Translate the following JSON object of UI strings from English to ${language}.
