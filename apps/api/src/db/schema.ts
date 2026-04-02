@@ -16,6 +16,7 @@ export const usersTable = pgTable('users', {
   freezesUsed: integer('freezes_used').notNull().default(0),
   dailyGoal: integer('daily_goal').notNull().default(10),
   theme: text('theme').default('system'),
+  displayLanguage: text('display_language').default('English'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 

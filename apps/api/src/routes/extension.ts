@@ -85,6 +85,7 @@ type UserSettingsBody = {
   dailyGoal?: number
   name?: string | null
   theme?: string | null
+  displayLanguage?: string | null
 }
 
 export async function extensionRoutes(
@@ -788,6 +789,7 @@ Keep it simple and practical. Only return the JSON, nothing else.`
         hasCustomApiKey: !!settings.customApiKey,
         dailyGoal: user?.dailyGoal ?? 10,
         theme: user?.theme ?? 'system',
+        displayLanguage: user?.displayLanguage ?? 'English',
         streakFreezes: user?.streakFreezes ?? 0,
       })
     }
@@ -817,7 +819,7 @@ Keep it simple and practical. Only return the JSON, nothing else.`
         ...(name && { name }),
       })
 
-      const { targetLanguage, personalContext, customApiKey, preferredProvider, dailyGoal, name: newName, theme: newTheme } = request.body
+      const { targetLanguage, personalContext, customApiKey, preferredProvider, dailyGoal, name: newName, theme: newTheme, displayLanguage: newDisplayLanguage } = request.body
 
       // Validate dailyGoal if provided
       if (dailyGoal !== undefined) {
@@ -867,6 +869,13 @@ Keep it simple and practical. Only return the JSON, nothing else.`
         updatedTheme = newTheme
       }
 
+      // Update displayLanguage if provided
+      let updatedDisplayLanguage = user.displayLanguage
+      if (newDisplayLanguage !== undefined) {
+        await usersData.updateDisplayLanguage(user.id, newDisplayLanguage)
+        updatedDisplayLanguage = newDisplayLanguage
+      }
+
       // Mask key for response
       let maskedKey = null
       if (updatedSettings.customApiKey) {
@@ -888,6 +897,7 @@ Keep it simple and practical. Only return the JSON, nothing else.`
         hasCustomApiKey: !!updatedSettings.customApiKey,
         dailyGoal: updatedDailyGoal,
         theme: updatedTheme,
+        displayLanguage: updatedDisplayLanguage ?? 'English',
         streakFreezes: user.streakFreezes,
       })
     }
