@@ -278,28 +278,35 @@ export default function TranslatePage() {
         {/* Source panel */}
         <Card>
           <CardContent className="p-4 space-y-3">
-            <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
-              <SelectTrigger className="w-full max-w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="auto">
-                  {t("translate.autoDetect")}
-                </SelectItem>
-                {LANGUAGES.map((lang) => (
-                  <SelectItem key={lang} value={lang}>
-                    {lang}
+            <div className="flex items-center gap-2">
+              <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
+                <SelectTrigger className="w-full max-w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">
+                    {t("translate.autoDetect")}
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  {LANGUAGES.map((lang) => (
+                    <SelectItem key={lang} value={lang}>
+                      {lang}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {result && result.language && sourceLanguage === "auto" && (
+                <Badge variant="secondary" className="text-xs">
+                  {t("translate.autoDetect")}: {result.language}
+                </Badge>
+              )}
+            </div>
 
             <Textarea
               value={sourceText}
               onChange={(e) => setSourceText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={t("translate.sourcePlaceholder")}
-              className="min-h-[200px] resize-none border-0 shadow-none focus-visible:ring-0 p-0 text-lg"
+              className="min-h-[200px] resize-none border-0 shadow-none focus-visible:ring-0 p-3 text-lg"
             />
 
             <div className="flex items-center justify-between">
@@ -366,13 +373,6 @@ export default function TranslatePage() {
                       <Volume2 className="h-4 w-4" />
                     </button>
                   </div>
-
-                  {result.language &&
-                    sourceLanguage === "auto" && (
-                      <p className="text-xs text-muted-foreground">
-                        Detected: {result.language}
-                      </p>
-                    )}
                 </div>
               )}
 
