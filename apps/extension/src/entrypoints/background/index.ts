@@ -241,6 +241,7 @@ type EnrichMessage = {
   translation: string
   targetLanguage: string
   sourceLanguage: string
+  personalContext?: string
 }
 
 type EnrichResponse = {
@@ -345,6 +346,7 @@ chrome.runtime.onMessage.addListener(
         message.translation,
         message.targetLanguage,
         message.sourceLanguage,
+        message.personalContext,
       )
         .then((enrichment) => {
           sendResponse({ success: true, enrichment })

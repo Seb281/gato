@@ -659,7 +659,7 @@ export default function TranslationPopup({
                                   text: selection,
                                   translation: translation.contextualTranslation,
                                   targetLanguage,
-                                  sourceLanguage: translation.language,
+                                  sourceLanguage: translation.language || sourceLanguage || '',
                                 },
                                 (response: { success: boolean; enrichment?: EnrichmentResponse }) => {
                                   if (chrome.runtime.lastError) {

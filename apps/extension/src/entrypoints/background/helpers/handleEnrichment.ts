@@ -6,6 +6,7 @@ export default async function handleEnrichment(
   translation: string,
   targetLanguage: string,
   sourceLanguage: string,
+  personalContext?: string,
 ): Promise<object> {
   const token = await getSupabaseToken()
 
@@ -25,6 +26,7 @@ export default async function handleEnrichment(
       translation,
       targetLanguage: targetLanguage || "English",
       sourceLanguage: sourceLanguage || "",
+      personalContext: personalContext || "",
     }),
   })
     .then((response) => {
