@@ -26,18 +26,21 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const NAV_ITEMS = [
-  { label: "Home", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "Vocabulary", icon: BookOpen, href: "/dashboard/vocabulary" },
-  { label: "Review", icon: GraduationCap, href: "/dashboard/review" },
-  { label: "Progress", icon: BarChart3, href: "/dashboard/progress" },
-  { label: "Tags", icon: Tags, href: "/dashboard/tags" },
+  { labelKey: "nav.home", icon: LayoutDashboard, href: "/dashboard" },
+  { labelKey: "nav.translate", icon: Languages, href: "/dashboard/translate" },
+  { labelKey: "nav.vocabulary", icon: BookOpen, href: "/dashboard/vocabulary" },
+  { labelKey: "nav.review", icon: GraduationCap, href: "/dashboard/review" },
+  { labelKey: "nav.progress", icon: BarChart3, href: "/dashboard/progress" },
+  { labelKey: "nav.tags", icon: Tags, href: "/dashboard/tags" },
 ];
 
-const SECONDARY_NAV = [
-  { label: "Import / Export", icon: ArrowUpDown, href: "/dashboard/import-export" },
-  { label: "Settings", icon: Settings, href: "/dashboard/settings" },
+const FOOTER_NAV = [
+  { labelKey: "nav.feedback", icon: MessageSquare, href: "/dashboard/feedback" },
+  { labelKey: "nav.importExport", icon: ArrowUpDown, href: "/dashboard/import-export" },
+  { labelKey: "nav.settings", icon: Settings, href: "/dashboard/settings" },
 ];
 
 export default function Sidebar({
@@ -48,6 +51,7 @@ export default function Sidebar({
   signOutAction: () => void;
 }) {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -86,6 +90,7 @@ export default function Sidebar({
         <nav className="flex-1 py-1 px-2 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map((item) => {
             const active = isActive(item.href);
+            const label = t(item.labelKey);
             const link = (
               <Link
                 key={item.href}
@@ -99,7 +104,7 @@ export default function Sidebar({
                 )}
               >
                 <item.icon className="size-4 shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && <span>{label}</span>}
               </Link>
             );
 
@@ -107,44 +112,13 @@ export default function Sidebar({
               return (
                 <Tooltip key={item.href}>
                   <TooltipTrigger asChild>{link}</TooltipTrigger>
-                  <TooltipContent side="right">{item.label}</TooltipContent>
+                  <TooltipContent side="right">{label}</TooltipContent>
                 </Tooltip>
               );
             }
             return link;
           })}
 
-          <div className="my-3" />
-
-          {SECONDARY_NAV.map((item) => {
-            const active = isActive(item.href);
-            const link = (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150",
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-                  collapsed && "justify-center px-2"
-                )}
-              >
-                <item.icon className="size-4 shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
-              </Link>
-            );
-
-            if (collapsed) {
-              return (
-                <Tooltip key={item.href}>
-                  <TooltipTrigger asChild>{link}</TooltipTrigger>
-                  <TooltipContent side="right">{item.label}</TooltipContent>
-                </Tooltip>
-              );
-            }
-            return link;
-          })}
         </nav>
 
         {/* Footer */}
@@ -161,17 +135,18 @@ export default function Sidebar({
             ) : (
               <>
                 <ChevronLeft className="size-4 mr-2" />
-                Collapse
+                {t("nav.collapse")}
               </>
             )}
           </Button>
 
-          {/* Feedback */}
-          {(() => {
-            const active = isActive("/dashboard/feedback");
+          {FOOTER_NAV.map((item) => {
+            const active = isActive(item.href);
+            const label = t(item.labelKey);
             const link = (
               <Link
-                href="/dashboard/feedback"
+                key={item.href}
+                href={item.href}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150",
                   active
@@ -180,17 +155,21 @@ export default function Sidebar({
                   collapsed && "justify-center px-2"
                 )}
               >
-                <MessageSquare className="size-4 shrink-0" />
-                {!collapsed && <span>Feedback</span>}
+                <item.icon className="size-4 shrink-0" />
+                {!collapsed && <span>{label}</span>}
               </Link>
             );
-            return collapsed ? (
-              <Tooltip>
-                <TooltipTrigger asChild>{link}</TooltipTrigger>
-                <TooltipContent side="right">Feedback</TooltipContent>
-              </Tooltip>
-            ) : link;
-          })()}
+
+            if (collapsed) {
+              return (
+                <Tooltip key={item.href}>
+                  <TooltipTrigger asChild>{link}</TooltipTrigger>
+                  <TooltipContent side="right">{label}</TooltipContent>
+                </Tooltip>
+              );
+            }
+            return link;
+          })}
 
           {/* User info + sign out */}
           <div className={cn("flex items-center gap-2 px-2", collapsed && "justify-center")}>
@@ -211,7 +190,7 @@ export default function Sidebar({
               className={cn("w-full text-muted-foreground hover:text-foreground", collapsed ? "justify-center" : "justify-start")}
             >
               <LogOut className="size-4 shrink-0" />
-              {!collapsed && <span className="ml-2">Sign Out</span>}
+              {!collapsed && <span className="ml-2">{t("nav.signOut")}</span>}
             </Button>
           </form>
         </div>

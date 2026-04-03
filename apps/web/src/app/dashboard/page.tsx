@@ -16,9 +16,11 @@ import { Button } from "@/components/ui/button";
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import GoalRing from "@/components/dashboard/GoalRing";
 import { checkMilestones } from "@/components/dashboard/MilestoneToast";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function DashboardHome() {
   const supabase = createClient();
+  const { t } = useTranslation();
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   const [dueCount, setDueCount] = useState<number | null>(null);
@@ -143,16 +145,16 @@ export default function DashboardHome() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
-          {userName ? `Welcome back, ${userName}` : "Welcome back"}
+          {userName ? t("home.welcomeBack", { name: userName }) : t("home.welcomeBackGeneric")}
         </h1>
         <p className="text-muted-foreground">
-          Here&apos;s your learning overview.
+          {t("home.learningOverview")}
         </p>
       </div>
 
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-          Something went wrong loading data. Check your connection and try refreshing.
+          {t("common.error")}
         </div>
       )}
 
@@ -170,7 +172,7 @@ export default function DashboardHome() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
                   <Target className="size-5 text-muted-foreground" />
-                  Today&apos;s Progress
+                  {t("home.todaysProgress")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col items-center gap-4">
@@ -181,7 +183,7 @@ export default function DashboardHome() {
                     <GoalRing current={todayReviews} goal={dailyGoal} />
                     {goalMet && (
                       <p className="text-sm font-medium text-emerald-500">
-                        Goal met!
+                        {t("home.goalMet")}
                       </p>
                     )}
                   </>
@@ -194,7 +196,7 @@ export default function DashboardHome() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
                   <GraduationCap className="size-5 text-muted-foreground" />
-                  Review
+                  {t("home.review")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col flex-1 justify-between">
@@ -202,20 +204,19 @@ export default function DashboardHome() {
                   <Loader2 className="size-5 animate-spin text-muted-foreground" />
                 ) : dueCount === 0 ? (
                   <p className="text-muted-foreground">
-                    All caught up! No items due for review.
+                    {t("home.allCaughtUp")}
                   </p>
                 ) : (
                   <p className="text-muted-foreground">
-                    You have{" "}
-                    <span className="font-semibold text-foreground">
-                      {dueCount}
-                    </span>{" "}
-                    {dueCount === 1 ? "item" : "items"} ready for review.
+                    {t("home.itemsDue", {
+                      count: dueCount ?? 0,
+                      items: dueCount === 1 ? t("common.item") : t("common.items"),
+                    })}
                   </p>
                 )}
                 <Button asChild className="mt-4">
                   <Link href="/dashboard/review">
-                    {dueCount && dueCount > 0 ? "Start Review" : "Go to Review"}
+                    {dueCount && dueCount > 0 ? t("home.startReview") : t("home.goToReview")}
                     <ArrowRight className="size-4 ml-2" />
                   </Link>
                 </Button>
@@ -227,31 +228,31 @@ export default function DashboardHome() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="size-5 text-muted-foreground" />
-                  Quick Stats
+                  {t("home.quickStats")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div>
-                    <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-1">Reviews</p>
+                    <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-1">{t("home.reviews")}</p>
                     <p className="text-3xl font-bold tracking-tighter">
                       {loading ? "--" : (stats?.totalReviewed ?? 0)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-1">Accuracy</p>
+                    <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-1">{t("home.accuracy")}</p>
                     <p className="text-3xl font-bold tracking-tighter">
                       {loading ? "--" : `${stats?.avgAccuracy ?? 0}%`}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-1">Due Now</p>
+                    <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-1">{t("home.dueNow")}</p>
                     <p className="text-3xl font-bold tracking-tighter">
                       {loading ? "--" : (dueCount ?? 0)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-1">Streak</p>
+                    <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-1">{t("home.streak")}</p>
                     <p className="text-3xl font-bold tracking-tighter">
                       {loading ? "--" : (overview?.currentStreak ?? 0)}
                     </p>
@@ -267,11 +268,11 @@ export default function DashboardHome() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <BookOpen className="size-5 text-muted-foreground" />
-                  Recent Words
+                  {t("home.recentWords")}
                 </CardTitle>
                 <Button variant="ghost" size="sm" asChild>
                   <Link href="/dashboard/vocabulary">
-                    View all
+                    {t("home.viewAll")}
                     <ArrowRight className="size-4 ml-1" />
                   </Link>
                 </Button>
@@ -279,8 +280,7 @@ export default function DashboardHome() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground text-sm">
-                Your recently saved words will appear here. Use the extension to
-                translate and save new vocabulary.
+                {t("home.recentWordsEmpty")}
               </p>
             </CardContent>
           </Card>

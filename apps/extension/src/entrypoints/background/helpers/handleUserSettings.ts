@@ -6,6 +6,7 @@ export type UserSettings = {
   targetLanguage: string | null
   personalContext: string | null
   theme?: string | null
+  displayLanguage?: string | null
 }
 
 export async function fetchUserSettings(): Promise<UserSettings> {

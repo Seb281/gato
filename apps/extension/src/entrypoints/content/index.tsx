@@ -169,6 +169,20 @@ document.addEventListener("mouseup", () => {
     const y = rect.top + window.scrollY
 
     tooltip.show(x, y)
+
+    // Pipe selected text to sidepanel if auto-translate is enabled
+    chrome.storage.sync.get('sidepanelAutoTranslate', (syncResult) => {
+      if (syncResult.sidepanelAutoTranslate) {
+        const selectedText = storedRange?.toString() || ''
+        const contextText = `${storedContext.before} [${selectedText}] ${storedContext.after}`
+        chrome.storage.session.set({
+          sidepanelText: contextText,
+          sidepanelConcept: selectedText,
+          sidepanelContext: JSON.stringify(storedContext),
+          sidepanelTimestamp: Date.now(),
+        })
+      }
+    })
   }, 10)
 })
 

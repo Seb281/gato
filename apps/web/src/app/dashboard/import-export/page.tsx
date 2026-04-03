@@ -4,14 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, Upload } from "lucide-react";
 import ExportButton from "@/components/dashboard/ExportButton";
 import ImportDialog from "@/components/dashboard/ImportDialog";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function ImportExportPage() {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Import / Export</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("importExport.title")}</h1>
         <p className="text-muted-foreground">
-          Back up your vocabulary or import from other tools.
+          {t("importExport.subtitle")}
         </p>
       </div>
 
@@ -20,12 +23,12 @@ export default function ImportExportPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Download className="size-5 text-muted-foreground" />
-              Export
+              {t("importExport.export")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-muted-foreground text-sm">
-              Export your vocabulary as CSV, JSON, or Anki-compatible format.
+              {t("importExport.exportDesc")}
             </p>
             <ExportButton />
           </CardContent>
@@ -35,13 +38,12 @@ export default function ImportExportPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Upload className="size-5 text-muted-foreground" />
-              Import
+              {t("importExport.import")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-muted-foreground text-sm">
-              Import vocabulary from CSV or JSON files. Duplicates are
-              automatically detected.
+              {t("importExport.importDesc")}
             </p>
             <ImportDialog />
           </CardContent>

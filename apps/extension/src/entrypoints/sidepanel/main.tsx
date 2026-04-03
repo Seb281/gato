@@ -1,6 +1,7 @@
 import React from "react"
 import { createRoot } from "react-dom/client"
 import App from "./App"
+import ErrorBoundary from "@/components/ErrorBoundary"
 import "./sidepanel.css"
 import { initSentry } from "@/lib/sentry"
 
@@ -36,6 +37,8 @@ mq.addEventListener("change", () => {
 const root = createRoot(document.getElementById("root")!)
 root.render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>
 )

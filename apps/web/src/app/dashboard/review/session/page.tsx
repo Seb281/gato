@@ -11,8 +11,10 @@ import MultipleChoiceQuiz from "@/components/dashboard/quiz/MultipleChoiceQuiz";
 import TypeAnswerQuiz from "@/components/dashboard/quiz/TypeAnswerQuiz";
 import ContextualRecallQuiz from "@/components/dashboard/quiz/ContextualRecallQuiz";
 import SessionSummary from "@/components/dashboard/quiz/SessionSummary";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function ReviewSessionPage() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const mode = (searchParams.get("mode") ?? "flashcard") as QuizMode;
   const count = parseInt(searchParams.get("count") ?? "10", 10);
@@ -42,7 +44,7 @@ export default function ReviewSessionPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh] gap-3">
         <Loader2 className="size-8 animate-spin text-muted-foreground" />
-        <p className="text-muted-foreground">Loading questions...</p>
+        <p className="text-muted-foreground">{t("review.loadingQuestions")}</p>
       </div>
     );
   }
@@ -51,13 +53,13 @@ export default function ReviewSessionPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh] gap-3">
         <p className="text-muted-foreground">
-          No items due for review right now.
+          {t("review.noItemsDueNow")}
         </p>
         <a
           href="/dashboard/review"
           className="text-muted-foreground underline text-sm hover:text-foreground"
         >
-          Back to Review
+          {t("review.backToReview")}
         </a>
       </div>
     );
