@@ -182,18 +182,24 @@ export default defineBackground(() => {
   chrome.runtime.onInstalled.addListener(syncRegisteredContentScripts)
   chrome.runtime.onStartup.addListener(syncRegisteredContentScripts)
 
-  // --- Allowed Sites Management ---
+  // --- Unified Message Handler ---
+  // Single listener eliminates MV3 multi-listener race conditions
 
-  chrome.runtime.onMessage.addListener(
-    (message: { action: string; pattern?: string }, _, sendResponse) => {
-      if (message.action === 'getAllowedSites') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  chrome.runtime.onMessage.addListener((message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void): boolean => {
+    const action = message.action || message.type
+
+    switch (action) {
+
+      // --- Allowed Sites ---
+
+      case 'getAllowedSites':
         chrome.storage.sync.get('allowedSites').then(({ allowedSites = [] }) => {
           sendResponse({ success: true, sites: allowedSites })
         })
         return true
-      }
 
-      if (message.action === 'addAllowedSite') {
+      case 'addAllowedSite': {
         const pattern = message.pattern!
         chrome.storage.sync.get('allowedSites').then(async ({ allowedSites = [] }) => {
           const sites = allowedSites as string[]
@@ -209,7 +215,7 @@ export default defineBackground(() => {
         return true
       }
 
-      if (message.action === 'removeAllowedSite') {
+      case 'removeAllowedSite': {
         const pattern = message.pattern!
         chrome.storage.sync.get('allowedSites').then(async ({ allowedSites = [] }) => {
           const updated = (allowedSites as string[]).filter((s: string) => s !== pattern)
@@ -221,463 +227,325 @@ export default defineBackground(() => {
         return true
       }
 
-      return false
-    }
-  )
+      // --- Translation ---
 
-type TranslateMessage = {
-  action: "translate"
-  text: string
-  concept?: string
-  forceRefresh?: boolean
-  selection?: string
-  contextBefore?: string
-  contextAfter?: string
-}
+      case 'translate':
+        chrome.storage.sync
+          .get(["targetLanguage", "sourceLanguage", "personalContext"])
+          .then(async (result) => {
+            const targetLanguage = (result.targetLanguage as string) || "English"
+            const sourceLanguage = (result.sourceLanguage as string) || ""
+            const personalContext = (result.personalContext as string) || ""
 
-type EnrichMessage = {
-  action: "enrich"
-  text: string
-  translation: string
-  targetLanguage: string
-  sourceLanguage: string
-  personalContext?: string
-}
-
-type EnrichResponse = {
-  success: boolean
-  enrichment?: object
-  error?: string
-}
-
-type TranslateResponse = {
-  success: boolean
-  translateObject?: object
-  fromCache?: boolean
-  cachedConceptId?: number
-  error?: string
-}
-
-chrome.runtime.onMessage.addListener(
-  (
-    message: TranslateMessage,
-    sender: chrome.runtime.MessageSender,
-    sendResponse: (response: TranslateResponse) => void
-  ): boolean => {
-
-    if (message.action === "translate") {
-      chrome.storage.sync
-        .get(["targetLanguage", "sourceLanguage", "personalContext"])
-        .then(async (result) => {
-          const targetLanguage = (result.targetLanguage as string) || "English"
-          const sourceLanguage = (result.sourceLanguage as string) || ""
-          const personalContext = (result.personalContext as string) || ""
-
-          if (message.concept && !message.forceRefresh) {
-            const cached = await lookupConcept(message.concept, sourceLanguage, targetLanguage)
-            if (cached) {
-              return {
-                translateObject: {
-                  contextualTranslation: cached.translation,
-                  language: cached.sourceLanguage,
-                  phoneticApproximation: "",
-                },
-                fromCache: true,
-                cachedConceptId: cached.id,
-                targetLanguage,
-                sourceLanguage,
+            if (message.concept && !message.forceRefresh) {
+              const cached = await lookupConcept(message.concept, sourceLanguage, targetLanguage)
+              if (cached) {
+                return {
+                  translateObject: {
+                    contextualTranslation: cached.translation,
+                    language: cached.sourceLanguage,
+                    phoneticApproximation: "",
+                  },
+                  fromCache: true,
+                  cachedConceptId: cached.id,
+                  targetLanguage,
+                  sourceLanguage,
+                }
               }
             }
-          }
 
-          const translateObject = await handleTranslation(
-            message.text,
-            targetLanguage,
-            sourceLanguage,
-            personalContext,
-            message.selection,
-            message.contextBefore,
-            message.contextAfter,
-          )
-          return { translateObject, fromCache: false, targetLanguage, sourceLanguage }
-        })
-        .then(({ translateObject, fromCache, cachedConceptId, targetLanguage, sourceLanguage }) => {
-          sendResponse({ success: true, translateObject, fromCache, cachedConceptId })
-
-          // Push to translation history in session storage
-          const translationObj = translateObject as {
-            contextualTranslation?: string
-            language?: string
-          }
-          const historyItem = {
-            concept: message.concept || message.text,
-            translation: translationObj.contextualTranslation || '',
-            sourceLanguage: translationObj.language || sourceLanguage || '',
-            targetLanguage: targetLanguage || '',
-            url: sender.tab?.url ?? '',
-            timestamp: Date.now(),
-          }
-          chrome.storage.session.get('translationHistory', (result) => {
-            const history = (result.translationHistory || []) as typeof historyItem[]
-            history.unshift(historyItem)
-            if (history.length > 50) history.length = 50
-            chrome.storage.session.set({ translationHistory: history })
+            const translateObject = await handleTranslation(
+              message.text,
+              targetLanguage,
+              sourceLanguage,
+              personalContext,
+              message.selection,
+              message.contextBefore,
+              message.contextAfter,
+            )
+            return { translateObject, fromCache: false, targetLanguage, sourceLanguage }
           })
-        })
-        .catch((error) => {
-          sendResponse({ success: false, error: error.message })
-        })
+          .then(({ translateObject, fromCache, cachedConceptId, targetLanguage, sourceLanguage }: any) => {
+            sendResponse({ success: true, translateObject, fromCache, cachedConceptId })
 
-      return true
-    }
-    return false
-  }
-)
+            // Push to translation history in session storage
+            const translationObj = translateObject as {
+              contextualTranslation?: string
+              language?: string
+            }
+            const historyItem = {
+              concept: message.concept || message.text,
+              translation: translationObj.contextualTranslation || '',
+              sourceLanguage: translationObj.language || sourceLanguage || '',
+              targetLanguage: targetLanguage || '',
+              url: sender.tab?.url ?? '',
+              timestamp: Date.now(),
+            }
+            chrome.storage.session.get('translationHistory', (result) => {
+              const history = (result.translationHistory || []) as typeof historyItem[]
+              history.unshift(historyItem)
+              if (history.length > 50) history.length = 50
+              chrome.storage.session.set({ translationHistory: history })
+            })
+          })
+          .catch((error: Error) => {
+            sendResponse({ success: false, error: error.message })
+          })
+        return true
 
-chrome.runtime.onMessage.addListener(
-  (
-    message: EnrichMessage,
-    _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: EnrichResponse) => void
-  ): boolean => {
-    if (message.action === "enrich") {
-      handleEnrichment(
-        message.text,
-        message.translation,
-        message.targetLanguage,
-        message.sourceLanguage,
-        message.personalContext,
-      )
-        .then((enrichment) => {
-          sendResponse({ success: true, enrichment })
-        })
-        .catch((error) => {
-          sendResponse({ success: false, error: error.message })
-        })
-      return true
-    }
-    return false
-  }
-)
+      // --- Enrichment ---
 
-type NewConcept = {
-  targetLanguage: string
-  sourceLanguage: string
-  userId: number
-  concept: string
-  translation: string
-  id?: number | undefined
-  createdAt?: Date | undefined
-  state?: "new" | "learned" | undefined
-  updatedAt?: Date | undefined
-}
+      case 'enrich':
+        handleEnrichment(
+          message.text,
+          message.translation,
+          message.targetLanguage,
+          message.sourceLanguage,
+          message.personalContext,
+        )
+          .then((enrichment) => {
+            sendResponse({ success: true, enrichment })
+          })
+          .catch((error: Error) => {
+            sendResponse({ success: false, error: error.message })
+          })
+        return true
 
-chrome.runtime.onMessage.addListener(
-  (message: { action: string; concept: NewConcept }, _, sendResponse) => {
-    if (message.action === "saveConcept") {
-      saveConcept(message.concept)
-        .then((result) => {
-          if (result.alreadySaved) {
-            sendResponse({ success: true, alreadySaved: true, concept: result.concept })
-          } else {
+      // --- Concepts ---
+
+      case 'saveConcept':
+        saveConcept(message.concept)
+          .then((result) => {
+            if (result.alreadySaved) {
+              sendResponse({ success: true, alreadySaved: true, concept: result.concept })
+            } else {
+              sendResponse({ success: true, concept: result.concept })
+              updateBadge()
+            }
+          })
+          .catch((error: Error) => {
+            sendResponse({ success: false, error: error.message })
+          })
+        return true
+
+      case 'updateConcept':
+        updateConcept(message.conceptId, message.translation)
+          .then((result) => {
             sendResponse({ success: true, concept: result.concept })
-            updateBadge()
-          }
-        })
-        .catch((error) => {
-          sendResponse({ success: false, error: error.message })
-        })
-      return true
-    }
-    return false
-  }
-)
+          })
+          .catch((error: Error) => {
+            sendResponse({ success: false, error: error.message })
+          })
+        return true
 
-chrome.runtime.onMessage.addListener(
-  (message: { action: string; conceptId: number; translation: string }, _, sendResponse) => {
-    if (message.action === "updateConcept") {
-      updateConcept(message.conceptId, message.translation)
-        .then((result) => {
-          sendResponse({ success: true, concept: result.concept })
-        })
-        .catch((error) => {
-          sendResponse({ success: false, error: error.message })
-        })
-      return true
-    }
-    return false
-  }
-)
+      // --- Auth ---
 
-// Listener to handle login status checks using Supabase
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === "CHECK_LOGIN_STATUS") {
-    isAuthenticated().then((isLoggedIn) => {
-      sendResponse({ isLoggedIn })
-    })
-    return true // Keep channel open for async response
-  }
-})
-
-// Listener to fetch user settings from API
-chrome.runtime.onMessage.addListener(
-  (message: { action: string }, _, sendResponse) => {
-    if (message.action === "fetchUserSettings") {
-      fetchUserSettings()
-        .then((settings) => {
-          sendResponse({ success: true, settings })
+      case 'CHECK_LOGIN_STATUS':
+        isAuthenticated().then((isLoggedIn) => {
+          sendResponse({ isLoggedIn })
         })
-        .catch((error) => {
-          sendResponse({ success: false, error: error.message })
-        })
-      return true
-    }
-    return false
-  }
-)
+        return true
 
-// Listener to save user settings to API
-chrome.runtime.onMessage.addListener(
-  (message: { action: string; settings: UserSettings }, _, sendResponse) => {
-    if (message.action === "saveUserSettings") {
-      saveUserSettings(message.settings)
-        .then((settings) => {
-          sendResponse({ success: true, settings })
-        })
-        .catch((error) => {
-          sendResponse({ success: false, error: error.message })
-        })
-      return true
-    }
-    return false
-  }
-)
+      // --- User Settings ---
 
-// --- i18n Translation Fetch ---
+      case 'fetchUserSettings':
+        fetchUserSettings()
+          .then((settings) => {
+            sendResponse({ success: true, settings })
+          })
+          .catch((error: Error) => {
+            sendResponse({ success: false, error: error.message })
+          })
+        return true
 
-chrome.runtime.onMessage.addListener(
-  (message: { action: string; language?: string; version?: string }, _, sendResponse) => {
-    if (message.action === "fetchTranslations") {
-      const { language, version } = message
-      if (!language || !version) {
-        sendResponse({ success: false, error: "Missing language or version" })
+      case 'saveUserSettings':
+        saveUserSettings(message.settings)
+          .then((settings) => {
+            sendResponse({ success: true, settings })
+          })
+          .catch((error: Error) => {
+            sendResponse({ success: false, error: error.message })
+          })
+        return true
+
+      // --- i18n ---
+
+      case 'fetchTranslations': {
+        const { language, version } = message
+        if (!language || !version) {
+          sendResponse({ success: false, error: "Missing language or version" })
+          return true
+        }
+        fetch(
+          `${BASE_URL}/i18n/translations?language=${encodeURIComponent(language)}&version=${encodeURIComponent(version)}`
+        )
+          .then(async (res) => {
+            if (!res.ok) {
+              sendResponse({ success: false, error: res.statusText })
+              return
+            }
+            const data = await res.json()
+            sendResponse({ success: true, translations: data.translations })
+          })
+          .catch((error: Error) => {
+            sendResponse({ success: false, error: error.message })
+          })
         return true
       }
 
-      fetch(
-        `${BASE_URL}/i18n/translations?language=${encodeURIComponent(language)}&version=${encodeURIComponent(version)}`
-      )
-        .then(async (res) => {
-          if (!res.ok) {
-            sendResponse({ success: false, error: res.statusText })
-            return
-          }
-          const data = await res.json()
-          sendResponse({ success: true, translations: data.translations })
-        })
-        .catch((error) => {
-          sendResponse({ success: false, error: error.message })
-        })
+      // --- Review / Quiz ---
 
-      return true
-    }
-    return false
-  }
-)
-
-// --- Review / Quiz Handlers ---
-
-chrome.runtime.onMessage.addListener(
-  (message: { action: string }, _, sendResponse) => {
-    if (message.action === "getDueCount") {
-      getSupabaseToken()
-        .then(async (token) => {
-          if (!token) {
+      case 'getDueCount':
+        getSupabaseToken()
+          .then(async (token) => {
+            if (!token) {
+              sendResponse({ dueCount: 0 })
+              return
+            }
+            const response = await fetch(
+              `${BASE_URL}/review/due?countOnly=true`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            )
+            if (!response.ok) {
+              sendResponse({ dueCount: 0 })
+              return
+            }
+            const data = await response.json()
+            sendResponse({ dueCount: data.dueCount ?? 0 })
+          })
+          .catch(() => {
             sendResponse({ dueCount: 0 })
-            return
-          }
-          const response = await fetch(
-            `${import.meta.env.VITE_BASE_URL}/review/due?countOnly=true`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          )
-          if (!response.ok) {
-            sendResponse({ dueCount: 0 })
-            return
-          }
-          const data = await response.json()
-          sendResponse({ dueCount: data.dueCount ?? 0 })
-        })
-        .catch(() => {
-          sendResponse({ dueCount: 0 })
-        })
-      return true
-    }
-    return false
-  }
-)
+          })
+        return true
 
-chrome.runtime.onMessage.addListener(
-  (message: { action: string; count?: number }, _, sendResponse) => {
-    if (message.action === "getQuizItems") {
-      const count = message.count ?? 5
-      getSupabaseToken()
-        .then(async (token) => {
-          if (!token) {
+      case 'getQuizItems': {
+        const count = message.count ?? 5
+        getSupabaseToken()
+          .then(async (token) => {
+            if (!token) {
+              sendResponse({ items: [] })
+              return
+            }
+            const response = await fetch(
+              `${BASE_URL}/quiz/generate?type=flashcard&count=${count}`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            )
+            if (!response.ok) {
+              sendResponse({ items: [] })
+              return
+            }
+            const data = await response.json()
+            sendResponse({ items: data.items ?? data })
+          })
+          .catch(() => {
             sendResponse({ items: [] })
-            return
-          }
-          const response = await fetch(
-            `${import.meta.env.VITE_BASE_URL}/quiz/generate?type=flashcard&count=${count}`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
+          })
+        return true
+      }
+
+      case 'submitReview':
+        getSupabaseToken()
+          .then(async (token) => {
+            if (!token) {
+              sendResponse({ success: false, error: "Not authenticated" })
+              return
             }
-          )
-          if (!response.ok) {
-            sendResponse({ items: [] })
-            return
-          }
-          const data = await response.json()
-          sendResponse({ items: data.items ?? data })
-        })
-        .catch(() => {
-          sendResponse({ items: [] })
-        })
-      return true
-    }
-    return false
-  }
-)
-
-chrome.runtime.onMessage.addListener(
-  (message: { action: string; conceptId: number; quality: number }, _, sendResponse) => {
-    if (message.action === "submitReview") {
-      getSupabaseToken()
-        .then(async (token) => {
-          if (!token) {
-            sendResponse({ success: false, error: "Not authenticated" })
-            return
-          }
-          const response = await fetch(
-            `${import.meta.env.VITE_BASE_URL}/review/${message.conceptId}/result`,
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ quality: message.quality }),
+            const response = await fetch(
+              `${BASE_URL}/review/${message.conceptId}/result`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ quality: message.quality }),
+              }
+            )
+            if (!response.ok) {
+              sendResponse({ success: false, error: response.statusText })
+              return
             }
-          )
-          if (!response.ok) {
-            sendResponse({ success: false, error: response.statusText })
-            return
-          }
-          const data = await response.json()
-          sendResponse({ success: true, ...data })
-        })
-        .catch((error) => {
-          sendResponse({ success: false, error: error.message })
-        })
-      return true
-    }
-    return false
-  }
-)
+            const data = await response.json()
+            sendResponse({ success: true, ...data })
+          })
+          .catch((error: Error) => {
+            sendResponse({ success: false, error: error.message })
+          })
+        return true
 
-// Listener to fetch saved concepts from API (for side panel)
-chrome.runtime.onMessage.addListener(
-  (message: { action: string; limit?: number }, _, sendResponse) => {
-    if (message.action === "fetchSavedConcepts") {
-      const limit = message.limit || 10
-      getSupabaseToken()
-        .then(async (token) => {
-          if (!token) {
-            sendResponse({ success: false, error: "Not authenticated" })
-            return
-          }
-          const response = await fetch(
-            `${import.meta.env.VITE_BASE_URL}/saved-concepts?limit=${limit}&sortBy=date&sortOrder=desc`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
+      case 'fetchSavedConcepts': {
+        const limit = message.limit || 10
+        getSupabaseToken()
+          .then(async (token) => {
+            if (!token) {
+              sendResponse({ success: false, error: "Not authenticated" })
+              return
             }
-          )
-          if (!response.ok) {
-            throw new Error(`Failed to fetch saved concepts: ${response.statusText}`)
-          }
-          const data = await response.json()
-          sendResponse({ success: true, concepts: data.concepts || data })
+            const response = await fetch(
+              `${BASE_URL}/saved-concepts?limit=${limit}&sortBy=date&sortOrder=desc`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            )
+            if (!response.ok) {
+              throw new Error(`Failed to fetch saved concepts: ${response.statusText}`)
+            }
+            const data = await response.json()
+            sendResponse({ success: true, concepts: data.concepts || data })
+          })
+          .catch((error: Error) => {
+            sendResponse({ success: false, error: error.message })
+          })
+        return true
+      }
+
+      // --- Auth Bridge Sync ---
+
+      case 'GET_EXTENSION_SESSION':
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          sendResponse({ session: session || null })
         })
-        .catch((error) => {
-          sendResponse({ success: false, error: error.message })
-        })
-      return true
+        return true
+
+      case 'DASHBOARD_SESSION':
+        _isSyncingFromDashboard = true
+        supabase.auth
+          .setSession({
+            access_token: message.access_token,
+            refresh_token: message.refresh_token,
+          })
+          .then(({ data: { session }, error }) => {
+            if (error) {
+              sendResponse({ success: false, error: error.message })
+            } else {
+              sendResponse({ success: true })
+            }
+          })
+          .catch((error: Error) => {
+            sendResponse({ success: false, error: error.message })
+          })
+          .finally(() => {
+            setTimeout(() => { _isSyncingFromDashboard = false }, 500)
+          })
+        return true
+
+      case 'DASHBOARD_SIGNOUT':
+        _isSyncingFromDashboard = true
+        supabase.auth
+          .signOut()
+          .then(() => {
+            sendResponse({ success: true })
+          })
+          .catch((error: Error) => {
+            sendResponse({ success: false, error: error.message })
+          })
+          .finally(() => {
+            setTimeout(() => { _isSyncingFromDashboard = false }, 500)
+          })
+        return true
+
+      default:
+        return false
     }
-    return false
-  }
-)
-
-// --- Auth Bridge Sync Handlers ---
-
-// Return the extension's current session to the auth-bridge content script
-chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
-  if (message.type === "GET_EXTENSION_SESSION") {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      sendResponse({ session: session || null })
-    })
-    return true
-  }
-  return false
-})
-
-// Dashboard signed in -> set session in extension
-chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
-  if (message.type === "DASHBOARD_SESSION") {
-    _isSyncingFromDashboard = true
-    supabase.auth
-      .setSession({
-        access_token: message.access_token,
-        refresh_token: message.refresh_token,
-      })
-      .then(({ data: { session }, error }) => {
-        if (error) {
-          sendResponse({ success: false, error: error.message })
-        } else {
-          sendResponse({ success: true })
-        }
-      })
-      .catch((error: Error) => {
-        sendResponse({ success: false, error: error.message })
-      })
-      .finally(() => {
-        // Small delay to let onAuthStateChange fire before clearing flag
-        setTimeout(() => { _isSyncingFromDashboard = false }, 500)
-      })
-    return true
-  }
-  return false
-})
-
-// Dashboard signed out -> sign out extension
-chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
-  if (message.type === "DASHBOARD_SIGNOUT") {
-    _isSyncingFromDashboard = true
-    supabase.auth
-      .signOut()
-      .then(() => {
-        sendResponse({ success: true })
-      })
-      .catch((error: Error) => {
-        sendResponse({ success: false, error: error.message })
-      })
-      .finally(() => {
-        setTimeout(() => { _isSyncingFromDashboard = false }, 500)
-      })
-    return true
-  }
-  return false
-})
+  })
 
 // Push extension auth changes to dashboard tabs via auth-bridge content script
 supabase.auth.onAuthStateChange((event, session) => {
