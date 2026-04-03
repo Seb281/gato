@@ -9,6 +9,7 @@ import Link from "next/link";
 import type { SessionResult } from "@/hooks/useReviewSession";
 import { createClient } from "@/lib/supabase/client";
 import { checkMilestones } from "@/components/dashboard/MilestoneToast";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 type SessionSummaryProps = {
   results: SessionResult[];
@@ -19,6 +20,7 @@ export default function SessionSummary({
   results,
   onReviewAgain,
 }: SessionSummaryProps) {
+  const { t } = useTranslation();
   const correct = results.filter((r) => r.correct).length;
   const total = results.length;
   const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
@@ -63,22 +65,22 @@ export default function SessionSummary({
       <Card className="w-full">
         <CardHeader className="text-center pb-2">
           <Trophy className="size-10 text-muted-foreground mx-auto mb-2" />
-          <CardTitle className="text-2xl">Session Complete!</CardTitle>
+          <CardTitle className="text-2xl">{t("quiz.sessionComplete")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <p className="text-2xl font-bold">{total}</p>
-              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Reviewed</p>
+              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{t("quiz.reviewed")}</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-emerald-500">{correct}</p>
-              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Correct</p>
+              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{t("quiz.correct")}</p>
             </div>
             <div>
               <p className="text-2xl font-bold">{accuracy}%</p>
-              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Accuracy</p>
+              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{t("quiz.accuracy")}</p>
             </div>
           </div>
 
@@ -116,12 +118,12 @@ export default function SessionSummary({
           onClick={onReviewAgain}
         >
           <RotateCcw className="size-4" />
-          Review Again
+          {t("quiz.reviewAgain")}
         </Button>
         <Button className="flex-1 gap-2" asChild>
           <Link href="/dashboard/review">
             <ArrowLeft className="size-4" />
-            Back
+            {t("quiz.back")}
           </Link>
         </Button>
       </div>

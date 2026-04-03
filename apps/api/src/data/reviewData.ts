@@ -117,7 +117,8 @@ const reviewData = {
           eq(reviewScheduleTable.userId, userId)
         ),
       })
-      return refetched!
+      if (!refetched) throw new Error('Failed to create review schedule')
+      return refetched
     }
 
     return result[0]!

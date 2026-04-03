@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Loader2 } from 'lucide-react'
+import { useTranslation } from '@/lib/i18n/useTranslation'
 
 type QuizItem = {
   conceptId: number
@@ -14,6 +15,7 @@ type Props = {
 }
 
 export default function QuickReview({ onBack }: Props) {
+  const { t } = useTranslation()
   const [items, setItems] = useState<QuizItem[]>([])
   const [loading, setLoading] = useState(true)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -24,6 +26,12 @@ export default function QuickReview({ onBack }: Props) {
     chrome.runtime.sendMessage(
       { action: 'getQuizItems', count: 5 },
       (response) => {
+        console.log('[QuickReview] lastError:', chrome.runtime.lastError)
+        console.log('[QuickReview] response:', response)
+        if (chrome.runtime.lastError) {
+          setLoading(false)
+          return
+        }
         setItems(response?.items ?? [])
         setLoading(false)
       }
@@ -32,10 +40,14 @@ export default function QuickReview({ onBack }: Props) {
 
   const handleRate = (quality: number) => {
     const item = items[currentIndex]
+    if (!item) return
     chrome.runtime.sendMessage({
       action: 'submitReview',
       conceptId: item.conceptId,
       quality,
+    }, () => {
+      // Check lastError to suppress unchecked error warnings
+      if (chrome.runtime.lastError) return
     })
 
     setResults((prev) => [...prev, quality])
@@ -52,7 +64,7 @@ export default function QuickReview({ onBack }: Props) {
 
   if (loading) {
     return (
-      <div className="w-[420px]">
+      <div className="w-full">
         <div className="bg-card text-card-foreground">
           <div className="flex items-center gap-2 p-6 pb-4">
             <button
@@ -61,7 +73,7 @@ export default function QuickReview({ onBack }: Props) {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <span className="font-semibold text-lg">Review</span>
+            <span className="font-semibold text-lg">{t('ext.review.title')}</span>
           </div>
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -73,7 +85,7 @@ export default function QuickReview({ onBack }: Props) {
 
   if (items.length === 0) {
     return (
-      <div className="w-[420px]">
+      <div className="w-full">
         <div className="bg-card text-card-foreground">
           <div className="flex items-center gap-2 p-6 pb-4">
             <button
@@ -82,14 +94,14 @@ export default function QuickReview({ onBack }: Props) {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <span className="font-semibold text-lg">Review</span>
+            <span className="font-semibold text-lg">{t('ext.review.title')}</span>
           </div>
           <div className="px-6 pb-6 text-center">
             <p className="text-sm text-muted-foreground">
-              No items to review right now.
+              {t('ext.review.noItems')}
             </p>
             <Button variant="outline" className="mt-4" onClick={onBack}>
-              Back
+              {t('ext.review.back')}
             </Button>
           </div>
         </div>
@@ -99,7 +111,7 @@ export default function QuickReview({ onBack }: Props) {
 
   if (isFinished) {
     return (
-      <div className="w-[420px]">
+      <div className="w-full">
         <div className="bg-card text-card-foreground">
           <div className="flex items-center gap-2 p-6 pb-4">
             <button
@@ -108,19 +120,19 @@ export default function QuickReview({ onBack }: Props) {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <span className="font-semibold text-lg">Review Complete</span>
+            <span className="font-semibold text-lg">{t('ext.review.complete')}</span>
           </div>
           <div className="px-6 pb-6">
             <div className="bg-primary/5 p-4 rounded-lg border border-primary/20 text-center space-y-2">
               <p className="text-2xl font-bold">
-                {correctCount}/{items.length} correct
+                {t('ext.review.correctScore', { correct: correctCount, total: items.length })}
               </p>
               <p className="text-sm text-muted-foreground">
-                {accuracy}% accuracy
+                {t('ext.review.accuracyScore', { accuracy })}
               </p>
             </div>
             <Button className="w-full mt-4" onClick={onBack}>
-              Done
+              {t('ext.review.done')}
             </Button>
           </div>
         </div>
@@ -130,8 +142,34 @@ export default function QuickReview({ onBack }: Props) {
 
   const item = items[currentIndex]
 
+  if (!item) {
+    return (
+      <div className="w-full">
+        <div className="bg-card text-card-foreground">
+          <div className="flex items-center gap-2 p-6 pb-4">
+            <button
+              onClick={onBack}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <span className="font-semibold text-lg">{t('ext.review.title')}</span>
+          </div>
+          <div className="px-6 pb-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t('ext.review.noItems')}
+            </p>
+            <Button variant="outline" className="mt-4" onClick={onBack}>
+              {t('ext.review.back')}
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="w-[420px]">
+    <div className="w-full">
       <div className="bg-card text-card-foreground">
         <div className="flex items-center gap-2 p-6 pb-4">
           <button
@@ -141,7 +179,7 @@ export default function QuickReview({ onBack }: Props) {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <span className="font-semibold text-lg">
-            Review ({currentIndex + 1}/{items.length})
+            {t('ext.review.progress', { current: currentIndex + 1, total: items.length })}
           </span>
         </div>
         <div className="px-6 pb-6">
@@ -160,7 +198,7 @@ export default function QuickReview({ onBack }: Props) {
               variant="default"
               onClick={() => setRevealed(true)}
             >
-              Show Answer
+              {t('ext.review.showAnswer')}
             </Button>
           ) : (
             <div className="space-y-3">
@@ -173,21 +211,21 @@ export default function QuickReview({ onBack }: Props) {
                   size="sm"
                   onClick={() => handleRate(1)}
                 >
-                  Again
+                  {t('ext.review.again')}
                 </Button>
                 <Button
                   variant="default"
                   size="sm"
                   onClick={() => handleRate(4)}
                 >
-                  Good
+                  {t('ext.review.good')}
                 </Button>
                 <Button
                   size="sm"
                   className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
                   onClick={() => handleRate(5)}
                 >
-                  Easy
+                  {t('ext.review.easy')}
                 </Button>
               </div>
             </div>

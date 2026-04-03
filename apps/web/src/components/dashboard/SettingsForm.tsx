@@ -20,12 +20,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Key, ShieldCheck, AlertCircle, Monitor, Sun, Moon, Globe, Plus, X, WifiOff, Target, User } from "lucide-react";
+import { Loader2, Key, ShieldCheck, AlertCircle, Monitor, Sun, Moon, Globe, Plus, X, WifiOff, Target, User, Languages } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
+const LANGUAGES = [
+  "English", "Spanish", "French", "German", "Italian", "Portuguese",
+  "Russian", "Japanese", "Chinese", "Korean", "Arabic", "Hindi",
+  "Dutch", "Swedish", "Norwegian", "Danish", "Finnish", "Polish",
+  "Turkish", "Greek", "Hebrew", "Thai", "Vietnamese", "Indonesian",
+  "Malay", "Czech", "Slovak", "Hungarian", "Romanian", "Bulgarian",
+];
 
 export default function SettingsForm() {
   const supabase = createClient();
   const { theme, setTheme } = useTheme();
+  const { t, refresh: refreshTranslations } = useTranslation();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -43,6 +53,7 @@ export default function SettingsForm() {
   const [customApiKey, setCustomApiKey] = useState("");
   const [dailyGoal, setDailyGoal] = useState(10);
   const [customGoalInput, setCustomGoalInput] = useState("");
+  const [displayLanguage, setDisplayLanguage] = useState("English");
   
   // Metadata State
   const [hasCustomApiKey, setHasCustomApiKey] = useState(false);
@@ -81,6 +92,7 @@ export default function SettingsForm() {
           if (data.dailyGoal != null) {
             setDailyGoal(data.dailyGoal);
           }
+          if (data.displayLanguage) setDisplayLanguage(data.displayLanguage);
           setHasCustomApiKey(data.hasCustomApiKey);
           if (data.maskedApiKey) {
             setMaskedApiKey(data.maskedApiKey);
@@ -187,6 +199,7 @@ export default function SettingsForm() {
         preferredProvider,
         dailyGoal,
         theme,
+        displayLanguage,
       };
 
       // Only send API key if user typed a new one
@@ -213,6 +226,8 @@ export default function SettingsForm() {
         setCustomApiKey(""); // Clear input after save
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
+        // Refresh UI translations in case target language changed
+        refreshTranslations();
       }
     } catch (error) {
       console.error("Failed to save settings:", error);
@@ -230,9 +245,9 @@ export default function SettingsForm() {
   }
 
   const THEME_OPTIONS = [
-    { value: "system", label: "Sync with device", icon: Monitor },
-    { value: "light", label: "Light", icon: Sun },
-    { value: "dark", label: "Dark", icon: Moon },
+    { value: "system", labelKey: "settings.syncDevice", icon: Monitor },
+    { value: "light", labelKey: "settings.light", icon: Sun },
+    { value: "dark", labelKey: "settings.dark", icon: Moon },
   ] as const;
 
   const GOAL_PRESETS = [5, 10, 15, 20] as const;
@@ -241,9 +256,9 @@ export default function SettingsForm() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Appearance</CardTitle>
+          <CardTitle>{t("settings.appearance")}</CardTitle>
           <CardDescription>
-            Choose how the dashboard looks to you.
+            {t("settings.appearanceDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -261,7 +276,7 @@ export default function SettingsForm() {
                   }`}
                 >
                   <option.icon className="size-5" />
-                  <span className="text-xs font-medium">{option.label}</span>
+                  <span className="text-xs font-medium">{t(option.labelKey)}</span>
                 </button>
               ))}
             </div>
@@ -275,16 +290,16 @@ export default function SettingsForm() {
           <div className="flex items-center gap-2">
             <User className="size-5 text-muted-foreground" />
             <div>
-              <CardTitle>Profile</CardTitle>
+              <CardTitle>{t("settings.profile")}</CardTitle>
               <CardDescription>
-                Your display name shown on the dashboard.
+                {t("settings.profileDesc")}
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <Label htmlFor="firstName">First Name</Label>
+            <Label htmlFor="firstName">{t("settings.firstName")}</Label>
             <Input
               id="firstName"
               placeholder="Your first name"
@@ -301,9 +316,9 @@ export default function SettingsForm() {
           <div className="flex items-center gap-2">
             <Target className="size-5 text-muted-foreground" />
             <div>
-              <CardTitle>Daily Goal</CardTitle>
+              <CardTitle>{t("settings.dailyGoal")}</CardTitle>
               <CardDescription>
-                Set your target number of reviews per day.
+                {t("settings.dailyGoalDesc")}
               </CardDescription>
             </div>
           </div>
@@ -330,7 +345,7 @@ export default function SettingsForm() {
           </div>
           <div className="flex items-center gap-2">
             <Label htmlFor="customGoal" className="text-sm text-muted-foreground whitespace-nowrap">
-              Custom:
+              {t("settings.custom")}
             </Label>
             <Input
               id="customGoal"
@@ -355,23 +370,55 @@ export default function SettingsForm() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Translation Preferences</CardTitle>
+          <div className="flex items-center gap-2">
+            <Languages className="size-5 text-muted-foreground" />
+            <div>
+              <CardTitle>{t("settings.displayLanguage")}</CardTitle>
+              <CardDescription>{t("settings.displayLanguageDesc")}</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Select value={displayLanguage} onValueChange={setDisplayLanguage}>
+            <SelectTrigger className="max-w-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LANGUAGES.map((lang) => (
+                <SelectItem key={lang} value={lang}>
+                  {lang}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("settings.translationPrefs")}</CardTitle>
           <CardDescription>
-            Customize how translations are generated for you.
+            {t("settings.translationPrefsDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="targetLanguage">Target Language</Label>
-            <Input
-              id="targetLanguage"
-              placeholder="e.g. Spanish, French, Japanese"
-              value={targetLanguage}
-              onChange={(e) => setTargetLanguage(e.target.value)}
-            />
+            <Label htmlFor="targetLanguage">{t("settings.targetLanguage")}</Label>
+            <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+              <SelectTrigger className="max-w-xs">
+                <SelectValue placeholder="Select a language" />
+              </SelectTrigger>
+              <SelectContent>
+                {LANGUAGES.map((lang) => (
+                  <SelectItem key={lang} value={lang}>
+                    {lang}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="context">Personal Context</Label>
+            <Label htmlFor="context">{t("settings.personalContext")}</Label>
             <Textarea
               id="context"
               placeholder="I am a software engineer learning culinary terms..."
@@ -380,7 +427,7 @@ export default function SettingsForm() {
               onChange={(e) => setPersonalContext(e.target.value)}
             />
             <p className="text-sm text-muted-foreground">
-              This context helps the AI understand who you are and adjust translations accordingly.
+              {t("settings.personalContextHint")}
             </p>
           </div>
         </CardContent>
@@ -391,9 +438,9 @@ export default function SettingsForm() {
           <div className="flex items-center gap-2">
             <Globe className="h-5 w-5 text-muted-foreground" />
             <div>
-              <CardTitle>Allowed Websites</CardTitle>
+              <CardTitle>{t("settings.allowedWebsites")}</CardTitle>
               <CardDescription>
-                Sites where the translator activates automatically.
+                {t("settings.allowedWebsitesDesc")}
               </CardDescription>
             </div>
           </div>
@@ -403,7 +450,7 @@ export default function SettingsForm() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/50 p-3 rounded-lg">
               <WifiOff className="h-4 w-4 shrink-0" />
               <p>
-                Install the browser extension to manage allowed websites.
+                {t("settings.installExtension")}
               </p>
             </div>
           ) : (
@@ -436,7 +483,7 @@ export default function SettingsForm() {
 
               {allowedSites.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-3">
-                  No sites enabled yet. Add a website above or use the extension popup.
+                  {t("settings.noSitesEnabled")}
                 </p>
               ) : (
                 <div className="max-h-[272px] overflow-y-auto rounded-lg border divide-y">
@@ -462,7 +509,10 @@ export default function SettingsForm() {
 
               {allowedSites.length > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  {allowedSites.length} {allowedSites.length === 1 ? "site" : "sites"} enabled
+                  {t("settings.sitesEnabled", {
+                    count: allowedSites.length,
+                    sites: allowedSites.length === 1 ? t("common.site") : t("common.sites"),
+                  })}
                 </p>
               )}
             </div>
@@ -472,14 +522,14 @@ export default function SettingsForm() {
 
       <Card>
         <CardHeader>
-          <CardTitle>AI Provider Settings</CardTitle>
+          <CardTitle>{t("settings.aiProvider")}</CardTitle>
           <CardDescription>
-            Bring your own API key to use premium models.
+            {t("settings.aiProviderDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="provider">AI Provider</Label>
+            <Label htmlFor="provider">{t("settings.aiProviderLabel")}</Label>
             <Select
               value={preferredProvider}
               onValueChange={setPreferredProvider}
@@ -497,7 +547,7 @@ export default function SettingsForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="apiKey">API Key</Label>
+            <Label htmlFor="apiKey">{t("settings.apiKey")}</Label>
             <div className="relative">
               <Input
                 id="apiKey"
@@ -530,11 +580,11 @@ export default function SettingsForm() {
 
       <div className="flex items-center justify-end gap-3">
         {saveSuccess && (
-          <span className="text-sm text-emerald-500 font-medium">Settings saved</span>
+          <span className="text-sm text-emerald-500 font-medium">{t("settings.settingsSaved")}</span>
         )}
         <Button type="submit" disabled={saving}>
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {saving ? "Saving..." : "Save Settings"}
+          {saving ? t("settings.saving") : t("settings.saveSettings")}
         </Button>
       </div>
     </form>

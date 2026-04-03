@@ -16,6 +16,7 @@ export const usersTable = pgTable('users', {
   freezesUsed: integer('freezes_used').notNull().default(0),
   dailyGoal: integer('daily_goal').notNull().default(10),
   theme: text('theme').default('system'),
+  displayLanguage: text('display_language').default('English'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
@@ -141,5 +142,17 @@ export type NewTag = typeof tagsTable.$inferInsert
 export type ReviewSchedule = typeof reviewScheduleTable.$inferSelect
 
 export type DailyActivity = typeof dailyActivityTable.$inferSelect
+
+export const uiTranslationsTable = pgTable(
+  'ui_translations',
+  {
+    id: serial('id').primaryKey(),
+    language: text('language').notNull(),
+    version: text('version').notNull(),
+    translations: text('translations').notNull(), // JSON string
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.language, t.version)]
+)
 
 export type ReviewSession = typeof reviewSessionsTable.$inferSelect

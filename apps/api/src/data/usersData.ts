@@ -153,6 +153,13 @@ export const usersData = {
       .where(eq(usersTable.id, userId))
   },
 
+  async updateDisplayLanguage(userId: number, displayLanguage: string | null): Promise<void> {
+    await db
+      .update(usersTable)
+      .set({ displayLanguage })
+      .where(eq(usersTable.id, userId))
+  },
+
   async deleteUser(supabaseId: string): Promise<Array<User>> {
     try {
       // Delete from Supabase Auth first (requires admin access)

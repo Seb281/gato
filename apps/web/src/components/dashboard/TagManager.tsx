@@ -15,6 +15,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Tags, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import TagBadge from "./TagBadge";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 type Tag = {
   id: number;
@@ -37,6 +38,7 @@ const PRESET_COLORS = [
 
 export default function TagManager() {
   const supabase = createClient();
+  const { t } = useTranslation();
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   const [tags, setTags] = useState<Tag[]>([]);
@@ -111,7 +113,7 @@ export default function TagManager() {
       } else {
         const err = await res.json();
         if (err.error?.includes("already exists")) {
-          alert("A tag with this name already exists.");
+          alert(t("tags.duplicateError"));
         }
       }
     } catch (error) {
@@ -196,22 +198,22 @@ export default function TagManager() {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Tags className="size-5 text-muted-foreground" />
-            Your Tags
+            {t("tags.yourTags")}
           </CardTitle>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-1">
                 <Plus className="size-4" />
-                New Tag
+                {t("tags.newTag")}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create Tag</DialogTitle>
+                <DialogTitle>{t("tags.createTag")}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="tag-name">Name</Label>
+                  <Label htmlFor="tag-name">{t("tags.name")}</Label>
                   <Input
                     id="tag-name"
                     placeholder="e.g. Food, Travel, Work"
@@ -223,7 +225,7 @@ export default function TagManager() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Color</Label>
+                  <Label>{t("tags.color")}</Label>
                   <div className="flex gap-2 flex-wrap">
                     {PRESET_COLORS.map((c) => (
                       <button
@@ -241,7 +243,7 @@ export default function TagManager() {
                   </div>
                   <div className="flex items-center gap-2 mt-2">
                     <Label htmlFor="custom-color" className="text-xs">
-                      Custom:
+                      {t("tags.custom")}
                     </Label>
                     <input
                       id="custom-color"
@@ -257,10 +259,10 @@ export default function TagManager() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">
-                    Preview:
+                    {t("tags.preview")}
                   </span>
                   <TagBadge
-                    name={newName || "Tag name"}
+                    name={newName || t("tags.name")}
                     color={newColor}
                   />
                 </div>
@@ -272,7 +274,7 @@ export default function TagManager() {
                   {creating && (
                     <Loader2 className="size-4 animate-spin mr-2" />
                   )}
-                  Create Tag
+                  {t("tags.createTag")}
                 </Button>
               </div>
             </DialogContent>
@@ -287,14 +289,13 @@ export default function TagManager() {
                 <Tags className="size-8 text-muted-foreground" />
               </div>
             </div>
-            <h3 className="text-lg font-medium">No tags yet</h3>
+            <h3 className="text-lg font-medium">{t("tags.noTags")}</h3>
             <p className="text-muted-foreground max-w-sm mx-auto">
-              Tags help you organize vocabulary by topic — try
-              &lsquo;Business&rsquo;, &lsquo;Travel&rsquo;, or &lsquo;Slang&rsquo;.
+              {t("tags.noTagsDesc")}
             </p>
             <Button onClick={() => setCreateOpen(true)}>
               <Plus className="size-4 mr-2" />
-              Create Tag
+              {t("tags.createTag")}
             </Button>
           </div>
         ) : (
@@ -342,11 +343,11 @@ export default function TagManager() {
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Edit Tag</DialogTitle>
+              <DialogTitle>{t("tags.editTag")}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-tag-name">Name</Label>
+                <Label htmlFor="edit-tag-name">{t("tags.name")}</Label>
                 <Input
                   id="edit-tag-name"
                   value={editName}
@@ -357,7 +358,7 @@ export default function TagManager() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Color</Label>
+                <Label>{t("tags.color")}</Label>
                 <div className="flex gap-2 flex-wrap">
                   {PRESET_COLORS.map((c) => (
                     <button
@@ -375,7 +376,7 @@ export default function TagManager() {
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <Label htmlFor="edit-custom-color" className="text-xs">
-                    Custom:
+                    {t("tags.custom")}
                   </Label>
                   <input
                     id="edit-custom-color"
@@ -390,8 +391,8 @@ export default function TagManager() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Preview:</span>
-                <TagBadge name={editName || "Tag name"} color={editColor} />
+                <span className="text-sm text-muted-foreground">{t("tags.preview")}</span>
+                <TagBadge name={editName || t("tags.name")} color={editColor} />
               </div>
               <Button
                 onClick={handleUpdate}
@@ -401,7 +402,7 @@ export default function TagManager() {
                 {saving && (
                   <Loader2 className="size-4 animate-spin mr-2" />
                 )}
-                Save Changes
+                {t("tags.saveChanges")}
               </Button>
             </div>
           </DialogContent>

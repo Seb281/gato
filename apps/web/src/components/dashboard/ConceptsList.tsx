@@ -54,6 +54,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import ConceptNotes from "./ConceptNotes";
 import MasteryBadge from "./MasteryBadge";
 import TagBadge from "./TagBadge";
@@ -91,11 +92,11 @@ const PAGE_SIZE = 30;
 
 function getReviewStatus(nextReviewAt: string | null): {
   color: string;
-  label: string;
+  labelKey: string;
   icon: typeof AlertCircle;
 } {
   if (!nextReviewAt) {
-    return { color: "text-neutral-400", label: "Never reviewed", icon: Circle };
+    return { color: "text-neutral-400", labelKey: "vocabulary.neverReviewed", icon: Circle };
   }
 
   const now = new Date();
@@ -104,16 +105,17 @@ function getReviewStatus(nextReviewAt: string | null): {
   const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
 
   if (reviewDate < startOfToday) {
-    return { color: "text-red-500", label: "Overdue", icon: AlertCircle };
+    return { color: "text-red-500", labelKey: "vocabulary.overdue", icon: AlertCircle };
   }
   if (reviewDate < endOfToday) {
-    return { color: "text-amber-500", label: "Due today", icon: Clock };
+    return { color: "text-amber-500", labelKey: "vocabulary.dueToday", icon: Clock };
   }
-  return { color: "text-emerald-500", label: "Up to date", icon: CheckCircle2 };
+  return { color: "text-emerald-500", labelKey: "vocabulary.upToDate", icon: CheckCircle2 };
 }
 
 export default function ConceptsList() {
   const supabase = createClient();
+  const { t } = useTranslation();
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -399,7 +401,7 @@ export default function ConceptsList() {
     <div className="space-y-4">
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-          Something went wrong loading data. Check your connection and try refreshing.
+          {t("common.error")}
         </div>
       )}
 
@@ -410,7 +412,7 @@ export default function ConceptsList() {
           <Input
             id="concepts-search"
             name="search"
-            placeholder="Search words or translations..."
+            placeholder={t("vocabulary.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -424,7 +426,7 @@ export default function ConceptsList() {
                 <SelectValue placeholder="Language" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All languages</SelectItem>
+                <SelectItem value="all">{t("vocabulary.allLanguages")}</SelectItem>
                 {languagePairs.map((pair) => (
                   <SelectItem key={pair} value={pair}>
                     {pair.replace("->", " \u2192 ")}
@@ -438,11 +440,11 @@ export default function ConceptsList() {
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All status</SelectItem>
-              <SelectItem value="new">New</SelectItem>
-              <SelectItem value="learning">Learning</SelectItem>
-              <SelectItem value="familiar">Familiar</SelectItem>
-              <SelectItem value="mastered">Mastered</SelectItem>
+              <SelectItem value="all">{t("vocabulary.allStatus")}</SelectItem>
+              <SelectItem value="new">{t("common.stateNew")}</SelectItem>
+              <SelectItem value="learning">{t("common.stateLearning")}</SelectItem>
+              <SelectItem value="familiar">{t("common.stateFamiliar")}</SelectItem>
+              <SelectItem value="mastered">{t("common.stateMastered")}</SelectItem>
             </SelectContent>
           </Select>
           {allTags.length > 0 && (
@@ -451,7 +453,7 @@ export default function ConceptsList() {
                 <SelectValue placeholder="Tag" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All tags</SelectItem>
+                <SelectItem value="all">{t("vocabulary.allTags")}</SelectItem>
                 {allTags.map((tag) => (
                   <SelectItem key={tag.id} value={tag.id.toString()}>
                     {tag.name}
@@ -465,11 +467,11 @@ export default function ConceptsList() {
               <SelectValue placeholder="Review" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All review</SelectItem>
-              <SelectItem value="overdue">Overdue</SelectItem>
-              <SelectItem value="due-today">Due today</SelectItem>
-              <SelectItem value="reviewed">Up to date</SelectItem>
-              <SelectItem value="new">Never reviewed</SelectItem>
+              <SelectItem value="all">{t("vocabulary.allReview")}</SelectItem>
+              <SelectItem value="overdue">{t("vocabulary.overdue")}</SelectItem>
+              <SelectItem value="due-today">{t("vocabulary.dueToday")}</SelectItem>
+              <SelectItem value="reviewed">{t("vocabulary.upToDate")}</SelectItem>
+              <SelectItem value="new">{t("vocabulary.neverReviewed")}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={`${sortBy}-${sortOrder}`} onValueChange={(v) => { const [by, order] = v.split("-"); setSortBy(by as "date" | "alpha"); setSortOrder(order as "asc" | "desc"); setPage(1); }}>
@@ -477,10 +479,10 @@ export default function ConceptsList() {
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="date-desc">Newest first</SelectItem>
-              <SelectItem value="date-asc">Oldest first</SelectItem>
-              <SelectItem value="alpha-asc">A &rarr; Z</SelectItem>
-              <SelectItem value="alpha-desc">Z &rarr; A</SelectItem>
+              <SelectItem value="date-desc">{t("vocabulary.newestFirst")}</SelectItem>
+              <SelectItem value="date-asc">{t("vocabulary.oldestFirst")}</SelectItem>
+              <SelectItem value="alpha-asc">{t("vocabulary.aToZ")}</SelectItem>
+              <SelectItem value="alpha-desc">{t("vocabulary.zToA")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -491,7 +493,7 @@ export default function ConceptsList() {
         <div className="flex items-center justify-between rounded-lg border bg-muted/50 px-4 py-2">
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium">
-              {selectedIds.size} selected
+              {t("vocabulary.selected", { count: selectedIds.size })}
             </span>
             <Button
               variant="ghost"
@@ -499,7 +501,7 @@ export default function ConceptsList() {
               className="h-7 text-xs"
               onClick={selectAll}
             >
-              Select All
+              {t("vocabulary.selectAll")}
             </Button>
             <Button
               variant="ghost"
@@ -515,16 +517,16 @@ export default function ConceptsList() {
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="h-7 text-xs" disabled={bulkLoading}>
-                  Change State
+                  {t("vocabulary.changeState")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[160px] p-1" align="end">
                 <div className="flex flex-col">
                   {[
-                    { value: "new", label: "New", dotClass: "bg-neutral-400" },
-                    { value: "learning", label: "Learning", dotClass: "bg-blue-400" },
-                    { value: "familiar", label: "Familiar", dotClass: "bg-amber-400" },
-                    { value: "mastered", label: "Mastered", dotClass: "bg-emerald-400" },
+                    { value: "new", labelKey: "common.stateNew", dotClass: "bg-neutral-400" },
+                    { value: "learning", labelKey: "common.stateLearning", dotClass: "bg-blue-400" },
+                    { value: "familiar", labelKey: "common.stateFamiliar", dotClass: "bg-amber-400" },
+                    { value: "mastered", labelKey: "common.stateMastered", dotClass: "bg-emerald-400" },
                   ].map((level) => (
                     <button
                       key={level.value}
@@ -532,7 +534,7 @@ export default function ConceptsList() {
                       onClick={() => handleBulkStateChange(level.value)}
                     >
                       <span className={`size-2 rounded-full ${level.dotClass}`} />
-                      {level.label}
+                      {t(level.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -545,7 +547,7 @@ export default function ConceptsList() {
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className="h-7 text-xs gap-1" disabled={bulkLoading}>
                     <Tags className="size-3" />
-                    Add Tag
+                    {t("vocabulary.addTag")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[180px] p-1" align="end">
@@ -577,23 +579,23 @@ export default function ConceptsList() {
                   ) : (
                     <Trash2 className="size-3 mr-1" />
                   )}
-                  Delete
+                  {t("vocabulary.delete")}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Delete {selectedIds.size} {selectedIds.size === 1 ? "concept" : "concepts"}?</DialogTitle>
+                  <DialogTitle>{t("vocabulary.deleteConfirmTitle", { count: selectedIds.size, concepts: selectedIds.size === 1 ? t("common.concept") : t("common.concepts") })}</DialogTitle>
                   <DialogDescription>
-                    This action cannot be undone. The selected concepts will be permanently removed.
+                    {t("vocabulary.deleteConfirmDesc")}
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-                    Cancel
+                    {t("vocabulary.cancel")}
                   </Button>
                   <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkLoading}>
                     {bulkLoading && <Loader2 className="size-4 animate-spin mr-2" />}
-                    Delete
+                    {t("vocabulary.delete")}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -605,7 +607,7 @@ export default function ConceptsList() {
       {/* Results count + Export */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {total} {total === 1 ? "concept" : "concepts"} found
+          {t("vocabulary.conceptsFound", { count: total, concepts: total === 1 ? t("common.concept") : t("common.concepts") })}
         </p>
         {total > 0 && <ExportButton />}
       </div>
@@ -622,13 +624,13 @@ export default function ConceptsList() {
           </div>
           <h3 className="text-lg font-medium">
             {debouncedSearch || languageFilter !== "all" || stateFilter !== "all" || tagFilter !== "all" || reviewStatusFilter !== "all"
-              ? "No matching concepts"
-              : "No saved concepts yet"}
+              ? t("vocabulary.noMatchingConcepts")
+              : t("vocabulary.noConceptsTitle")}
           </h3>
           <p className="text-muted-foreground max-w-sm mx-auto">
             {debouncedSearch || languageFilter !== "all" || stateFilter !== "all" || tagFilter !== "all" || reviewStatusFilter !== "all"
-              ? "No matching concepts. Try a different search term or clear your filters."
-              : "Install the browser extension, select any text on a webpage, and right-click \u2192 Translate to start building your vocabulary."}
+              ? t("vocabulary.noMatchingDesc")
+              : t("vocabulary.noConceptsDesc")}
           </p>
           {(debouncedSearch || languageFilter !== "all" || stateFilter !== "all" || tagFilter !== "all" || reviewStatusFilter !== "all") && (
             <Button
@@ -645,7 +647,7 @@ export default function ConceptsList() {
                 setPage(1);
               }}
             >
-              Clear filters
+              {t("vocabulary.clearFilters")}
             </Button>
           )}
         </div>
@@ -709,7 +711,7 @@ export default function ConceptsList() {
                         <TooltipTrigger asChild>
                           <span
                             className={`${getReviewStatus(concept.nextReviewAt).color} inline-flex items-center justify-center size-8 shrink-0`}
-                            aria-label={getReviewStatus(concept.nextReviewAt).label}
+                            aria-label={t(getReviewStatus(concept.nextReviewAt).labelKey)}
                           >
                             {(() => {
                               const StatusIcon = getReviewStatus(concept.nextReviewAt).icon;
@@ -718,7 +720,7 @@ export default function ConceptsList() {
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>
-                          {getReviewStatus(concept.nextReviewAt).label}
+                          {t(getReviewStatus(concept.nextReviewAt).labelKey)}
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -777,7 +779,7 @@ export default function ConceptsList() {
                   <div className="pt-3 space-y-3 animate-in fade-in duration-200">
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">
-                        Status:
+                        {t("vocabulary.statusLabel")}
                       </span>
                       <MasteryBadge
                         conceptId={concept.id}
@@ -796,28 +798,28 @@ export default function ConceptsList() {
 
                     {concept.commonUsage && (
                       <div className="space-y-1">
-                        <p className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground">Usage</p>
+                        <p className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground">{t("vocabulary.usage")}</p>
                         <p className="text-sm">{concept.commonUsage}</p>
                       </div>
                     )}
 
                     {concept.grammarRules && (
                       <div className="space-y-1">
-                        <p className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground">Grammar</p>
+                        <p className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground">{t("vocabulary.grammar")}</p>
                         <p className="text-sm">{concept.grammarRules}</p>
                       </div>
                     )}
 
                     {concept.commonness && (
                       <div className="space-y-1">
-                        <p className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground">Commonness</p>
+                        <p className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground">{t("vocabulary.commonness")}</p>
                         <p className="text-sm">{concept.commonness}</p>
                       </div>
                     )}
 
                     {concept.fixedExpression && (
                       <div className="space-y-1">
-                        <p className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground">Expression</p>
+                        <p className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground">{t("vocabulary.expression")}</p>
                         <p className="text-sm">{concept.fixedExpression}</p>
                       </div>
                     )}
@@ -828,7 +830,7 @@ export default function ConceptsList() {
                         if (words.length === 0) return null;
                         return (
                           <div className="space-y-1.5">
-                            <p className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground">Related Words</p>
+                            <p className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground">{t("vocabulary.relatedWords")}</p>
                             <div className="flex flex-wrap gap-1.5">
                               {words.map((rw, i) => (
                                 <div key={i} className="flex items-center gap-1 rounded-md bg-muted/50 px-2 py-1 text-sm">
@@ -868,7 +870,7 @@ export default function ConceptsList() {
                     />
 
                     <div className="space-y-1">
-                      <p className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground">Tags</p>
+                      <p className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground">{t("vocabulary.tagsLabel")}</p>
                       <TagSelector
                         conceptId={concept.id}
                         assignedTags={concept.tags ?? []}
@@ -886,8 +888,7 @@ export default function ConceptsList() {
                     </div>
 
                     <p className="text-xs text-muted-foreground">
-                      Last updated{" "}
-                      {format(new Date(concept.updatedAt), "MMM d, yyyy")}
+                      {t("vocabulary.lastUpdated", { date: format(new Date(concept.updatedAt), "MMM d, yyyy") })}
                     </p>
                   </div>
                 )}
@@ -909,7 +910,7 @@ export default function ConceptsList() {
             <ChevronLeft className="size-4" />
           </Button>
           <span className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
+            {t("vocabulary.pageOf", { page, total: totalPages })}
           </span>
           <Button
             variant="outline"

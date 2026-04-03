@@ -5,10 +5,13 @@ export default async function handleTranslation(
   text: string,
   targetLanguage: string,
   sourceLanguage: string,
-  personalContext: string
+  personalContext: string,
+  selection?: string,
+  contextBefore?: string,
+  contextAfter?: string,
 ): Promise<object> {
   const token = await getSupabaseToken()
-  
+
   const headers: HeadersInit = {
     "Content-Type": "application/json",
   }
@@ -17,15 +20,21 @@ export default async function handleTranslation(
     headers["Authorization"] = `Bearer ${token}`
   }
 
+  const body: Record<string, string> = {
+    text: text,
+    targetLanguage: targetLanguage || "English",
+    sourceLanguage: sourceLanguage,
+    personalContext: personalContext || "",
+  }
+
+  if (selection) body.selection = selection
+  if (contextBefore) body.contextBefore = contextBefore
+  if (contextAfter) body.contextAfter = contextAfter
+
   return fetch(`${BASE_URL}/translation`, {
     method: "POST",
     headers: headers,
-    body: JSON.stringify({
-      text: text,
-      targetLanguage: targetLanguage || "English",
-      sourceLanguage: sourceLanguage,
-      personalContext: personalContext || "",
-    }),
+    body: JSON.stringify(body),
   })
     .then((response) => {
       if (!response.ok) {

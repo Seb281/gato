@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyPluginOptions, FastifyRequest, FastifyReply } from 'fastify'
 import { generateText } from 'ai'
-import { translate, enrichConceptInBackground, resolveModel } from '../controllers/translationController.ts'
+import { translate, enrich, enrichConceptInBackground, resolveModel } from '../controllers/translationController.ts'
 import {
   requireAuth,
   getAuthenticatedUserEmail,
@@ -85,14 +85,16 @@ type UserSettingsBody = {
   dailyGoal?: number
   name?: string | null
   theme?: string | null
+  displayLanguage?: string | null
 }
 
 export async function extensionRoutes(
   fastify: FastifyInstance,
   _options: FastifyPluginOptions
 ) {
-  // Public endpoint - no auth required
+  // Public endpoints - no auth required (but use auth if present)
   fastify.post('/translation', translate)
+  fastify.post('/translation/enrich', enrich)
 
   // Protected endpoint - save a concept
   fastify.post<{ Body: SaveConceptBody }>(
@@ -463,7 +465,7 @@ export async function extensionRoutes(
         if (!tag) {
           return reply.code(404).send({ error: 'Tag not found' })
         }
-        await tagsData.bulkAddTag(ids, addTagId)
+        await tagsData.bulkAddTag(ids, addTagId, user.id)
       }
 
       if (removeTagId !== undefined) {
@@ -471,7 +473,7 @@ export async function extensionRoutes(
         if (!tag) {
           return reply.code(404).send({ error: 'Tag not found' })
         }
-        await tagsData.bulkRemoveTag(ids, removeTagId)
+        await tagsData.bulkRemoveTag(ids, removeTagId, user.id)
       }
 
       return reply.send({ message: 'Concepts updated', updated })
@@ -787,6 +789,7 @@ Keep it simple and practical. Only return the JSON, nothing else.`
         hasCustomApiKey: !!settings.customApiKey,
         dailyGoal: user?.dailyGoal ?? 10,
         theme: user?.theme ?? 'system',
+        displayLanguage: user?.displayLanguage ?? 'English',
         streakFreezes: user?.streakFreezes ?? 0,
       })
     }
@@ -816,7 +819,7 @@ Keep it simple and practical. Only return the JSON, nothing else.`
         ...(name && { name }),
       })
 
-      const { targetLanguage, personalContext, customApiKey, preferredProvider, dailyGoal, name: newName, theme: newTheme } = request.body
+      const { targetLanguage, personalContext, customApiKey, preferredProvider, dailyGoal, name: newName, theme: newTheme, displayLanguage: newDisplayLanguage } = request.body
 
       // Validate dailyGoal if provided
       if (dailyGoal !== undefined) {
@@ -866,6 +869,13 @@ Keep it simple and practical. Only return the JSON, nothing else.`
         updatedTheme = newTheme
       }
 
+      // Update displayLanguage if provided
+      let updatedDisplayLanguage = user.displayLanguage
+      if (newDisplayLanguage !== undefined) {
+        await usersData.updateDisplayLanguage(user.id, newDisplayLanguage)
+        updatedDisplayLanguage = newDisplayLanguage
+      }
+
       // Mask key for response
       let maskedKey = null
       if (updatedSettings.customApiKey) {
@@ -887,6 +897,7 @@ Keep it simple and practical. Only return the JSON, nothing else.`
         hasCustomApiKey: !!updatedSettings.customApiKey,
         dailyGoal: updatedDailyGoal,
         theme: updatedTheme,
+        displayLanguage: updatedDisplayLanguage ?? 'English',
         streakFreezes: user.streakFreezes,
       })
     }

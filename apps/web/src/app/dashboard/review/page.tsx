@@ -22,41 +22,39 @@ import {
   PartyPopper,
 } from "lucide-react";
 import Link from "next/link";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const MODES = [
   {
     value: "flashcard",
-    label: "Flashcards",
+    labelKey: "review.flashcards",
     icon: BookOpen,
-    description:
-      "Classic card flip. See the word, recall the translation, then rate your confidence.",
+    descKey: "review.flashcardsDesc",
   },
   {
     value: "multiple-choice",
-    label: "Multiple Choice",
+    labelKey: "review.multipleChoice",
     icon: ListChecks,
-    description:
-      "Pick the correct translation from four options. Great for recognition practice.",
+    descKey: "review.multipleChoiceDesc",
   },
   {
     value: "type-answer",
-    label: "Type Answer",
+    labelKey: "review.typeAnswer",
     icon: Keyboard,
-    description:
-      "Type the translation from memory. Tests active recall and spelling.",
+    descKey: "review.typeAnswerDesc",
   },
   {
     value: "contextual-recall",
-    label: "Context Recall",
+    labelKey: "review.contextRecall",
     icon: FileText,
-    description:
-      "See the original sentence with the word removed. Fill in the blank from memory.",
+    descKey: "review.contextRecallDesc",
   },
 ] as const;
 
 export default function ReviewPage() {
   const supabase = createClient();
   const router = useRouter();
+  const { t } = useTranslation();
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   const [dueCount, setDueCount] = useState<number | null>(null);
@@ -116,15 +114,15 @@ export default function ReviewPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Review</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("review.title")}</h1>
         <p className="text-muted-foreground">
-          Choose a study mode and start practicing.
+          {t("review.subtitle")}
         </p>
       </div>
 
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-          Something went wrong loading data. Check your connection and try refreshing.
+          {t("common.error")}
         </div>
       )}
 
@@ -136,12 +134,12 @@ export default function ReviewPage() {
               <BookOpen className="size-8 text-muted-foreground" />
             </div>
           </div>
-          <h3 className="text-lg font-medium">No vocabulary yet</h3>
+          <h3 className="text-lg font-medium">{t("review.noVocabulary")}</h3>
           <p className="text-muted-foreground max-w-sm mx-auto">
-            Save some words to start reviewing. Use the extension to translate and save new vocabulary.
+            {t("review.noVocabularyDesc")}
           </p>
           <Button variant="outline" asChild>
-            <Link href="/dashboard">Go to Dashboard</Link>
+            <Link href="/dashboard">{t("common.goToDashboard")}</Link>
           </Button>
         </div>
       ) : (
@@ -159,18 +157,21 @@ export default function ReviewPage() {
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />
               ) : dueCount === 0 ? (
                 <>
-                  <p className="font-semibold">All caught up!</p>
+                  <p className="font-semibold">{t("review.allCaughtUp")}</p>
                   <p className="text-sm text-muted-foreground">
-                    No items are due, but you can still practice. Pick a mode below.
+                    {t("review.allCaughtUpDesc")}
                   </p>
                 </>
               ) : (
                 <>
                   <p className="font-semibold">
-                    {dueCount} {dueCount === 1 ? "item" : "items"} due for review
+                    {t("review.itemsDue", {
+                      count: dueCount ?? 0,
+                      items: dueCount === 1 ? t("common.item") : t("common.items"),
+                    })}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Start a session to practice your vocabulary.
+                    {t("review.startSession")}
                   </p>
                 </>
               )}
@@ -195,12 +196,12 @@ export default function ReviewPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <mode.icon className="size-5 text-muted-foreground" />
-                  {mode.label}
+                  {t(mode.labelKey)}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  {mode.description}
+                  {t(mode.descKey)}
                 </p>
               </CardContent>
             </Card>
@@ -211,7 +212,7 @@ export default function ReviewPage() {
       {/* Count & start */}
       {(totalConcepts === null || totalConcepts > 0) && (
         <div className="flex items-center gap-3 justify-end">
-          <span className="text-sm text-muted-foreground">Items:</span>
+          <span className="text-sm text-muted-foreground">{t("review.items")}</span>
           <Select value={selectedCount} onValueChange={setSelectedCount}>
             <SelectTrigger id="review-count" className="w-[80px]">
               <SelectValue />
@@ -224,7 +225,7 @@ export default function ReviewPage() {
             </SelectContent>
           </Select>
           <Button onClick={handleStart} size="lg">
-            Start Review
+            {t("review.startReview")}
           </Button>
         </div>
       )}

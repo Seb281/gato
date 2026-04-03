@@ -14,16 +14,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, CheckCircle2, MessageSquare } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const CATEGORIES = [
-  { value: "bug", label: "Bug Report" },
-  { value: "feature", label: "Feature Request" },
-  { value: "improvement", label: "Improvement" },
-  { value: "other", label: "Other" },
+  { value: "bug", labelKey: "feedback.bugReport" },
+  { value: "feature", labelKey: "feedback.featureRequest" },
+  { value: "improvement", labelKey: "feedback.improvement" },
+  { value: "other", labelKey: "feedback.other" },
 ];
 
 export default function FeedbackPage() {
   const supabase = createClient();
+  const { t } = useTranslation();
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   const [category, setCategory] = useState("feature");
@@ -72,20 +74,20 @@ export default function FeedbackPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Feedback</h1>
-          <p className="text-muted-foreground">Help us improve your experience.</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("feedback.title")}</h1>
+          <p className="text-muted-foreground">{t("feedback.subtitle")}</p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-12">
             <div className="p-3 rounded-full bg-emerald-500/10">
               <CheckCircle2 className="size-8 text-emerald-500" />
             </div>
-            <h3 className="text-lg font-medium">Thank you!</h3>
+            <h3 className="text-lg font-medium">{t("feedback.thankYou")}</h3>
             <p className="text-muted-foreground text-center max-w-sm">
-              Your feedback has been submitted. We appreciate you taking the time to help us improve.
+              {t("feedback.thankYouDesc")}
             </p>
             <Button variant="outline" onClick={() => setSent(false)}>
-              Send More Feedback
+              {t("feedback.sendMore")}
             </Button>
           </CardContent>
         </Card>
@@ -96,8 +98,8 @@ export default function FeedbackPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Feedback</h1>
-        <p className="text-muted-foreground">Help us improve your experience.</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t("feedback.title")}</h1>
+        <p className="text-muted-foreground">{t("feedback.subtitle")}</p>
       </div>
 
       <Card>
@@ -105,9 +107,9 @@ export default function FeedbackPage() {
           <div className="flex items-center gap-2">
             <MessageSquare className="size-5 text-muted-foreground" />
             <div>
-              <CardTitle>Send Feedback</CardTitle>
+              <CardTitle>{t("feedback.sendFeedback")}</CardTitle>
               <CardDescription>
-                Found a bug? Have an idea? Let us know.
+                {t("feedback.sendFeedbackDesc")}
               </CardDescription>
             </div>
           </div>
@@ -115,7 +117,7 @@ export default function FeedbackPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="category">{t("feedback.category")}</Label>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger id="category" className="w-full max-w-xs">
                   <SelectValue />
@@ -123,7 +125,7 @@ export default function FeedbackPage() {
                 <SelectContent>
                   {CATEGORIES.map((cat) => (
                     <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
+                      {t(cat.labelKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -131,7 +133,7 @@ export default function FeedbackPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="message">Message</Label>
+              <Label htmlFor="message">{t("feedback.message")}</Label>
               <Textarea
                 id="message"
                 placeholder="Describe what you'd like to share..."
@@ -148,7 +150,7 @@ export default function FeedbackPage() {
             <div className="flex justify-end">
               <Button type="submit" disabled={sending || !message.trim()}>
                 {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {sending ? "Sending..." : "Submit Feedback"}
+                {sending ? t("feedback.sending") : t("feedback.submit")}
               </Button>
             </div>
           </form>
