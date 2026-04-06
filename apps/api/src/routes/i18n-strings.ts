@@ -273,6 +273,7 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.enableSite": "Enable on this site",
   "ext.disableSite": "Disable on this site",
   "ext.openSidePanel": "Open side panel",
+  "ext.displayLanguage": "Display Language",
   "ext.targetLanguage": "Target Language",
   "ext.personalContext": "Personal Context",
   "ext.personalContextOptional": "(optional)",
@@ -410,4 +411,4 @@ export const UI_STRINGS: Record<string, string> = {
 };
 
 export type StringKey = keyof typeof UI_STRINGS;
-export const STRINGS_VERSION = "6";
+export const STRINGS_VERSION = "7";

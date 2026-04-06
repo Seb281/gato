@@ -246,6 +246,7 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.enableSite": "Enable on this site",
   "ext.disableSite": "Disable on this site",
   "ext.openSidePanel": "Open side panel",
+  "ext.displayLanguage": "Display Language",
   "ext.targetLanguage": "Target Language",
   "ext.personalContext": "Personal Context",
   "ext.personalContextOptional": "(optional)",
@@ -269,6 +270,8 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.loadingSession": "Loading session...",
   "ext.enabledSitesLabel": "Enabled Sites",
   "ext.remove": "Remove",
+  "ext.manageInSettings": "Manage sites in the side panel settings.",
+  "ext.savePreferences": "Save Preferences",
   "ext.notAvailable": "Translation is not available on this page.",
   "ext.wordsDue": "{count} {words} due",
   "ext.quickReview": "Quick Review",
@@ -332,12 +335,17 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.side.manageSites": "Manage Sites",
   "ext.side.noSites": "No sites enabled yet.",
   "ext.side.noSitesDesc": "Enable translation on sites via the extension popup.",
+  "ext.side.enableSitePrompt": "Enable translation on this site?",
+  "ext.side.enableHere": "Enable",
 
   // Extension sidepanel - Translate tab
   "ext.side.translate": "Translate",
   "ext.side.autoFill": "Auto-fill from page selection",
   "ext.side.translatingTo": "Translating to {language}",
   "ext.side.changeInSettings": "Change in Settings",
+  "ext.side.addContext": "Add context",
+  "ext.side.contextPlaceholder": "e.g., This is from a medical article...",
+  "ext.side.detectedLanguage": "Detected: {language}",
   "ext.side.sourceText": "Enter text to translate...",
   "ext.side.translating": "Translating...",
   "ext.side.translateButton": "Translate",
@@ -362,7 +370,7 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.popup.saveConcept": "Save concept for review",
   "ext.popup.updateTranslation": "Update translation",
   "ext.popup.addNew": "Add new",
-  "ext.popup.context": "Context",
+  "ext.popup.context": "Get details on grammar and usage",
   "ext.popup.translation": "Translation",
   "ext.popup.changeLanguage": "Change target language",
   "ext.popup.retranslate": "Re-translate",
@@ -376,4 +384,4 @@ export const UI_STRINGS: Record<string, string> = {
 };
 
 export type StringKey = keyof typeof UI_STRINGS;
-export const STRINGS_VERSION = "6";
+export const STRINGS_VERSION = "7";

@@ -7,8 +7,10 @@ import {
   Volume2,
   ChevronDown,
   ChevronUp,
-  Bookmark,
+  Plus,
   Check,
+  Info,
+  BarChart2,
 } from 'lucide-react'
 import { languageToBCP47 } from '@/utils/languageCodes'
 import { LANGUAGE_NAMES } from '@/entrypoints/content/helpers/detectLanguage'
@@ -30,7 +32,6 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
   const [enrichment, setEnrichment] = useState<EnrichmentResponse | null>(null)
   const [isEnriching, setIsEnriching] = useState(false)
   const [showMore, setShowMore] = useState(false)
-  const [autoFillEnabled, setAutoFillEnabled] = useState(false)
   const [targetLanguage, setTargetLanguage] = useState('English')
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [showContextInput, setShowContextInput] = useState(false)
@@ -40,12 +41,9 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
   // Load settings from storage
   useEffect(() => {
     chrome.storage.sync.get(
-      ['targetLanguage', 'sidepanelAutoTranslate', 'personalContext'],
+      ['targetLanguage', 'personalContext'],
       (result) => {
         if (result.targetLanguage) setTargetLanguage(result.targetLanguage as string)
-        if (result.sidepanelAutoTranslate !== undefined) {
-          setAutoFillEnabled(result.sidepanelAutoTranslate as boolean)
-        }
         if (result.personalContext) setPersonalContext(result.personalContext as string)
       },
     )
@@ -93,68 +91,6 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
     },
     [],
   )
-
-  const doTranslateWithContext = useCallback(
-    (fullText: string, concept: string) => {
-      const currentId = ++requestIdRef.current
-      setIsTranslating(true)
-      setError(false)
-      setResult(null)
-      setEnrichment(null)
-      setShowMore(false)
-      setSaveState('idle')
-
-      chrome.runtime.sendMessage(
-        { action: 'translate', text: fullText, concept },
-        (response) => {
-          if (currentId !== requestIdRef.current) return
-          setIsTranslating(false)
-          if (chrome.runtime.lastError || !response?.success || !response.translateObject) {
-            setError(true)
-          } else {
-            setResult(response.translateObject)
-          }
-        },
-      )
-    },
-    [],
-  )
-
-  // Listen for piped text from content script
-  useEffect(() => {
-    const handler = (
-      changes: Record<string, chrome.storage.StorageChange>,
-      areaName: string,
-    ) => {
-      if (
-        areaName === 'session' &&
-        changes.sidepanelText?.newValue &&
-        autoFillEnabled
-      ) {
-        const fullText = changes.sidepanelText.newValue as string
-        // Read the concept (just the selected text) from storage
-        chrome.storage.session.get('sidepanelConcept', (result) => {
-          const concept = (result.sidepanelConcept as string) || fullText
-          setInputText(concept)
-          // Translate with full context
-          doTranslateWithContext(fullText, concept)
-          chrome.storage.session.remove([
-            'sidepanelText',
-            'sidepanelConcept',
-            'sidepanelContext',
-            'sidepanelTimestamp',
-          ])
-        })
-      }
-    }
-    chrome.storage.onChanged.addListener(handler)
-    return () => chrome.storage.onChanged.removeListener(handler)
-  }, [autoFillEnabled, doTranslate])
-
-  function handleToggleAutoFill(enabled: boolean) {
-    setAutoFillEnabled(enabled)
-    chrome.storage.sync.set({ sidepanelAutoTranslate: enabled })
-  }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -237,28 +173,6 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
 
   return (
     <div className="p-3 space-y-3">
-      {/* Auto-fill toggle */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">
-          {t('ext.side.autoFill')}
-        </span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={autoFillEnabled}
-          onClick={() => handleToggleAutoFill(!autoFillEnabled)}
-          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-            autoFillEnabled ? 'bg-primary' : 'bg-input'
-          }`}
-        >
-          <span
-            className={`pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform ${
-              autoFillEnabled ? 'translate-x-4' : 'translate-x-0'
-            }`}
-          />
-        </button>
-      </div>
-
       {/* Source input */}
       <Textarea
         value={inputText}
@@ -340,16 +254,6 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
             </p>
           )}
 
-          {/* Speak button */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => speakText(result.contextualTranslation, targetLanguage)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Volume2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
           {/* More details - on demand */}
           <div>
             <button
@@ -380,33 +284,50 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
                 {enrichment && (
                   <>
                     {enrichment.phoneticApproximation && (
-                      <DetailItem label={t('ext.popup.pronunciation')} value={enrichment.phoneticApproximation} />
+                      <DetailItem
+                        label={t('ext.popup.pronunciation')}
+                        value={enrichment.phoneticApproximation}
+                        icon={
+                          <button
+                            onClick={() => speakText(inputText, result.language || '')}
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <Volume2 className="h-4 w-4" />
+                          </button>
+                        }
+                      />
                     )}
                     {enrichment.fixedExpression && enrichment.fixedExpression !== 'no' && (
-                      <DetailItem label={t('ext.popup.expression')} value={enrichment.fixedExpression} />
+                      <DetailItem label={t('ext.popup.expression')} value={enrichment.fixedExpression} icon={<Info className="h-4 w-4 text-blue-500" />} />
                     )}
                     {enrichment.commonUsage && enrichment.commonUsage !== 'no' && (
-                      <DetailItem label={t('ext.popup.usageNote')} value={enrichment.commonUsage} />
+                      <DetailItem label={t('ext.popup.usageNote')} value={enrichment.commonUsage} icon={<Info className="h-4 w-4 text-amber-500" />} />
                     )}
                     {enrichment.grammarRules && (
-                      <DetailItem label={t('ext.popup.grammar')} value={enrichment.grammarRules} />
+                      <DetailItem label={t('ext.popup.grammar')} value={enrichment.grammarRules} icon={<Info className="h-4 w-4 text-green-500" />} />
                     )}
                     {enrichment.commonness && (
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">
-                          {t('ext.popup.frequency')}
-                        </p>
-                        <Badge variant="secondary" className="text-[10px]">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <BarChart2 className="h-4 w-4 text-muted-foreground" />
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            {t('ext.popup.frequency')}
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="text-[10px] ml-6">
                           {enrichment.commonness}
                         </Badge>
                       </div>
                     )}
                     {parsedRelated.length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">
-                          {t('ext.popup.related')}
-                        </p>
-                        <div className="flex flex-wrap gap-1">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Info className="h-4 w-4 text-purple-500" />
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            {t('ext.popup.related')}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-1 ml-6">
                           {parsedRelated.map((r, i) => (
                             <Badge key={i} variant="outline" className="text-[10px]">
                               {r.word} — {r.translation}
@@ -439,7 +360,7 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
                 t('ext.side.saveFailed')
               ) : (
                 <>
-                  <Bookmark className="h-3.5 w-3.5 mr-1" />
+                  <Plus className="h-3.5 w-3.5 mr-1" />
                   {t('ext.side.saveConceptButton')}
                 </>
               )}
@@ -451,13 +372,16 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
   )
 }
 
-function DetailItem({ label, value }: { label: string; value: string }) {
+function DetailItem({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
   return (
-    <div>
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">
-        {label}
-      </p>
-      <p className="text-xs">{value}</p>
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        {icon}
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+      </div>
+      <p className={`text-xs ${icon ? 'pl-6' : ''}`}>{value}</p>
     </div>
   )
 }

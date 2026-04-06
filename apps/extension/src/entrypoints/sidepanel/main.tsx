@@ -22,7 +22,7 @@ function applyTheme(themePref: string) {
 
 // Read persisted theme from storage, fallback to system preference
 chrome.storage.sync.get(["theme"], (result) => {
-  applyTheme(result.theme || "system")
+  applyTheme((result.theme as string) || "system")
 })
 
 mq.addEventListener("change", () => {

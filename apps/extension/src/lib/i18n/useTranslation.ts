@@ -21,57 +21,72 @@ export function useTranslation() {
   const [language, setLanguage] = useState("English");
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      // Read display language from chrome.storage.sync (fallback to targetLanguage for backwards compat)
-      const stored = await chrome.storage.sync.get(["displayLanguage", "targetLanguage"]);
-      const lang = (stored.displayLanguage as string) || (stored.targetLanguage as string) || "English";
-      setLanguage(lang);
+  const loadLanguage = useCallback(async (lang: string) => {
+    setLanguage(lang);
 
-      if (lang === "English") {
-        setStrings(UI_STRINGS);
-        return;
-      }
+    if (lang === "English") {
+      setStrings(UI_STRINGS);
+      return;
+    }
 
-      // Check chrome.storage.local cache
-      const cacheKey = `i18n_${lang}_${STRINGS_VERSION}`;
-      const cached = await chrome.storage.local.get(cacheKey);
-      if (cached[cacheKey]) {
-        try {
-          const parsed =
-            typeof cached[cacheKey] === "string"
-              ? JSON.parse(cached[cacheKey])
-              : cached[cacheKey];
-          setStrings(parsed);
-          return;
-        } catch {
-          await chrome.storage.local.remove(cacheKey);
-        }
-      }
-
-      // Fetch via background script
-      setIsLoading(true);
+    // Check chrome.storage.local cache
+    const cacheKey = `i18n_${lang}_${STRINGS_VERSION}`;
+    const cached = await chrome.storage.local.get(cacheKey);
+    if (cached[cacheKey]) {
       try {
-        const response = await chrome.runtime.sendMessage({
-          action: "fetchTranslations",
-          language: lang,
-          version: STRINGS_VERSION,
-        });
-        if (response?.success && response.translations) {
-          setStrings(response.translations);
-          await chrome.storage.local.set({
-            [cacheKey]: response.translations,
-          });
-        }
+        const parsed =
+          typeof cached[cacheKey] === "string"
+            ? JSON.parse(cached[cacheKey])
+            : cached[cacheKey];
+        setStrings(parsed);
+        return;
       } catch {
-        // Fall back to English
-      } finally {
-        setIsLoading(false);
+        await chrome.storage.local.remove(cacheKey);
       }
     }
 
-    load();
+    // Fetch via background script
+    setIsLoading(true);
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: "fetchTranslations",
+        language: lang,
+        version: STRINGS_VERSION,
+      });
+      if (response?.success && response.translations) {
+        setStrings(response.translations);
+        await chrome.storage.local.set({
+          [cacheKey]: response.translations,
+        });
+      }
+    } catch {
+      // Fall back to English
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    async function load() {
+      const stored = await chrome.storage.sync.get(["displayLanguage", "targetLanguage"]);
+      const lang = (stored.displayLanguage as string) || (stored.targetLanguage as string) || "English";
+      await loadLanguage(lang);
+    }
+
+    load();
+
+    // Re-load strings when displayLanguage changes
+    const handler = (
+      changes: Record<string, chrome.storage.StorageChange>,
+      areaName: string,
+    ) => {
+      if (areaName === "sync" && changes.displayLanguage?.newValue) {
+        loadLanguage(changes.displayLanguage.newValue as string);
+      }
+    };
+    chrome.storage.onChanged.addListener(handler);
+    return () => chrome.storage.onChanged.removeListener(handler);
+  }, [loadLanguage]);
 
   const t: TranslationFn = useCallback(
     (key, params) => {

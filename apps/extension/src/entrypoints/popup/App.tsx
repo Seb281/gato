@@ -65,18 +65,33 @@ export default function App() {
 
   // Load allowed sites and derive current site pattern
   useEffect(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+    chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
       if (!tab?.url) return
       try {
         const url = new URL(tab.url)
         if (url.protocol === 'https:' || url.protocol === 'http:') {
-          setCurrentSitePattern(`${url.origin}/*`)
+          const pattern = `${url.origin}/*`
+          setCurrentSitePattern(pattern)
+
+          // If permission was granted (e.g. popup closed before addAllowedSite ran),
+          // auto-add the site now
+          const sitesResponse = await chrome.runtime.sendMessage({ action: 'getAllowedSites' })
+          if (sitesResponse?.success) {
+            setAllowedSites(sitesResponse.sites)
+            if (!sitesResponse.sites.includes(pattern)) {
+              const granted = await chrome.permissions.contains({ origins: [pattern] })
+              if (granted) {
+                chrome.runtime.sendMessage(
+                  { action: 'addAllowedSite', pattern },
+                  (response) => {
+                    if (response?.success) setAllowedSites(response.sites)
+                  },
+                )
+              }
+            }
+          }
         }
       } catch { /* invalid URL, e.g. chrome:// */ }
-    })
-
-    chrome.runtime.sendMessage({ action: 'getAllowedSites' }, (response) => {
-      if (response?.success) setAllowedSites(response.sites)
     })
   }, [])
 
@@ -86,10 +101,18 @@ export default function App() {
 
   async function handleAddCurrentSite() {
     if (!currentSitePattern) return
-    const granted = await chrome.permissions.request({
+
+    // Check if permission already granted (e.g. from a previous attempt where popup closed)
+    const alreadyGranted = await chrome.permissions.contains({
       origins: [currentSitePattern],
     })
-    if (!granted) return
+
+    if (!alreadyGranted) {
+      const granted = await chrome.permissions.request({
+        origins: [currentSitePattern],
+      })
+      if (!granted) return
+    }
 
     chrome.runtime.sendMessage(
       { action: 'addAllowedSite', pattern: currentSitePattern },

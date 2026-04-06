@@ -70,6 +70,7 @@ export default function TranslationPopup({
   const [showContext, setShowContext] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [showLangDropdown, setShowLangDropdown] = useState(false)
+  const [personalContext, setPersonalContext] = useState('')
   const langDropdownRef = useRef<HTMLDivElement>(null)
 
   const TARGET_LANGUAGES = [
@@ -178,9 +179,10 @@ export default function TranslationPopup({
   }, [])
 
   useEffect(() => {
-    chrome.storage.sync.get(['targetLanguage', 'sourceLanguage'], (result) => {
+    chrome.storage.sync.get(['targetLanguage', 'sourceLanguage', 'personalContext'], (result) => {
       setTargetLanguage((result.targetLanguage as string) || 'English')
       setSourceLanguage((result.sourceLanguage as string) || 'auto')
+      if (result.personalContext) setPersonalContext(result.personalContext as string)
     })
   }, [])
 
@@ -627,17 +629,6 @@ export default function TranslationPopup({
                   )}
                 </div>
 
-                {/* Speak button - always available */}
-                <div className='flex items-center gap-2'>
-                  <button
-                    onClick={handleSpeak}
-                    title="Listen to pronunciation"
-                    className={`inline-flex items-center justify-center rounded p-0.5 transition-colors ${isSpeaking ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-                  >
-                    <Volume2 className="h-4 w-4" />
-                  </button>
-                </div>
-
                 {/* On-demand enrichment section */}
                 {(() => {
                   // Use LLM inline data if already present (fallback path), otherwise use enrichment state
@@ -645,7 +636,7 @@ export default function TranslationPopup({
                     ? translation
                     : enrichment
 
-                  if (!data && !showMore) {
+                  if (!showMore) {
                     return (
                       <div className='space-y-3'>
                         <div
@@ -660,6 +651,9 @@ export default function TranslationPopup({
                                   translation: translation.contextualTranslation,
                                   targetLanguage,
                                   sourceLanguage: translation.language || sourceLanguage || '',
+                                  contextBefore,
+                                  contextAfter,
+                                  personalContext,
                                 },
                                 (response: { success: boolean; enrichment?: EnrichmentResponse }) => {
                                   if (chrome.runtime.lastError) {
@@ -721,7 +715,12 @@ export default function TranslationPopup({
                         {data.phoneticApproximation && (
                           <div className='space-y-1.5'>
                             <div className='flex items-center gap-2'>
-                              <Volume2 className='h-4 w-4 text-muted-foreground' />
+                              <button
+                                onClick={handleSpeak}
+                                className={`transition-colors ${isSpeaking ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                              >
+                                <Volume2 className='h-4 w-4' />
+                              </button>
                               <span className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
                                 {t('ext.popup.pronunciation')}
                               </span>

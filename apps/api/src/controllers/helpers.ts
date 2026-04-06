@@ -117,7 +117,7 @@ Translate to ${resolvedTarget} and return a JSON object with these keys. Write a
 
 "language": ${lang}${optField1}
 "contextualTranslation": Best ${resolvedTarget} translation of the marked ${promptAdjustment[2]} in this context.
-"phoneticApproximation": ${resolvedTarget}-sound phonetic approximation.${optField3}${optField4}${optField5}${optField6}${personalCtx}
+"phoneticApproximation": Phonetic approximation of the ORIGINAL ${promptAdjustment[2]} (NOT the translation), written using ${resolvedTarget} sounds so a ${resolvedTarget} speaker can pronounce it.${optField3}${optField4}${optField5}${optField6}${personalCtx}
 
 Text: ${text}`
 
@@ -130,6 +130,8 @@ export function enrichmentPromptBuilder(
   targetLanguage: string,
   sourceLanguage: string,
   personalContext: string,
+  contextBefore: string = '',
+  contextAfter: string = '',
 ): string {
   const wordCount = text.trim().split(/\s+/).length
   const resolvedTarget = targetLanguage || 'English'
@@ -138,7 +140,7 @@ export function enrichmentPromptBuilder(
   const fields: string[] = []
 
   fields.push(
-    `"phoneticApproximation": ${resolvedTarget}-sound phonetic approximation of "${translation}".`
+    `"phoneticApproximation": Phonetic approximation of "${text}" (the ORIGINAL word, NOT the translation "${translation}"), written using ${resolvedTarget} sounds so a ${resolvedTarget} speaker can pronounce it.`
   )
 
   if (wordCount <= 5) {
@@ -165,7 +167,11 @@ export function enrichmentPromptBuilder(
     ? `\nIf it makes sense, take into account this context about me: ${personalContext}.`
     : ''
 
-  return `The ${resolvedSource} text "${text}" has been translated to ${resolvedTarget} as "${translation}".
+  const sentenceCtx = (contextBefore || contextAfter)
+    ? `\nIt appears in this context: "${contextBefore} [${text}] ${contextAfter}". Use this context to inform your answers (e.g. usage notes, meaning, grammar).`
+    : ''
+
+  return `The ${resolvedSource} text "${text}" has been translated to ${resolvedTarget} as "${translation}".${sentenceCtx}
 
 Provide additional linguistic information. Return a JSON object with these keys. Write all field values in ${resolvedTarget}:
 

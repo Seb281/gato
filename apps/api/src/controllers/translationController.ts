@@ -178,6 +178,8 @@ type EnrichRequest = {
   targetLanguage: string
   sourceLanguage: string
   personalContext?: string
+  contextBefore?: string
+  contextAfter?: string
 }
 
 export async function enrich(
@@ -185,7 +187,7 @@ export async function enrich(
   reply: FastifyReply
 ): Promise<void> {
   try {
-    const { text, translation, targetLanguage, sourceLanguage, personalContext } =
+    const { text, translation, targetLanguage, sourceLanguage, personalContext, contextBefore, contextAfter } =
       request.body
 
     if (!text || !translation || !targetLanguage) {
@@ -223,7 +225,9 @@ export async function enrich(
       translation,
       targetLanguage,
       sourceLanguage || '',
-      personalContext || ''
+      personalContext || '',
+      contextBefore || '',
+      contextAfter || '',
     )
 
     const { text: responseText } = await generateText({

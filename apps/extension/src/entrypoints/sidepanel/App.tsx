@@ -1,13 +1,29 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/entrypoints/background/helpers/supabaseAuth'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { LANGUAGE_NAMES } from '@/entrypoints/content/helpers/detectLanguage'
-import { History, Bookmark, Settings, Check, ExternalLink, BookOpen, Bell, X, MessageSquare, Languages } from 'lucide-react'
+import {
+  History,
+  Bookmark,
+  Settings,
+  Check,
+  ExternalLink,
+  BookOpen,
+  Bell,
+  X,
+  MessageSquare,
+  Languages,
+} from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from '@/components/ui/tooltip'
 import QuickReview from '@/components/QuickReview'
 import TranslateTab from '@/components/TranslateTab'
 import type { Session } from '@supabase/supabase-js'
@@ -42,7 +58,9 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [dueCount, setDueCount] = useState(0)
   const [isSiteEnabled, setIsSiteEnabled] = useState(true) // default true to avoid flash
-  const [currentSitePattern, setCurrentSitePattern] = useState<string | null>(null)
+  const [currentSitePattern, setCurrentSitePattern] = useState<string | null>(
+    null,
+  )
 
   useEffect(() => {
     chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
@@ -52,20 +70,32 @@ export default function App() {
         if (url.protocol === 'https:' || url.protocol === 'http:') {
           const pattern = `${url.origin}/*`
           setCurrentSitePattern(pattern)
-          chrome.runtime.sendMessage({ action: 'getAllowedSites' }, (response) => {
-            if (response?.success) {
-              setIsSiteEnabled(response.sites.includes(pattern))
-            }
-          })
+          chrome.runtime.sendMessage(
+            { action: 'getAllowedSites' },
+            (response) => {
+              if (response?.success) {
+                setIsSiteEnabled(response.sites.includes(pattern))
+              }
+            },
+          )
         }
-      } catch { /* invalid URL */ }
+      } catch {
+        /* invalid URL */
+      }
     })
   }, [])
 
   async function handleEnableSite() {
     if (!currentSitePattern) return
-    const granted = await chrome.permissions.request({ origins: [currentSitePattern] })
-    if (!granted) return
+    const alreadyGranted = await chrome.permissions.contains({
+      origins: [currentSitePattern],
+    })
+    if (!alreadyGranted) {
+      const granted = await chrome.permissions.request({
+        origins: [currentSitePattern],
+      })
+      if (!granted) return
+    }
     chrome.runtime.sendMessage(
       { action: 'addAllowedSite', pattern: currentSitePattern },
       (response) => {
@@ -132,45 +162,70 @@ export default function App() {
   }, [])
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: 'translate', label: t('ext.side.translate'), icon: <Languages className="h-3.5 w-3.5" /> },
-    { id: 'history', label: t('ext.side.history'), icon: <History className="h-3.5 w-3.5" /> },
-    { id: 'saved', label: t('ext.side.saved'), icon: <Bookmark className="h-3.5 w-3.5" /> },
-    { id: 'review', label: t('ext.side.review'), icon: <BookOpen className="h-3.5 w-3.5" /> },
-    { id: 'settings', label: t('ext.side.settings'), icon: <Settings className="h-3.5 w-3.5" /> },
+    {
+      id: 'translate',
+      label: t('ext.side.translate'),
+      icon: <Languages className='h-3.5 w-3.5' />,
+    },
+    {
+      id: 'history',
+      label: t('ext.side.history'),
+      icon: <History className='h-3.5 w-3.5' />,
+    },
+    {
+      id: 'saved',
+      label: t('ext.side.saved'),
+      icon: <Bookmark className='h-3.5 w-3.5' />,
+    },
+    {
+      id: 'review',
+      label: t('ext.side.review'),
+      icon: <BookOpen className='h-3.5 w-3.5' />,
+    },
+    {
+      id: 'settings',
+      label: t('ext.side.settings'),
+      icon: <Settings className='h-3.5 w-3.5' />,
+    },
   ]
 
   if (isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+      <div className='h-screen flex items-center justify-center'>
+        <p className='text-sm text-muted-foreground'>{t('common.loading')}</p>
       </div>
     )
   }
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="h-screen flex flex-col">
+      <div className='h-screen flex flex-col'>
         {/* Enable site prompt */}
         {!isSiteEnabled && currentSitePattern && (
-          <div className="px-3 py-2 bg-primary/5 border-b border-primary/20 flex items-center justify-between gap-2">
-            <p className="text-xs text-muted-foreground flex-1">
+          <div className='px-3 py-2 bg-primary/5 border-b border-primary/20 flex items-center justify-between gap-2'>
+            <p className='text-xs text-muted-foreground flex-1'>
               {t('ext.side.enableSitePrompt')}
             </p>
-            <Button size="sm" variant="default" onClick={handleEnableSite} className="shrink-0 text-xs">
+            <Button
+              size='sm'
+              variant='default'
+              onClick={handleEnableSite}
+              className='shrink-0 text-xs'
+            >
               {t('ext.side.enableHere')}
             </Button>
           </div>
         )}
 
         {/* Tab content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className='flex-1 overflow-y-auto'>
           {activeTab === 'translate' && (
             <TranslateTab
               session={session}
               onSwitchToSettings={() => setActiveTab('settings')}
             />
           )}
-          {activeTab === 'history' && <HistoryTab />}
+          {activeTab === 'history' && <HistoryTab session={session} />}
           {activeTab === 'saved' && <SavedTab session={session} />}
           {activeTab === 'review' && (
             <ReviewTab
@@ -185,8 +240,8 @@ export default function App() {
         </div>
 
         {/* Bottom icon bar */}
-        <div className="shrink-0 border-t border-border bg-background">
-          <div className="flex overflow-x-auto">
+        <div className='shrink-0 border-t border-border bg-background'>
+          <div className='flex overflow-x-auto'>
             {tabs.map((tab) => (
               <Tooltip key={tab.id}>
                 <TooltipTrigger asChild>
@@ -200,13 +255,13 @@ export default function App() {
                   >
                     {tab.icon}
                     {tab.id === 'review' && dueCount > 0 && (
-                      <span className="ml-0.5 text-[8px] font-bold text-primary">
+                      <span className='ml-0.5 text-[8px] font-bold text-primary'>
                         {dueCount}
                       </span>
                     )}
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
+                <TooltipContent side='top' className='text-xs'>
                   {tab.label}
                 </TooltipContent>
               </Tooltip>
@@ -220,7 +275,7 @@ export default function App() {
 
 // --- History Tab ---
 
-function HistoryTab() {
+function HistoryTab({ session }: { session: Session | null }) {
   const { t } = useTranslation()
   const [history, setHistory] = useState<TranslationHistoryItem[]>([])
 
@@ -239,7 +294,8 @@ function HistoryTab() {
     ) => {
       if (areaName === 'session' && changes.translationHistory) {
         setHistory(
-          (changes.translationHistory.newValue as TranslationHistoryItem[]) || [],
+          (changes.translationHistory.newValue as TranslationHistoryItem[]) ||
+            [],
         )
       }
     }
@@ -250,10 +306,12 @@ function HistoryTab() {
 
   if (history.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-        <History className="h-8 w-8 text-muted-foreground/50 mb-3" />
-        <p className="text-sm font-medium text-muted-foreground">{t('ext.side.noTranslations')}</p>
-        <p className="text-xs text-muted-foreground/70 mt-1">
+      <div className='flex flex-col items-center justify-center h-full px-6 text-center'>
+        <History className='h-8 w-8 text-muted-foreground/50 mb-3' />
+        <p className='text-sm font-medium text-muted-foreground'>
+          {t('ext.side.noTranslations')}
+        </p>
+        <p className='text-xs text-muted-foreground/70 mt-1'>
           {t('ext.side.noTranslationsDesc')}
         </p>
       </div>
@@ -261,37 +319,101 @@ function HistoryTab() {
   }
 
   return (
-    <div className="divide-y divide-border">
+    <div className='divide-y divide-border'>
       {history.map((item, index) => (
-        <TranslationCard key={`${item.timestamp}-${index}`} item={item} />
+        <TranslationCard
+          key={`${item.timestamp}-${index}`}
+          item={item}
+          session={session}
+        />
       ))}
     </div>
   )
 }
 
-function TranslationCard({ item }: { item: TranslationHistoryItem }) {
+function TranslationCard({
+  item,
+  session,
+}: {
+  item: TranslationHistoryItem
+  session: Session | null
+}) {
+  const { t } = useTranslation()
   const timeAgo = getTimeAgo(item.timestamp)
   const hostname = getHostname(item.url)
+  const [saveState, setSaveState] = useState<
+    'idle' | 'saving' | 'saved' | 'error'
+  >('idle')
+
+  function handleSave() {
+    setSaveState('saving')
+    chrome.runtime.sendMessage(
+      {
+        action: 'saveConcept',
+        concept: {
+          concept: item.concept,
+          translation: item.translation,
+          sourceLanguage: item.sourceLanguage,
+          targetLanguage: item.targetLanguage,
+          sourceUrl: item.url,
+        },
+      },
+      (response) => {
+        if (response?.success || response?.alreadySaved) {
+          setSaveState('saved')
+        } else {
+          setSaveState('error')
+          setTimeout(() => setSaveState('idle'), 3000)
+        }
+      },
+    )
+  }
 
   return (
-    <div className="px-3 py-2.5 hover:bg-secondary/50 transition-colors">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-semibold text-foreground leading-snug break-words">
+    <div className='px-3 py-2.5 hover:bg-secondary/50 transition-colors'>
+      <div className='flex items-start justify-between gap-2'>
+        <p className='text-sm font-semibold text-foreground leading-snug break-words'>
           {item.concept}
         </p>
-        <Badge variant="secondary" className="shrink-0 text-[10px] px-1.5 py-0">
-          {item.sourceLanguage}
-        </Badge>
+        <div className='flex items-center gap-1 shrink-0'>
+          <Badge variant='secondary' className='text-[10px] px-1.5 py-0'>
+            {item.sourceLanguage}
+          </Badge>
+          {session && (
+            <button
+              onClick={handleSave}
+              disabled={saveState === 'saving' || saveState === 'saved'}
+              className={`p-0.5 transition-colors ${
+                saveState === 'saved'
+                  ? 'text-green-600'
+                  : saveState === 'error'
+                    ? 'text-destructive'
+                    : 'text-muted-foreground hover:text-foreground'
+              }`}
+              title={
+                saveState === 'saved'
+                  ? t('ext.side.conceptSaved')
+                  : t('ext.side.saveConceptButton')
+              }
+            >
+              {saveState === 'saved' ? (
+                <Check className='h-3.5 w-3.5' />
+              ) : (
+                <Bookmark className='h-3.5 w-3.5' />
+              )}
+            </button>
+          )}
+        </div>
       </div>
-      <p className="text-sm text-muted-foreground mt-0.5 break-words">
+      <p className='text-sm text-muted-foreground mt-0.5 break-words'>
         {item.translation}
       </p>
-      <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground/70">
+      <div className='flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground/70'>
         <span>{timeAgo}</span>
         {hostname && (
           <>
             <span>·</span>
-            <span className="truncate max-w-[150px]">{hostname}</span>
+            <span className='truncate max-w-[150px]'>{hostname}</span>
           </>
         )}
       </div>
@@ -335,10 +457,12 @@ function SavedTab({ session }: { session: Session | null }) {
 
   if (!session) {
     return (
-      <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-        <Bookmark className="h-8 w-8 text-muted-foreground/50 mb-3" />
-        <p className="text-sm font-medium text-muted-foreground">{t('ext.side.signInRequired')}</p>
-        <p className="text-xs text-muted-foreground/70 mt-1">
+      <div className='flex flex-col items-center justify-center h-full px-6 text-center'>
+        <Bookmark className='h-8 w-8 text-muted-foreground/50 mb-3' />
+        <p className='text-sm font-medium text-muted-foreground'>
+          {t('ext.side.signInRequired')}
+        </p>
+        <p className='text-xs text-muted-foreground/70 mt-1'>
           {t('ext.side.openPopupSignIn')}
         </p>
       </div>
@@ -347,20 +471,22 @@ function SavedTab({ session }: { session: Session | null }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-sm text-muted-foreground">{t('ext.side.loadingSaved')}</p>
+      <div className='flex items-center justify-center h-full'>
+        <p className='text-sm text-muted-foreground'>
+          {t('ext.side.loadingSaved')}
+        </p>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-        <p className="text-sm text-destructive">{error}</p>
+      <div className='flex flex-col items-center justify-center h-full px-6 text-center'>
+        <p className='text-sm text-destructive'>{error}</p>
         <Button
-          variant="ghost"
-          size="sm"
-          className="mt-2"
+          variant='ghost'
+          size='sm'
+          className='mt-2'
           onClick={() => {
             setIsLoading(true)
             setError(null)
@@ -369,7 +495,9 @@ function SavedTab({ session }: { session: Session | null }) {
               (response) => {
                 if (chrome.runtime.lastError) {
                   setIsLoading(false)
-                  setError(chrome.runtime.lastError.message || 'Connection error')
+                  setError(
+                    chrome.runtime.lastError.message || 'Connection error',
+                  )
                   return
                 }
                 setIsLoading(false)
@@ -390,10 +518,12 @@ function SavedTab({ session }: { session: Session | null }) {
 
   if (savedConcepts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-        <Bookmark className="h-8 w-8 text-muted-foreground/50 mb-3" />
-        <p className="text-sm font-medium text-muted-foreground">{t('ext.side.noSavedConcepts')}</p>
-        <p className="text-xs text-muted-foreground/70 mt-1">
+      <div className='flex flex-col items-center justify-center h-full px-6 text-center'>
+        <Bookmark className='h-8 w-8 text-muted-foreground/50 mb-3' />
+        <p className='text-sm font-medium text-muted-foreground'>
+          {t('ext.side.noSavedConcepts')}
+        </p>
+        <p className='text-xs text-muted-foreground/70 mt-1'>
           {t('ext.side.noSavedConceptsDesc')}
         </p>
       </div>
@@ -401,7 +531,7 @@ function SavedTab({ session }: { session: Session | null }) {
   }
 
   return (
-    <div className="divide-y divide-border">
+    <div className='divide-y divide-border'>
       {savedConcepts.map((concept) => (
         <SavedConceptCard key={concept.id} concept={concept} />
       ))}
@@ -412,29 +542,29 @@ function SavedTab({ session }: { session: Session | null }) {
 function SavedConceptCard({ concept }: { concept: SavedConcept }) {
   const { t } = useTranslation()
   return (
-    <div className="px-3 py-2.5 hover:bg-secondary/50 transition-colors">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-semibold text-foreground leading-snug break-words">
+    <div className='px-3 py-2.5 hover:bg-secondary/50 transition-colors'>
+      <div className='flex items-start justify-between gap-2'>
+        <p className='text-sm font-semibold text-foreground leading-snug break-words'>
           {concept.concept}
         </p>
-        <Badge variant="secondary" className="shrink-0 text-[10px] px-1.5 py-0">
+        <Badge variant='secondary' className='shrink-0 text-[10px] px-1.5 py-0'>
           {concept.sourceLanguage}
         </Badge>
       </div>
-      <p className="text-sm text-muted-foreground mt-0.5 break-words">
+      <p className='text-sm text-muted-foreground mt-0.5 break-words'>
         {concept.translation}
       </p>
-      <div className="flex items-center justify-between mt-1.5">
-        <span className="text-[10px] text-muted-foreground/70">
+      <div className='flex items-center justify-between mt-1.5'>
+        <span className='text-[10px] text-muted-foreground/70'>
           {new Date(concept.createdAt).toLocaleDateString()}
         </span>
         <button
           onClick={() => {
-            chrome.tabs.create({ url: `${DASHBOARD_URL}/vocabulary` })
+            chrome.tabs.create({ url: `${DASHBOARD_URL}/dashboard/vocabulary` })
           }}
-          className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          className='flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors'
         >
-          <ExternalLink className="h-3 w-3" />
+          <ExternalLink className='h-3 w-3' />
           {t('ext.side.view')}
         </button>
       </div>
@@ -444,15 +574,23 @@ function SavedConceptCard({ concept }: { concept: SavedConcept }) {
 
 // --- Review Tab ---
 
-function ReviewTab({ session, onComplete }: { session: Session | null; onComplete: () => void }) {
+function ReviewTab({
+  session,
+  onComplete,
+}: {
+  session: Session | null
+  onComplete: () => void
+}) {
   const { t } = useTranslation()
 
   if (!session) {
     return (
-      <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-        <BookOpen className="h-8 w-8 text-muted-foreground/50 mb-3" />
-        <p className="text-sm font-medium text-muted-foreground">{t('ext.side.signInToReview')}</p>
-        <p className="text-xs text-muted-foreground/70 mt-1">
+      <div className='flex flex-col items-center justify-center h-full px-6 text-center'>
+        <BookOpen className='h-8 w-8 text-muted-foreground/50 mb-3' />
+        <p className='text-sm font-medium text-muted-foreground'>
+          {t('ext.side.signInToReview')}
+        </p>
+        <p className='text-xs text-muted-foreground/70 mt-1'>
           {t('ext.side.openPopupSignIn')}
         </p>
       </div>
@@ -473,8 +611,8 @@ function formatHour(hour: number): string {
 function SettingsTab({ session }: { session: Session | null }) {
   const { t } = useTranslation()
   const [targetLanguage, setTargetLanguage] = useState('English')
+  const [displayLanguage, setDisplayLanguage] = useState('English')
   const [personalContext, setPersonalContext] = useState('')
-  const [isSaved, setIsSaved] = useState(false)
   const [reminderEnabled, setReminderEnabled] = useState(false)
   const [reminderHour, setReminderHour] = useState(9)
   const [allowedSites, setAllowedSites] = useState<string[]>([])
@@ -484,24 +622,68 @@ function SettingsTab({ session }: { session: Session | null }) {
     languages.push({ code: lang, name: LANGUAGE_NAMES[lang] })
   }
 
+  const initialLoadDone = useRef(false)
+  const apiSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Auto-save to chrome.storage.sync + debounced API save
+  useEffect(() => {
+    if (!initialLoadDone.current) return
+    chrome.storage.sync.set({ targetLanguage, displayLanguage, personalContext })
+
+    if (apiSaveTimer.current) clearTimeout(apiSaveTimer.current)
+    if (session) {
+      apiSaveTimer.current = setTimeout(() => {
+        chrome.runtime.sendMessage({
+          action: 'saveUserSettings',
+          settings: { targetLanguage, displayLanguage, personalContext },
+        })
+      }, 800)
+    }
+  }, [targetLanguage, displayLanguage, personalContext, session])
+
   useEffect(() => {
     chrome.storage.sync.get(
-      ['targetLanguage', 'personalContext', 'reminderEnabled', 'reminderHour'],
+      [
+        'targetLanguage',
+        'displayLanguage',
+        'personalContext',
+        'reminderEnabled',
+        'reminderHour',
+      ],
       (result) => {
         if (result.targetLanguage)
           setTargetLanguage(result.targetLanguage as string)
+        if (result.displayLanguage)
+          setDisplayLanguage(result.displayLanguage as string)
+        else if (result.targetLanguage)
+          setDisplayLanguage(result.targetLanguage as string)
         if (result.personalContext)
           setPersonalContext(result.personalContext as string)
         if (result.reminderEnabled !== undefined)
           setReminderEnabled(result.reminderEnabled as boolean)
         if (result.reminderHour !== undefined)
           setReminderHour(result.reminderHour as number)
+        initialLoadDone.current = true
       },
     )
 
     chrome.runtime.sendMessage({ action: 'getAllowedSites' }, (response) => {
       if (response?.success) setAllowedSites(response.sites)
     })
+  }, [])
+
+  // Keep target language in sync when changed from other tabs (e.g. TranslateTab)
+  useEffect(() => {
+    const handler = (
+      changes: Record<string, chrome.storage.StorageChange>,
+      areaName: string,
+    ) => {
+      if (areaName === 'sync' && changes.targetLanguage?.newValue) {
+        setTargetLanguage(changes.targetLanguage.newValue as string)
+      }
+    }
+    chrome.storage.onChanged.addListener(handler)
+    return () => chrome.storage.onChanged.removeListener(handler)
   }, [])
 
   useEffect(() => {
@@ -519,8 +701,12 @@ function SettingsTab({ session }: { session: Session | null }) {
         error?: string
       }) => {
         if (response?.success && response.settings) {
-          const { targetLanguage: apiTargetLang, personalContext: apiContext, theme: apiTheme, displayLanguage: apiDisplayLang } =
-            response.settings
+          const {
+            targetLanguage: apiTargetLang,
+            personalContext: apiContext,
+            theme: apiTheme,
+            displayLanguage: apiDisplayLang,
+          } = response.settings
           if (apiTargetLang) {
             setTargetLanguage(apiTargetLang)
             chrome.storage.sync.set({ targetLanguage: apiTargetLang })
@@ -533,29 +719,13 @@ function SettingsTab({ session }: { session: Session | null }) {
             chrome.storage.sync.set({ theme: apiTheme })
           }
           if (apiDisplayLang) {
+            setDisplayLanguage(apiDisplayLang)
             chrome.storage.sync.set({ displayLanguage: apiDisplayLang })
           }
         }
       },
     )
   }, [session])
-
-  function handleSave() {
-    chrome.storage.sync.set(
-      { targetLanguage, personalContext },
-      () => {
-        setIsSaved(true)
-        setTimeout(() => setIsSaved(false), 2000)
-      },
-    )
-
-    if (session) {
-      chrome.runtime.sendMessage({
-        action: 'saveUserSettings',
-        settings: { targetLanguage, personalContext },
-      })
-    }
-  }
 
   function handleReminderToggle(enabled: boolean) {
     setReminderEnabled(enabled)
@@ -580,20 +750,42 @@ function SettingsTab({ session }: { session: Session | null }) {
   const remainingChars = maxChars - personalContext.length
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Target Language */}
-      <div className="space-y-2">
+    <div className='p-4 space-y-4'>
+      {/* Display Language */}
+      <div className='space-y-2'>
         <Label
-          htmlFor="language"
-          className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+          htmlFor='display-language'
+          className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'
+        >
+          {t('ext.displayLanguage')}
+        </Label>
+        <select
+          id='display-language'
+          value={displayLanguage}
+          onChange={(e) => setDisplayLanguage(e.target.value)}
+          className='w-full h-9 rounded-lg bg-secondary px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
+        >
+          {languages.map((lang) => (
+            <option key={lang.code} value={lang.name}>
+              {lang.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Target Language */}
+      <div className='space-y-2'>
+        <Label
+          htmlFor='language'
+          className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'
         >
           {t('ext.targetLanguage')}
         </Label>
         <select
-          id="language"
+          id='language'
           value={targetLanguage}
           onChange={(e) => setTargetLanguage(e.target.value)}
-          className="w-full h-9 rounded-lg bg-secondary px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className='w-full h-9 rounded-lg bg-secondary px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
         >
           {languages.map((lang) => (
             <option key={lang.code} value={lang.name}>
@@ -604,18 +796,18 @@ function SettingsTab({ session }: { session: Session | null }) {
       </div>
 
       {/* Personal Context */}
-      <div className="space-y-2">
+      <div className='space-y-2'>
         <Label
-          htmlFor="context"
-          className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+          htmlFor='context'
+          className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'
         >
           {t('ext.personalContext')}
-          <span className="text-muted-foreground font-normal text-xs ml-1 normal-case">
+          <span className='text-muted-foreground font-normal text-xs ml-1 normal-case'>
             {t('ext.personalContextOptional')}
           </span>
         </Label>
         <Textarea
-          id="context"
+          id='context'
           value={personalContext}
           onChange={(e) => {
             if (e.target.value.length <= maxChars) {
@@ -623,49 +815,38 @@ function SettingsTab({ session }: { session: Session | null }) {
             }
           }}
           placeholder="e.g., I'm a software engineer learning Spanish..."
-          className="resize-none"
+          className='resize-none font-normal text-sm'
           rows={3}
           maxLength={maxChars}
         />
-        <div className="flex justify-between items-center">
-          <p className="text-xs text-muted-foreground">
+        <div className='flex justify-between items-center'>
+          <p className='text-xs text-muted-foreground'>
             {t('ext.personalContextHint')}
           </p>
           <Badge
             variant={remainingChars < 20 ? 'destructive' : 'secondary'}
-            className="text-xs"
+            className='text-xs'
           >
-            {t('ext.side.charsLeft', { count: remainingChars })}
+            {personalContext.length}/{maxChars}
           </Badge>
         </div>
       </div>
 
-      <Button onClick={handleSave} variant="outline" className="w-full" size="sm">
-        {isSaved ? (
-          <>
-            <Check className="w-4 h-4 mr-2" />
-            {t('ext.saved')}
-          </>
-        ) : (
-          t('ext.savePreferences')
-        )}
-      </Button>
-
       <Separator />
 
       {/* Daily Reminder */}
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className='space-y-2'>
+        <p className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
           {t('ext.dailyReminder')}
         </p>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Bell className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-sm">{t('ext.reviewReminder')}</span>
+        <div className='flex items-center justify-between'>
+          <div className='flex items-center gap-2'>
+            <Bell className='h-3.5 w-3.5 text-muted-foreground' />
+            <span className='text-sm'>{t('ext.reviewReminder')}</span>
           </div>
           <button
-            type="button"
-            role="switch"
+            type='button'
+            role='switch'
             aria-checked={reminderEnabled}
             onClick={() => handleReminderToggle(!reminderEnabled)}
             className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
@@ -680,18 +861,18 @@ function SettingsTab({ session }: { session: Session | null }) {
           </button>
         </div>
         {reminderEnabled && (
-          <div className="flex items-center gap-2 pl-5.5">
+          <div className='flex items-center gap-2 pl-5.5'>
             <Label
-              htmlFor="reminder-hour"
-              className="text-xs text-muted-foreground"
+              htmlFor='reminder-hour'
+              className='text-xs text-muted-foreground'
             >
               {t('ext.notifyAt')}
             </Label>
             <select
-              id="reminder-hour"
+              id='reminder-hour'
               value={reminderHour}
               onChange={(e) => handleReminderHourChange(Number(e.target.value))}
-              className="h-7 rounded-md bg-secondary px-2 py-0.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className='h-7 rounded-md bg-secondary px-2 py-0.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
             >
               {Array.from({ length: 17 }, (_, i) => i + 6).map((hour) => (
                 <option key={hour} value={hour}>
@@ -706,34 +887,36 @@ function SettingsTab({ session }: { session: Session | null }) {
       <Separator />
 
       {/* Enabled Sites */}
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className='space-y-2'>
+        <p className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
           {t('ext.side.manageSites')}
         </p>
         {allowedSites.length === 0 ? (
-          <div className="text-center py-3">
-            <p className="text-sm text-muted-foreground">{t('ext.side.noSites')}</p>
-            <p className="text-xs text-muted-foreground/70 mt-1">
+          <div className='text-center py-3'>
+            <p className='text-sm text-muted-foreground'>
+              {t('ext.side.noSites')}
+            </p>
+            <p className='text-xs text-muted-foreground/70 mt-1'>
               {t('ext.side.noSitesDesc')}
             </p>
           </div>
         ) : (
-          <div className="space-y-0.5 max-h-[200px] overflow-y-auto">
+          <div className='space-y-0.5 max-h-[200px] overflow-y-auto'>
             {allowedSites.map((site) => (
               <div
                 key={site}
-                className="flex items-center justify-between text-sm"
+                className='flex items-center justify-between text-sm'
               >
-                <span className="truncate max-w-[220px] text-muted-foreground">
+                <span className='truncate max-w-[220px] text-muted-foreground'>
                   {site.replace('/*', '')}
                 </span>
                 <Button
-                  variant="ghost"
-                  size="sm"
+                  variant='ghost'
+                  size='sm'
                   onClick={() => handleRemoveSite(site)}
-                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                  className='h-6 w-6 p-0 text-muted-foreground hover:text-destructive'
                 >
-                  <X className="h-3 w-3" />
+                  <X className='h-3 w-3' />
                 </Button>
               </div>
             ))}
@@ -744,25 +927,23 @@ function SettingsTab({ session }: { session: Session | null }) {
       <Separator />
 
       {/* Links */}
-      <div className="space-y-2">
+      <div className='space-y-2'>
         <Button
-          variant="outline"
-          className="w-full"
-          onClick={() =>
-            chrome.tabs.create({ url: DASHBOARD_URL })
-          }
+          variant='default'
+          className='w-full'
+          onClick={() => chrome.tabs.create({ url: DASHBOARD_URL })}
         >
-          <ExternalLink className="h-4 w-4 mr-2" />
+          <ExternalLink className='h-4 w-4 mr-2' />
           {t('ext.openDashboard')}
         </Button>
         <Button
-          variant="outline"
-          className="w-full"
+          variant='outline'
+          className='w-full'
           onClick={() =>
             chrome.tabs.create({ url: `${DASHBOARD_URL}/dashboard/feedback` })
           }
         >
-          <MessageSquare className="h-4 w-4 mr-2" />
+          <MessageSquare className='h-4 w-4 mr-2' />
           {t('ext.sendFeedback')}
         </Button>
       </div>
@@ -770,24 +951,24 @@ function SettingsTab({ session }: { session: Session | null }) {
       <Separator />
 
       {/* How to Use */}
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className='space-y-2'>
+        <p className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
           {t('ext.howToUse')}
         </p>
-        <div className="space-y-3">
+        <div className='space-y-3'>
           <div>
-            <p className="text-xs font-medium text-foreground mb-1">
+            <p className='text-xs font-medium text-foreground mb-1'>
               {t('ext.anyPage')}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className='text-xs text-muted-foreground'>
               {t('ext.anyPageDesc')}
             </p>
           </div>
           <div>
-            <p className="text-xs font-medium text-foreground mb-1">
+            <p className='text-xs font-medium text-foreground mb-1'>
               {t('ext.enabledSites')}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className='text-xs text-muted-foreground'>
               {t('ext.enabledSitesDesc')}
             </p>
           </div>
@@ -797,7 +978,7 @@ function SettingsTab({ session }: { session: Session | null }) {
       {!session && (
         <>
           <Separator />
-          <p className="text-xs text-center text-muted-foreground">
+          <p className='text-xs text-center text-muted-foreground'>
             {t('ext.side.signInToSync')}
           </p>
         </>
