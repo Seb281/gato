@@ -51,24 +51,29 @@ export async function reviewRoutes(
         return reply.code(401).send({ error: 'Unauthorized' })
       }
 
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.send({ concepts: [], dueCount: 0 })
-      }
+      try {
+        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+        if (!user) {
+          return reply.send({ concepts: [], dueCount: 0 })
+        }
 
-      // Ensure all concepts have schedules
-      await reviewData.ensureSchedulesExist(user.id)
+        // Ensure all concepts have schedules
+        await reviewData.ensureSchedulesExist(user.id)
 
-      if (request.query.countOnly === 'true') {
+        if (request.query.countOnly === 'true') {
+          const dueCount = await reviewData.getDueCount(user.id)
+          return reply.send({ dueCount })
+        }
+
+        const limit = parseInt(request.query.limit ?? '', 10) || 20
+        const concepts = await reviewData.getDueConcepts(user.id, limit)
         const dueCount = await reviewData.getDueCount(user.id)
-        return reply.send({ dueCount })
+
+        return reply.send({ concepts, dueCount })
+      } catch (error) {
+        request.log.error(error, 'Failed to retrieve due items')
+        return reply.code(500).send({ error: 'Failed to retrieve due items' })
       }
-
-      const limit = parseInt(request.query.limit ?? '', 10) || 20
-      const concepts = await reviewData.getDueConcepts(user.id, limit)
-      const dueCount = await reviewData.getDueCount(user.id)
-
-      return reply.send({ concepts, dueCount })
     }
   )
 
@@ -87,59 +92,64 @@ export async function reviewRoutes(
         return reply.code(401).send({ error: 'Unauthorized' })
       }
 
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.code(401).send({ error: 'User not found' })
+      try {
+        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+        if (!user) {
+          return reply.code(401).send({ error: 'User not found' })
+        }
+
+        // Resolve quality — accept either a number or a label
+        let quality: number
+        const rawQuality = request.body.quality
+        if (typeof rawQuality === 'string' && rawQuality in QUALITY_MAP) {
+          quality = QUALITY_MAP[rawQuality as QualityLabel]
+        } else if (typeof rawQuality === 'number' && rawQuality >= 0 && rawQuality <= 5) {
+          quality = rawQuality
+        } else {
+          return reply.code(400).send({ error: 'quality must be 0-5 or one of: again, hard, good, easy' })
+        }
+
+        const schedule = await reviewData.getOrCreateSchedule(conceptId, user.id)
+
+        const result = sm2({
+          quality,
+          easeFactor: schedule.easeFactor,
+          interval: schedule.interval,
+          repetitions: schedule.repetitions,
+        })
+
+        // Update the schedule
+        await reviewData.updateSchedule(schedule.id, {
+          easeFactor: result.easeFactor,
+          interval: result.interval,
+          repetitions: result.repetitions,
+          nextReviewAt: result.nextReviewAt,
+          lastReviewedAt: new Date(),
+          totalReviews: schedule.totalReviews + 1,
+          correctReviews: schedule.correctReviews + (quality >= 3 ? 1 : 0),
+        })
+
+        // Auto-transition concept state
+        await conceptsData.updateConcept(conceptId, user.id, {
+          state: result.conceptState,
+        })
+
+        // Track daily activity (non-blocking)
+        statsData.updateDailyActivity(user.id, 'reviewsCompleted').catch(console.error)
+        if (quality >= 3) {
+          statsData.updateDailyActivity(user.id, 'correctReviews').catch(console.error)
+        }
+
+        return reply.send({
+          message: 'Review recorded',
+          nextReviewAt: result.nextReviewAt,
+          interval: result.interval,
+          conceptState: result.conceptState,
+        })
+      } catch (error) {
+        request.log.error(error, 'Failed to record review result')
+        return reply.code(500).send({ error: 'Failed to record review result' })
       }
-
-      // Resolve quality — accept either a number or a label
-      let quality: number
-      const rawQuality = request.body.quality
-      if (typeof rawQuality === 'string' && rawQuality in QUALITY_MAP) {
-        quality = QUALITY_MAP[rawQuality as QualityLabel]
-      } else if (typeof rawQuality === 'number' && rawQuality >= 0 && rawQuality <= 5) {
-        quality = rawQuality
-      } else {
-        return reply.code(400).send({ error: 'quality must be 0-5 or one of: again, hard, good, easy' })
-      }
-
-      const schedule = await reviewData.getOrCreateSchedule(conceptId, user.id)
-
-      const result = sm2({
-        quality,
-        easeFactor: schedule.easeFactor,
-        interval: schedule.interval,
-        repetitions: schedule.repetitions,
-      })
-
-      // Update the schedule
-      await reviewData.updateSchedule(schedule.id, {
-        easeFactor: result.easeFactor,
-        interval: result.interval,
-        repetitions: result.repetitions,
-        nextReviewAt: result.nextReviewAt,
-        lastReviewedAt: new Date(),
-        totalReviews: schedule.totalReviews + 1,
-        correctReviews: schedule.correctReviews + (quality >= 3 ? 1 : 0),
-      })
-
-      // Auto-transition concept state
-      await conceptsData.updateConcept(conceptId, user.id, {
-        state: result.conceptState,
-      })
-
-      // Track daily activity (non-blocking)
-      statsData.updateDailyActivity(user.id, 'reviewsCompleted').catch(console.error)
-      if (quality >= 3) {
-        statsData.updateDailyActivity(user.id, 'correctReviews').catch(console.error)
-      }
-
-      return reply.send({
-        message: 'Review recorded',
-        nextReviewAt: result.nextReviewAt,
-        interval: result.interval,
-        conceptState: result.conceptState,
-      })
     }
   )
 
@@ -153,13 +163,18 @@ export async function reviewRoutes(
         return reply.code(401).send({ error: 'Unauthorized' })
       }
 
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.send({ totalReviewed: 0, dueNow: 0, avgAccuracy: 0 })
-      }
+      try {
+        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+        if (!user) {
+          return reply.send({ totalReviewed: 0, dueNow: 0, avgAccuracy: 0 })
+        }
 
-      const stats = await reviewData.getReviewStats(user.id)
-      return reply.send(stats)
+        const stats = await reviewData.getReviewStats(user.id)
+        return reply.send(stats)
+      } catch (error) {
+        request.log.error(error, 'Failed to retrieve review stats')
+        return reply.code(500).send({ error: 'Failed to retrieve review stats' })
+      }
     }
   )
 
@@ -173,87 +188,92 @@ export async function reviewRoutes(
         return reply.code(401).send({ error: 'Unauthorized' })
       }
 
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.send({ questions: [] })
-      }
-
-      // Ensure schedules exist
-      await reviewData.ensureSchedulesExist(user.id)
-
-      const count = parseInt(request.query.count ?? '', 10) || 10
-      const type = request.query.type ?? 'flashcard'
-
-      // For contextual-recall, fetch concepts with context data; fall back to due, then any
-      if (type === 'contextual-recall') {
-        let dueConcepts = await reviewData.getDueConceptsWithContext(user.id, count)
-        if (dueConcepts.length === 0) {
-          dueConcepts = await reviewData.getDueConcepts(user.id, count)
+      try {
+        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+        if (!user) {
+          return reply.send({ questions: [] })
         }
+
+        // Ensure schedules exist
+        await reviewData.ensureSchedulesExist(user.id)
+
+        const count = parseInt(request.query.count ?? '', 10) || 10
+        const type = request.query.type ?? 'flashcard'
+
+        // For contextual-recall, fetch concepts with context data; fall back to due, then any
+        if (type === 'contextual-recall') {
+          let dueConcepts = await reviewData.getDueConceptsWithContext(user.id, count)
+          if (dueConcepts.length === 0) {
+            dueConcepts = await reviewData.getDueConcepts(user.id, count)
+          }
+          if (dueConcepts.length === 0) {
+            dueConcepts = await reviewData.getAnyConcepts(user.id, count)
+          }
+          const questions = dueConcepts.map((concept) => ({
+            conceptId: concept.id,
+            concept: concept.concept,
+            translation: concept.translation,
+            contextBefore: concept.contextBefore,
+            contextAfter: concept.contextAfter,
+            sourceLanguage: concept.sourceLanguage,
+            targetLanguage: concept.targetLanguage,
+            phoneticApproximation: concept.phoneticApproximation,
+            schedule: concept.schedule,
+          }))
+          return reply.send({ questions })
+        }
+
+        // Fetch due concepts, falling back to any concepts if none are due
+        let dueConcepts = await reviewData.getDueConcepts(user.id, count)
         if (dueConcepts.length === 0) {
           dueConcepts = await reviewData.getAnyConcepts(user.id, count)
         }
+
+        if (type === 'multiple-choice') {
+          // For each concept, generate distractors
+          const questions = await Promise.all(
+            dueConcepts.map(async (concept) => {
+              const distractors = await reviewData.getRandomDistractors(
+                user.id,
+                concept.id,
+                3
+              )
+              // Combine correct answer with distractors and shuffle
+              const options = [concept.translation, ...distractors]
+                .sort(() => Math.random() - 0.5)
+
+              return {
+                conceptId: concept.id,
+                concept: concept.concept,
+                sourceLanguage: concept.sourceLanguage,
+                targetLanguage: concept.targetLanguage,
+                phoneticApproximation: concept.phoneticApproximation,
+                correctAnswer: concept.translation,
+                options,
+                schedule: concept.schedule,
+              }
+            })
+          )
+          return reply.send({ questions })
+        }
+
+        // Flashcard or type-answer — just return concepts with schedule info
         const questions = dueConcepts.map((concept) => ({
           conceptId: concept.id,
           concept: concept.concept,
           translation: concept.translation,
-          contextBefore: concept.contextBefore,
-          contextAfter: concept.contextAfter,
           sourceLanguage: concept.sourceLanguage,
           targetLanguage: concept.targetLanguage,
           phoneticApproximation: concept.phoneticApproximation,
+          commonUsage: concept.commonUsage,
           schedule: concept.schedule,
         }))
+
         return reply.send({ questions })
+      } catch (error) {
+        request.log.error(error, 'Failed to generate quiz')
+        return reply.code(500).send({ error: 'Failed to generate quiz' })
       }
-
-      // Fetch due concepts, falling back to any concepts if none are due
-      let dueConcepts = await reviewData.getDueConcepts(user.id, count)
-      if (dueConcepts.length === 0) {
-        dueConcepts = await reviewData.getAnyConcepts(user.id, count)
-      }
-
-      if (type === 'multiple-choice') {
-        // For each concept, generate distractors
-        const questions = await Promise.all(
-          dueConcepts.map(async (concept) => {
-            const distractors = await reviewData.getRandomDistractors(
-              user.id,
-              concept.id,
-              3
-            )
-            // Combine correct answer with distractors and shuffle
-            const options = [concept.translation, ...distractors]
-              .sort(() => Math.random() - 0.5)
-
-            return {
-              conceptId: concept.id,
-              concept: concept.concept,
-              sourceLanguage: concept.sourceLanguage,
-              targetLanguage: concept.targetLanguage,
-              phoneticApproximation: concept.phoneticApproximation,
-              correctAnswer: concept.translation,
-              options,
-              schedule: concept.schedule,
-            }
-          })
-        )
-        return reply.send({ questions })
-      }
-
-      // Flashcard or type-answer — just return concepts with schedule info
-      const questions = dueConcepts.map((concept) => ({
-        conceptId: concept.id,
-        concept: concept.concept,
-        translation: concept.translation,
-        sourceLanguage: concept.sourceLanguage,
-        targetLanguage: concept.targetLanguage,
-        phoneticApproximation: concept.phoneticApproximation,
-        commonUsage: concept.commonUsage,
-        schedule: concept.schedule,
-      }))
-
-      return reply.send({ questions })
     }
   )
 
@@ -278,15 +298,20 @@ export async function reviewRoutes(
         return reply.code(400).send({ error: 'Missing required fields: mode, totalItems, correctItems, accuracy' })
       }
 
-      const session = await reviewData.saveSession(user.id, {
-        mode,
-        totalItems,
-        correctItems,
-        accuracy,
-        durationSeconds: durationSeconds ?? null,
-      })
+      try {
+        const session = await reviewData.saveSession(user.id, {
+          mode,
+          totalItems,
+          correctItems,
+          accuracy,
+          durationSeconds: durationSeconds ?? null,
+        })
 
-      return reply.send({ message: 'Session saved', session })
+        return reply.send({ message: 'Session saved', session })
+      } catch (error) {
+        request.log.error(error, 'Failed to save review session')
+        return reply.code(500).send({ error: 'Failed to save review session' })
+      }
     }
   )
 
@@ -300,16 +325,21 @@ export async function reviewRoutes(
         return reply.code(401).send({ error: 'Unauthorized' })
       }
 
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.send({ sessions: [], total: 0 })
+      try {
+        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+        if (!user) {
+          return reply.send({ sessions: [], total: 0 })
+        }
+
+        const limit = parseInt(request.query.limit ?? '', 10) || 20
+        const offset = parseInt(request.query.offset ?? '', 10) || 0
+
+        const result = await reviewData.getSessionHistory(user.id, limit, offset)
+        return reply.send(result)
+      } catch (error) {
+        request.log.error(error, 'Failed to retrieve session history')
+        return reply.code(500).send({ error: 'Failed to retrieve session history' })
       }
-
-      const limit = parseInt(request.query.limit ?? '', 10) || 20
-      const offset = parseInt(request.query.offset ?? '', 10) || 0
-
-      const result = await reviewData.getSessionHistory(user.id, limit, offset)
-      return reply.send(result)
     }
   )
 }

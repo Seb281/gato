@@ -24,7 +24,7 @@ Chrome Manifest V3 extension for context-aware text translation, built with WXT,
 | **Content script** | `src/entrypoints/content/index.tsx` | Text selection → tooltip → translation popup OR sidepanel routing. Injected dynamically (not in manifest) |
 | **Auth bridge** | `src/entrypoints/content/auth-bridge.ts` | Syncs auth from dashboard → extension. Only content script in manifest, only matches dashboard URL |
 | **Popup** | `src/entrypoints/popup/App.tsx` | Settings hub (380px). Per-site enable/disable, due count, "Open Side Panel" button, auth. NOT a translation UI |
-| **Sidepanel** | `src/entrypoints/sidepanel/App.tsx` | Full workspace with 5 tabs: Translate, History, Saved, Review, Settings |
+| **Sidepanel** | `src/entrypoints/sidepanel/App.tsx` | Full workspace with 4 tabs: Translate, History, Saved, Settings |
 
 ### Content Script Lifecycle
 

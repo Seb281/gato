@@ -24,24 +24,29 @@ export async function statsRoutes(
         return reply.code(401).send({ error: 'Unauthorized' })
       }
 
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.send({
-          totalConcepts: 0,
-          currentStreak: 0,
-          longestStreak: 0,
-          avgAccuracy: 0,
-          conceptsByState: {},
-          streakFreezes: 0,
-          freezesUsed: 0,
-          dailyGoal: 10,
-          todayReviews: 0,
-          todayGoalMet: false,
-        })
-      }
+      try {
+        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+        if (!user) {
+          return reply.send({
+            totalConcepts: 0,
+            currentStreak: 0,
+            longestStreak: 0,
+            avgAccuracy: 0,
+            conceptsByState: {},
+            streakFreezes: 0,
+            freezesUsed: 0,
+            dailyGoal: 10,
+            todayReviews: 0,
+            todayGoalMet: false,
+          })
+        }
 
-      const stats = await statsData.getOverviewStats(user.id)
-      return reply.send(stats)
+        const stats = await statsData.getOverviewStats(user.id)
+        return reply.send(stats)
+      } catch (error) {
+        request.log.error(error, 'Failed to retrieve overview stats')
+        return reply.code(500).send({ error: 'Failed to retrieve overview stats' })
+      }
     }
   )
 
@@ -55,14 +60,19 @@ export async function statsRoutes(
         return reply.code(401).send({ error: 'Unauthorized' })
       }
 
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.send({ activity: [] })
-      }
+      try {
+        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+        if (!user) {
+          return reply.send({ activity: [] })
+        }
 
-      const days = request.query.days ? parseInt(request.query.days, 10) : 90
-      const activity = await statsData.getActivityHistory(user.id, days)
-      return reply.send({ activity })
+        const days = request.query.days ? parseInt(request.query.days, 10) : 90
+        const activity = await statsData.getActivityHistory(user.id, days)
+        return reply.send({ activity })
+      } catch (error) {
+        request.log.error(error, 'Failed to retrieve activity history')
+        return reply.code(500).send({ error: 'Failed to retrieve activity history' })
+      }
     }
   )
 }

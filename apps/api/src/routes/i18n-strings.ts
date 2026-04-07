@@ -269,18 +269,13 @@ export const UI_STRINGS: Record<string, string> = {
   // Extension popup
   "ext.title": "Context-Aware Translator",
   "ext.enabledOnSite": "Enabled on this site",
-  "ext.disabledOnSite": "Not enabled on this site",
   "ext.enableSite": "Enable on this site",
-  "ext.disableSite": "Disable on this site",
   "ext.openSidePanel": "Open side panel",
   "ext.displayLanguage": "Display Language",
   "ext.targetLanguage": "Target Language",
   "ext.personalContext": "Personal Context",
   "ext.personalContextOptional": "(optional)",
   "ext.personalContextHint": "Help improve translation relevance",
-  "ext.saveSettings": "Save Settings",
-  "ext.savePreferences": "Save Preferences",
-  "ext.saved": "Saved!",
   "ext.howToUse": "How to Use",
   "ext.anyPage": "On any page (no setup needed)",
   "ext.anyPageDesc":
@@ -296,14 +291,11 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.signedIn": "Signed in",
   "ext.logout": "Logout",
   "ext.loadingSession": "Loading session...",
-  "ext.enabledSitesLabel": "Enabled Sites",
   "ext.remove": "Remove",
   "ext.notAvailable": "Translation is not available on this page.",
   "ext.wordsDue": "{count} {words} due",
   "ext.quickReview": "Quick Review",
-  "ext.manageInSettings": "Manage enabled websites in settings",
-  "ext.popupDesc":
-    "Translate any text, in context. Enable on a site for automatic activation, or right-click selected text to translate anywhere.",
+  "ext.manageInSettings": "Manage sites in the side panel settings.",
 
   // Extension auth
   "ext.auth.waitingGoogle": "Waiting for Google sign-in...",
@@ -354,7 +346,6 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.side.noSavedConceptsDesc":
     "Save translations to build your vocabulary.",
   "ext.side.view": "View",
-  "ext.side.charsLeft": "{count} left",
   "ext.side.signInToSync":
     "Sign in via the extension popup to sync settings across devices.",
   "ext.side.review": "Review",
@@ -362,20 +353,16 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.side.manageSites": "Manage Sites",
   "ext.side.noSites": "No sites enabled yet.",
   "ext.side.noSitesDesc": "Enable translation on sites via the extension popup.",
-  "ext.side.enableSitePrompt": "This site isn't enabled yet. Enable it to translate text by selecting it.",
-  "ext.side.enableHere": "Enable on this site",
+  "ext.side.enableSitePrompt": "Enable translation on this site?",
+  "ext.side.enableHere": "Enable",
 
   // Extension sidepanel - Translate tab
   "ext.side.translate": "Translate",
-  "ext.side.autoFill": "Auto-fill from page selection",
-  "ext.side.translatingTo": "Translating to {language}",
-  "ext.side.changeInSettings": "Change in Settings",
   "ext.side.sourceText": "Enter text to translate...",
   "ext.side.translating": "Translating...",
   "ext.side.translateButton": "Translate",
   "ext.side.saveConceptButton": "Save to vocabulary",
   "ext.side.conceptSaved": "Saved to vocabulary!",
-  "ext.side.conceptAlreadySaved": "Already saved",
   "ext.side.saveFailed": "Failed to save",
   "ext.side.translationError": "Translation failed. Try again.",
   "ext.side.detectedLanguage": "Detected: {language}",
@@ -397,7 +384,7 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.popup.saveConcept": "Save concept for review",
   "ext.popup.updateTranslation": "Update translation",
   "ext.popup.addNew": "Add new",
-  "ext.popup.context": "Context",
+  "ext.popup.context": "Get details on grammar and usage",
   "ext.popup.translation": "Translation",
   "ext.popup.changeLanguage": "Change target language",
   "ext.popup.retranslate": "Re-translate",
@@ -407,8 +394,7 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.popup.grammar": "Grammar",
   "ext.popup.frequency": "Frequency",
   "ext.popup.related": "Related",
-  "ext.popup.translate": "Translate",
 };
 
 export type StringKey = keyof typeof UI_STRINGS;
-export const STRINGS_VERSION = "7";
+export const STRINGS_VERSION = "8";

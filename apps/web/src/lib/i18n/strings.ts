@@ -273,6 +273,7 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.enableSite": "Enable on this site",
   "ext.disableSite": "Disable on this site",
   "ext.openSidePanel": "Open side panel",
+  "ext.displayLanguage": "Display Language",
   "ext.targetLanguage": "Target Language",
   "ext.personalContext": "Personal Context",
   "ext.personalContextOptional": "(optional)",
@@ -300,7 +301,7 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.notAvailable": "Translation is not available on this page.",
   "ext.wordsDue": "{count} {words} due",
   "ext.quickReview": "Quick Review",
-  "ext.manageInSettings": "Manage enabled websites in settings",
+  "ext.manageInSettings": "Manage sites in the side panel settings.",
   "ext.popupDesc":
     "Translate any text, in context. Enable on a site for automatic activation, or right-click selected text to translate anywhere.",
 
@@ -361,8 +362,8 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.side.manageSites": "Manage Sites",
   "ext.side.noSites": "No sites enabled yet.",
   "ext.side.noSitesDesc": "Enable translation on sites via the extension popup.",
-  "ext.side.enableSitePrompt": "This site isn't enabled yet. Enable it to translate text by selecting it.",
-  "ext.side.enableHere": "Enable on this site",
+  "ext.side.enableSitePrompt": "Enable translation on this site?",
+  "ext.side.enableHere": "Enable",
 
   // Extension sidepanel - Translate tab
   "ext.side.translate": "Translate",

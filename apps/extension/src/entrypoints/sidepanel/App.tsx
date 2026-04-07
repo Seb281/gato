@@ -11,7 +11,6 @@ import {
   Settings,
   Check,
   ExternalLink,
-  BookOpen,
   Bell,
   X,
   MessageSquare,
@@ -24,7 +23,6 @@ import {
   TooltipContent,
   TooltipProvider,
 } from '@/components/ui/tooltip'
-import QuickReview from '@/components/QuickReview'
 import TranslateTab from '@/components/TranslateTab'
 import type { Session } from '@supabase/supabase-js'
 import { useTranslation } from '@/lib/i18n/useTranslation'
@@ -47,7 +45,7 @@ type SavedConcept = {
   createdAt: string
 }
 
-type Tab = 'translate' | 'history' | 'saved' | 'review' | 'settings'
+type Tab = 'translate' | 'history' | 'saved' | 'settings'
 
 const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD_URL
 
@@ -56,7 +54,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('translate')
   const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [dueCount, setDueCount] = useState(0)
   const [isSiteEnabled, setIsSiteEnabled] = useState(true) // default true to avoid flash
   const [currentSitePattern, setCurrentSitePattern] = useState<string | null>(
     null,
@@ -104,17 +101,10 @@ export default function App() {
     )
   }
 
-  const fetchDueCount = useCallback(() => {
-    chrome.runtime.sendMessage({ action: 'getDueCount' }, (response) => {
-      setDueCount(response?.dueCount ?? 0)
-    })
-  }, [])
-
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setIsLoading(false)
-      if (session) fetchDueCount()
     })
 
     const {
@@ -178,11 +168,6 @@ export default function App() {
       icon: <Bookmark className='h-3.5 w-3.5' />,
     },
     {
-      id: 'review',
-      label: t('ext.side.review'),
-      icon: <BookOpen className='h-3.5 w-3.5' />,
-    },
-    {
       id: 'settings',
       label: t('ext.side.settings'),
       icon: <Settings className='h-3.5 w-3.5' />,
@@ -227,15 +212,6 @@ export default function App() {
           )}
           {activeTab === 'history' && <HistoryTab session={session} />}
           {activeTab === 'saved' && <SavedTab session={session} />}
-          {activeTab === 'review' && (
-            <ReviewTab
-              session={session}
-              onComplete={() => {
-                setActiveTab('history')
-                fetchDueCount()
-              }}
-            />
-          )}
           {activeTab === 'settings' && <SettingsTab session={session} />}
         </div>
 
@@ -254,11 +230,6 @@ export default function App() {
                     }`}
                   >
                     {tab.icon}
-                    {tab.id === 'review' && dueCount > 0 && (
-                      <span className='ml-0.5 text-[8px] font-bold text-primary'>
-                        {dueCount}
-                      </span>
-                    )}
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side='top' className='text-xs'>
@@ -572,34 +543,6 @@ function SavedConceptCard({ concept }: { concept: SavedConcept }) {
   )
 }
 
-// --- Review Tab ---
-
-function ReviewTab({
-  session,
-  onComplete,
-}: {
-  session: Session | null
-  onComplete: () => void
-}) {
-  const { t } = useTranslation()
-
-  if (!session) {
-    return (
-      <div className='flex flex-col items-center justify-center h-full px-6 text-center'>
-        <BookOpen className='h-8 w-8 text-muted-foreground/50 mb-3' />
-        <p className='text-sm font-medium text-muted-foreground'>
-          {t('ext.side.signInToReview')}
-        </p>
-        <p className='text-xs text-muted-foreground/70 mt-1'>
-          {t('ext.side.openPopupSignIn')}
-        </p>
-      </div>
-    )
-  }
-
-  return <QuickReview onBack={onComplete} />
-}
-
 // --- Settings Tab ---
 
 function formatHour(hour: number): string {
@@ -628,7 +571,11 @@ function SettingsTab({ session }: { session: Session | null }) {
   // Auto-save to chrome.storage.sync + debounced API save
   useEffect(() => {
     if (!initialLoadDone.current) return
-    chrome.storage.sync.set({ targetLanguage, displayLanguage, personalContext })
+    chrome.storage.sync.set({
+      targetLanguage,
+      displayLanguage,
+      personalContext,
+    })
 
     if (apiSaveTimer.current) clearTimeout(apiSaveTimer.current)
     if (session) {

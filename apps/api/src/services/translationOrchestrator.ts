@@ -90,13 +90,18 @@ async function translateWithLLM(params: TranslateParams): Promise<TranslateResul
     params.personalContext || ''
   )
 
-  const { text: responseText } = await generateText({
-    model: params.model,
-    prompt,
-    temperature: 0,
-  })
+  let result: Record<string, any>
+  try {
+    const { text: responseText } = await generateText({
+      model: params.model,
+      prompt,
+      temperature: 0,
+    })
 
-  const result = extractJSON(responseText) as Record<string, any>
+    result = extractJSON(responseText) as Record<string, any>
+  } catch (error) {
+    throw new Error('LLM translation failed: ' + (error instanceof Error ? error.message : 'unknown error'))
+  }
 
   return {
     contextualTranslation: result.contextualTranslation,

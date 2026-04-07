@@ -106,19 +106,16 @@ export async function translate(
   request: FastifyRequest<{ Body: TranslationRequest }>,
   reply: FastifyReply
 ): Promise<void> {
+  const { text, targetLanguage, sourceLanguage, personalContext, selection, contextBefore, contextAfter } =
+    request.body
+
+  if ((!text && !selection) || !targetLanguage) {
+    return reply.status(400).send({
+      error: 'Missing required fields: text/selection, targetLanguage',
+    })
+  }
+
   try {
-    const { text, targetLanguage, sourceLanguage, personalContext, selection, contextBefore, contextAfter } =
-      request.body
-
-    if ((!text && !selection) || !targetLanguage) {
-      console.error(
-        'Validation error: missing required fields: text/selection, targetLanguage'
-      )
-      return reply.status(400).send({
-        error: 'Missing required fields: text/selection, targetLanguage',
-      })
-    }
-
     // Resolve the model for LLM fallback
     let model: any = google ? google('gemini-3.1-flash-lite-preview') : null
 
@@ -164,7 +161,7 @@ export async function translate(
     return reply.status(200).send(translationResult)
 
   } catch (error) {
-    console.error('Translation error:', error)
+    request.log.error(error, 'Translation error')
     return reply.status(500).send({
       error: 'Translation failed',
       message: error instanceof Error ? error.message : 'Unknown error',
@@ -240,7 +237,7 @@ export async function enrich(
     return reply.status(200).send(enrichmentResult)
 
   } catch (error) {
-    console.error('Enrichment error:', error)
+    request.log.error(error, 'Enrichment error')
     return reply.status(500).send({
       error: 'Enrichment failed',
       message: error instanceof Error ? error.message : 'Unknown error',

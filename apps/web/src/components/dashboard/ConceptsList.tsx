@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -273,9 +274,12 @@ export default function ConceptsList() {
       if (res.ok) {
         setConcepts((prev) => prev.filter((c) => c.id !== id));
         setTotal((prev) => prev - 1);
+      } else {
+        toast.error("Failed to delete concept.");
       }
     } catch (error) {
       console.error("Failed to delete concept:", error);
+      toast.error("Failed to delete concept.");
     } finally {
       setDeletingId(null);
     }
@@ -322,9 +326,12 @@ export default function ConceptsList() {
         clearSelection();
         setDeleteDialogOpen(false);
         fetchConcepts();
+      } else {
+        toast.error("Failed to delete selected concepts.");
       }
     } catch (error) {
       console.error("Failed to bulk delete:", error);
+      toast.error("Failed to delete selected concepts.");
     } finally {
       setBulkLoading(false);
     }
@@ -350,9 +357,12 @@ export default function ConceptsList() {
       if (res.ok) {
         clearSelection();
         fetchConcepts();
+      } else {
+        toast.error("Failed to update status.");
       }
     } catch (error) {
       console.error("Failed to bulk update state:", error);
+      toast.error("Failed to update status.");
     } finally {
       setBulkLoading(false);
     }
@@ -378,9 +388,12 @@ export default function ConceptsList() {
       if (res.ok) {
         clearSelection();
         fetchConcepts();
+      } else {
+        toast.error("Failed to update tags.");
       }
     } catch (error) {
       console.error("Failed to bulk add tag:", error);
+      toast.error("Failed to update tags.");
     } finally {
       setBulkLoading(false);
     }

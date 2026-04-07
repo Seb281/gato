@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Key, ShieldCheck, AlertCircle, Monitor, Sun, Moon, Globe, Plus, X, WifiOff, Target, User, Languages } from "lucide-react";
 import { useTheme } from "next-themes";
+import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const LANGUAGES = [
@@ -178,7 +179,7 @@ export default function SettingsForm() {
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ theme: newTheme }),
-      }).catch(console.error);
+      }).catch(() => toast.error("Theme preference could not be saved."));
     } catch {}
   }
 
@@ -228,9 +229,12 @@ export default function SettingsForm() {
         setTimeout(() => setSaveSuccess(false), 3000);
         // Refresh UI translations in case target language changed
         refreshTranslations();
+      } else {
+        toast.error("Failed to save settings.");
       }
     } catch (error) {
       console.error("Failed to save settings:", error);
+      toast.error("Failed to save settings.");
     } finally {
       setSaving(false);
     }

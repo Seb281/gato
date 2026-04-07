@@ -111,60 +111,65 @@ export async function extensionRoutes(
         return reply.code(401).send({ error: 'Could not get user email' })
       }
 
-      // Find or create user in database
-      // With Supabase, we already have the user object in the request from middleware
-      const userFromAuth = (request as any).user
-      const name = userFromAuth.user_metadata?.full_name ?? userFromAuth.user_metadata?.name
-      
-      const user = await usersData.findOrCreateUser({
-        supabaseId: userId,
-        email,
-        ...(name && { name }),
-      })
+      try {
+        // Find or create user in database
+        // With Supabase, we already have the user object in the request from middleware
+        const userFromAuth = (request as any).user
+        const name = userFromAuth.user_metadata?.full_name ?? userFromAuth.user_metadata?.name
 
-      const { concept, translation, sourceLanguage, targetLanguage, contextBefore, contextAfter, sourceUrl } = request.body
-
-      if (!concept || !translation || !sourceLanguage || !targetLanguage) {
-        return reply.code(400).send({
-          error: 'Missing required fields: concept, translation, sourceLanguage, targetLanguage',
+        const user = await usersData.findOrCreateUser({
+          supabaseId: userId,
+          email,
+          ...(name && { name }),
         })
+
+        const { concept, translation, sourceLanguage, targetLanguage, contextBefore, contextAfter, sourceUrl } = request.body
+
+        if (!concept || !translation || !sourceLanguage || !targetLanguage) {
+          return reply.code(400).send({
+            error: 'Missing required fields: concept, translation, sourceLanguage, targetLanguage',
+          })
+        }
+
+        const existing = await conceptsData.findExistingConcept(
+          user.id,
+          concept,
+          translation,
+          sourceLanguage,
+          targetLanguage
+        )
+
+        if (existing) {
+          return reply.code(409).send({ error: 'Concept already exists', concept: existing })
+        }
+
+        const savedConcept = await conceptsData.saveNewConcept({
+          userId: user.id,
+          concept,
+          translation,
+          sourceLanguage,
+          targetLanguage,
+          ...(contextBefore && { contextBefore }),
+          ...(contextAfter && { contextAfter }),
+          ...(sourceUrl && { sourceUrl }),
+        })
+
+        // Enrich with rich translation data in background (non-blocking)
+        const saved = savedConcept[0]
+        if (saved) {
+          enrichConceptInBackground(saved.id, concept, sourceLanguage, targetLanguage, email)
+          // Track daily activity (non-blocking)
+          statsData.updateDailyActivity(user.id, 'conceptsAdded').catch(console.error)
+        }
+
+        return reply.code(201).send({
+          message: 'Concept saved',
+          concept: saved,
+        })
+      } catch (error) {
+        request.log.error(error, 'Failed to save concept')
+        return reply.code(500).send({ error: 'Failed to save concept' })
       }
-
-      const existing = await conceptsData.findExistingConcept(
-        user.id,
-        concept,
-        translation,
-        sourceLanguage,
-        targetLanguage
-      )
-
-      if (existing) {
-        return reply.code(409).send({ error: 'Concept already exists', concept: existing })
-      }
-
-      const savedConcept = await conceptsData.saveNewConcept({
-        userId: user.id,
-        concept,
-        translation,
-        sourceLanguage,
-        targetLanguage,
-        ...(contextBefore && { contextBefore }),
-        ...(contextAfter && { contextAfter }),
-        ...(sourceUrl && { sourceUrl }),
-      })
-
-      // Enrich with rich translation data in background (non-blocking)
-      const saved = savedConcept[0]
-      if (saved) {
-        enrichConceptInBackground(saved.id, concept, sourceLanguage, targetLanguage, email)
-        // Track daily activity (non-blocking)
-        statsData.updateDailyActivity(user.id, 'conceptsAdded').catch(console.error)
-      }
-
-      return reply.code(201).send({
-        message: 'Concept saved',
-        concept: saved,
-      })
     }
   )
 
@@ -178,80 +183,85 @@ export async function extensionRoutes(
         return reply.code(401).send({ error: 'Unauthorized' })
       }
 
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.code(404).send({ error: 'User not found' })
-      }
+      try {
+        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+        if (!user) {
+          return reply.code(404).send({ error: 'User not found' })
+        }
 
-      const concepts = await conceptsData.getAllConceptsForExport(user.id)
-      const format = request.query.format ?? 'json'
+        const concepts = await conceptsData.getAllConceptsForExport(user.id)
+        const format = request.query.format ?? 'json'
 
-      if (format === 'csv') {
-        const header = 'concept,translation,sourceLanguage,targetLanguage,state,userNotes,createdAt'
-        const rows = concepts.map((c) => {
-          const escape = (v: string | null | undefined) => {
-            if (!v) return ''
-            // Wrap in quotes and escape internal quotes
-            return `"${v.replace(/"/g, '""')}"`
-          }
-          return [
-            escape(c.concept),
-            escape(c.translation),
-            escape(c.sourceLanguage),
-            escape(c.targetLanguage),
-            escape(c.state),
-            escape(c.userNotes),
-            escape(c.createdAt?.toISOString()),
-          ].join(',')
-        })
-        const csv = [header, ...rows].join('\n')
+        if (format === 'csv') {
+          const header = 'concept,translation,sourceLanguage,targetLanguage,state,userNotes,createdAt'
+          const rows = concepts.map((c) => {
+            const escape = (v: string | null | undefined) => {
+              if (!v) return ''
+              // Wrap in quotes and escape internal quotes
+              return `"${v.replace(/"/g, '""')}"`
+            }
+            return [
+              escape(c.concept),
+              escape(c.translation),
+              escape(c.sourceLanguage),
+              escape(c.targetLanguage),
+              escape(c.state),
+              escape(c.userNotes),
+              escape(c.createdAt?.toISOString()),
+            ].join(',')
+          })
+          const csv = [header, ...rows].join('\n')
+
+          return reply
+            .header('Content-Type', 'text/csv; charset=utf-8')
+            .header('Content-Disposition', 'attachment; filename="vocabulary-export.csv"')
+            .send(csv)
+        }
+
+        if (format === 'anki') {
+          // Anki TSV: front\tback
+          const rows = concepts.map((c) => {
+            const front = c.concept
+            const backParts = [c.translation]
+            if (c.phoneticApproximation) backParts.push(`Pronunciation: ${c.phoneticApproximation}`)
+            if (c.grammarRules) backParts.push(`Grammar: ${c.grammarRules}`)
+            if (c.commonUsage) backParts.push(`Usage: ${c.commonUsage}`)
+            if (c.exampleSentence) backParts.push(`Example: ${c.exampleSentence}`)
+            const back = backParts.join('<br>')
+            // Escape tabs in content
+            return `${front.replace(/\t/g, ' ')}\t${back.replace(/\t/g, ' ')}`
+          })
+          const tsv = rows.join('\n')
+
+          return reply
+            .header('Content-Type', 'text/tab-separated-values; charset=utf-8')
+            .header('Content-Disposition', 'attachment; filename="vocabulary-export.txt"')
+            .send(tsv)
+        }
+
+        // Default: JSON
+        const data = concepts.map((c) => ({
+          concept: c.concept,
+          translation: c.translation,
+          sourceLanguage: c.sourceLanguage,
+          targetLanguage: c.targetLanguage,
+          state: c.state,
+          userNotes: c.userNotes,
+          exampleSentence: c.exampleSentence,
+          phoneticApproximation: c.phoneticApproximation,
+          commonUsage: c.commonUsage,
+          grammarRules: c.grammarRules,
+          createdAt: c.createdAt?.toISOString(),
+        }))
 
         return reply
-          .header('Content-Type', 'text/csv; charset=utf-8')
-          .header('Content-Disposition', 'attachment; filename="vocabulary-export.csv"')
-          .send(csv)
+          .header('Content-Type', 'application/json; charset=utf-8')
+          .header('Content-Disposition', 'attachment; filename="vocabulary-export.json"')
+          .send(JSON.stringify(data, null, 2))
+      } catch (error) {
+        request.log.error(error, 'Failed to export concepts')
+        return reply.code(500).send({ error: 'Failed to export concepts' })
       }
-
-      if (format === 'anki') {
-        // Anki TSV: front\tback
-        const rows = concepts.map((c) => {
-          const front = c.concept
-          const backParts = [c.translation]
-          if (c.phoneticApproximation) backParts.push(`Pronunciation: ${c.phoneticApproximation}`)
-          if (c.grammarRules) backParts.push(`Grammar: ${c.grammarRules}`)
-          if (c.commonUsage) backParts.push(`Usage: ${c.commonUsage}`)
-          if (c.exampleSentence) backParts.push(`Example: ${c.exampleSentence}`)
-          const back = backParts.join('<br>')
-          // Escape tabs in content
-          return `${front.replace(/\t/g, ' ')}\t${back.replace(/\t/g, ' ')}`
-        })
-        const tsv = rows.join('\n')
-
-        return reply
-          .header('Content-Type', 'text/tab-separated-values; charset=utf-8')
-          .header('Content-Disposition', 'attachment; filename="vocabulary-export.txt"')
-          .send(tsv)
-      }
-
-      // Default: JSON
-      const data = concepts.map((c) => ({
-        concept: c.concept,
-        translation: c.translation,
-        sourceLanguage: c.sourceLanguage,
-        targetLanguage: c.targetLanguage,
-        state: c.state,
-        userNotes: c.userNotes,
-        exampleSentence: c.exampleSentence,
-        phoneticApproximation: c.phoneticApproximation,
-        commonUsage: c.commonUsage,
-        grammarRules: c.grammarRules,
-        createdAt: c.createdAt?.toISOString(),
-      }))
-
-      return reply
-        .header('Content-Type', 'application/json; charset=utf-8')
-        .header('Content-Disposition', 'attachment; filename="vocabulary-export.json"')
-        .send(JSON.stringify(data, null, 2))
     }
   )
 
@@ -270,84 +280,89 @@ export async function extensionRoutes(
         return reply.code(401).send({ error: 'Could not get user email' })
       }
 
-      const userFromAuth = (request as any).user
-      const name = userFromAuth.user_metadata?.full_name ?? userFromAuth.user_metadata?.name
-      const user = await usersData.findOrCreateUser({
-        supabaseId,
-        email,
-        ...(name && { name }),
-      })
-
-      const { concepts } = request.body
-      if (!Array.isArray(concepts) || concepts.length === 0) {
-        return reply.code(400).send({ error: 'No concepts provided' })
-      }
-
-      const validStates = ['new', 'learning', 'familiar', 'mastered']
-      const errors: string[] = []
-      const validConcepts: ImportConceptItem[] = []
-
-      for (let i = 0; i < concepts.length; i++) {
-        const c = concepts[i]!
-        if (!c.concept || !c.translation || !c.sourceLanguage || !c.targetLanguage) {
-          errors.push(`Row ${i + 1}: missing required fields (concept, translation, sourceLanguage, targetLanguage)`)
-          continue
-        }
-        if (c.state && !validStates.includes(c.state)) {
-          errors.push(`Row ${i + 1}: invalid state "${c.state}"`)
-          continue
-        }
-        validConcepts.push(c)
-      }
-
-      // Deduplicate against existing concepts
-      let imported = 0
-      let skipped = 0
-      const toInsert: Array<{
-        userId: number
-        concept: string
-        translation: string
-        sourceLanguage: string
-        targetLanguage: string
-        state: string
-        userNotes: string | null
-      }> = []
-
-      for (const c of validConcepts) {
-        const existing = await conceptsData.findExistingConcept(
-          user.id,
-          c.concept,
-          c.translation,
-          c.sourceLanguage,
-          c.targetLanguage
-        )
-        if (existing) {
-          skipped++
-          continue
-        }
-        toInsert.push({
-          userId: user.id,
-          concept: c.concept,
-          translation: c.translation,
-          sourceLanguage: c.sourceLanguage,
-          targetLanguage: c.targetLanguage,
-          state: c.state ?? 'new',
-          userNotes: c.userNotes ?? null,
+      try {
+        const userFromAuth = (request as any).user
+        const name = userFromAuth.user_metadata?.full_name ?? userFromAuth.user_metadata?.name
+        const user = await usersData.findOrCreateUser({
+          supabaseId,
+          email,
+          ...(name && { name }),
         })
-      }
 
-      if (toInsert.length > 0) {
-        await conceptsData.bulkInsertConcepts(toInsert)
-        imported = toInsert.length
-      }
+        const { concepts } = request.body
+        if (!Array.isArray(concepts) || concepts.length === 0) {
+          return reply.code(400).send({ error: 'No concepts provided' })
+        }
 
-      return reply.send({
-        message: 'Import complete',
-        imported,
-        skipped,
-        errors,
-        total: concepts.length,
-      })
+        const validStates = ['new', 'learning', 'familiar', 'mastered']
+        const errors: string[] = []
+        const validConcepts: ImportConceptItem[] = []
+
+        for (let i = 0; i < concepts.length; i++) {
+          const c = concepts[i]!
+          if (!c.concept || !c.translation || !c.sourceLanguage || !c.targetLanguage) {
+            errors.push(`Row ${i + 1}: missing required fields (concept, translation, sourceLanguage, targetLanguage)`)
+            continue
+          }
+          if (c.state && !validStates.includes(c.state)) {
+            errors.push(`Row ${i + 1}: invalid state "${c.state}"`)
+            continue
+          }
+          validConcepts.push(c)
+        }
+
+        // Deduplicate against existing concepts
+        let imported = 0
+        let skipped = 0
+        const toInsert: Array<{
+          userId: number
+          concept: string
+          translation: string
+          sourceLanguage: string
+          targetLanguage: string
+          state: string
+          userNotes: string | null
+        }> = []
+
+        for (const c of validConcepts) {
+          const existing = await conceptsData.findExistingConcept(
+            user.id,
+            c.concept,
+            c.translation,
+            c.sourceLanguage,
+            c.targetLanguage
+          )
+          if (existing) {
+            skipped++
+            continue
+          }
+          toInsert.push({
+            userId: user.id,
+            concept: c.concept,
+            translation: c.translation,
+            sourceLanguage: c.sourceLanguage,
+            targetLanguage: c.targetLanguage,
+            state: c.state ?? 'new',
+            userNotes: c.userNotes ?? null,
+          })
+        }
+
+        if (toInsert.length > 0) {
+          await conceptsData.bulkInsertConcepts(toInsert)
+          imported = toInsert.length
+        }
+
+        return reply.send({
+          message: 'Import complete',
+          imported,
+          skipped,
+          errors,
+          total: concepts.length,
+        })
+      } catch (error) {
+        request.log.error(error, 'Failed to import concepts')
+        return reply.code(500).send({ error: 'Failed to import concepts' })
+      }
     }
   )
 
@@ -366,17 +381,22 @@ export async function extensionRoutes(
         return reply.code(400).send({ error: 'Missing required query params: concept, sourceLanguage, targetLanguage' })
       }
 
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
+      try {
+        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+        if (!user) {
+          return reply.send({ found: false })
+        }
+
+        const found = await conceptsData.findConceptByText(user.id, concept, sourceLanguage, targetLanguage)
+
+        if (found) {
+          return reply.send({ found: true, concept: found })
+        }
         return reply.send({ found: false })
+      } catch (error) {
+        request.log.error(error, 'Failed to look up concept')
+        return reply.code(500).send({ error: 'Failed to look up concept' })
       }
-
-      const found = await conceptsData.findConceptByText(user.id, concept, sourceLanguage, targetLanguage)
-
-      if (found) {
-        return reply.send({ found: true, concept: found })
-      }
-      return reply.send({ found: false })
     }
   )
 
@@ -390,13 +410,18 @@ export async function extensionRoutes(
         return reply.code(401).send({ error: 'Unauthorized' })
       }
 
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.send({ languages: [] })
-      }
+      try {
+        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+        if (!user) {
+          return reply.send({ languages: [] })
+        }
 
-      const languages = await conceptsData.getLanguagePairs(user.id)
-      return reply.send({ languages })
+        const languages = await conceptsData.getLanguagePairs(user.id)
+        return reply.send({ languages })
+      } catch (error) {
+        request.log.error(error, 'Failed to retrieve languages')
+        return reply.code(500).send({ error: 'Failed to retrieve languages' })
+      }
     }
   )
 
@@ -420,8 +445,13 @@ export async function extensionRoutes(
         return reply.code(400).send({ error: 'ids array is required and must not be empty' })
       }
 
-      const deleted = await conceptsData.bulkDeleteConcepts(user.id, ids)
-      return reply.send({ message: 'Concepts deleted', deleted })
+      try {
+        const deleted = await conceptsData.bulkDeleteConcepts(user.id, ids)
+        return reply.send({ message: 'Concepts deleted', deleted })
+      } catch (error) {
+        request.log.error(error, 'Failed to delete concepts')
+        return reply.code(500).send({ error: 'Failed to delete concepts' })
+      }
     }
   )
 
@@ -454,29 +484,34 @@ export async function extensionRoutes(
         return reply.code(400).send({ error: `Invalid state. Must be one of: ${validStates.join(', ')}` })
       }
 
-      let updated = 0
+      try {
+        let updated = 0
 
-      if (state !== undefined) {
-        updated = await conceptsData.bulkUpdateConceptState(user.id, ids, state)
-      }
-
-      if (addTagId !== undefined) {
-        const tag = await tagsData.findTagById(addTagId, user.id)
-        if (!tag) {
-          return reply.code(404).send({ error: 'Tag not found' })
+        if (state !== undefined) {
+          updated = await conceptsData.bulkUpdateConceptState(user.id, ids, state)
         }
-        await tagsData.bulkAddTag(ids, addTagId, user.id)
-      }
 
-      if (removeTagId !== undefined) {
-        const tag = await tagsData.findTagById(removeTagId, user.id)
-        if (!tag) {
-          return reply.code(404).send({ error: 'Tag not found' })
+        if (addTagId !== undefined) {
+          const tag = await tagsData.findTagById(addTagId, user.id)
+          if (!tag) {
+            return reply.code(404).send({ error: 'Tag not found' })
+          }
+          await tagsData.bulkAddTag(ids, addTagId, user.id)
         }
-        await tagsData.bulkRemoveTag(ids, removeTagId, user.id)
-      }
 
-      return reply.send({ message: 'Concepts updated', updated })
+        if (removeTagId !== undefined) {
+          const tag = await tagsData.findTagById(removeTagId, user.id)
+          if (!tag) {
+            return reply.code(404).send({ error: 'Tag not found' })
+          }
+          await tagsData.bulkRemoveTag(ids, removeTagId, user.id)
+        }
+
+        return reply.send({ message: 'Concepts updated', updated })
+      } catch (error) {
+        request.log.error(error, 'Failed to update concepts')
+        return reply.code(500).send({ error: 'Failed to update concepts' })
+      }
     }
   )
 
@@ -495,78 +530,83 @@ export async function extensionRoutes(
         return reply.code(401).send({ error: 'Unauthorized' })
       }
 
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.send({ message: 'Concepts retrieved', concepts: [], total: 0 })
-      }
-
-      const { search, language, state, tags, reviewStatus, sortBy, sortOrder, page, limit } = request.query
-
-      // If tag filter is provided, resolve matching concept IDs first
-      let filteredConceptIds: number[] | undefined
-      if (tags) {
-        const tagIds = tags.split(',').map((id) => parseInt(id.trim(), 10)).filter((id) => !isNaN(id))
-        if (tagIds.length > 0) {
-          filteredConceptIds = await tagsData.getConceptIdsWithAllTags(tagIds)
-          if (filteredConceptIds.length === 0) {
-            return reply.send({ message: 'Concepts retrieved', concepts: [], total: 0 })
-          }
+      try {
+        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+        if (!user) {
+          return reply.send({ message: 'Concepts retrieved', concepts: [], total: 0 })
         }
-      }
 
-      // If review status filter is provided, resolve matching concept IDs
-      if (reviewStatus) {
-        const validStatuses = ['overdue', 'due-today', 'reviewed', 'new'] as const
-        if (validStatuses.includes(reviewStatus as typeof validStatuses[number])) {
-          const reviewConceptIds = await reviewData.getConceptIdsByReviewStatus(
-            user.id,
-            reviewStatus as typeof validStatuses[number]
-          )
-          if (reviewConceptIds.length === 0) {
-            return reply.send({ message: 'Concepts retrieved', concepts: [], total: 0 })
-          }
-          // Intersect with tag filter if both are present
-          if (filteredConceptIds) {
-            const reviewSet = new Set(reviewConceptIds)
-            filteredConceptIds = filteredConceptIds.filter((id) => reviewSet.has(id))
+        const { search, language, state, tags, reviewStatus, sortBy, sortOrder, page, limit } = request.query
+
+        // If tag filter is provided, resolve matching concept IDs first
+        let filteredConceptIds: number[] | undefined
+        if (tags) {
+          const tagIds = tags.split(',').map((id) => parseInt(id.trim(), 10)).filter((id) => !isNaN(id))
+          if (tagIds.length > 0) {
+            filteredConceptIds = await tagsData.getConceptIdsWithAllTags(tagIds)
             if (filteredConceptIds.length === 0) {
               return reply.send({ message: 'Concepts retrieved', concepts: [], total: 0 })
             }
-          } else {
-            filteredConceptIds = reviewConceptIds
           }
         }
+
+        // If review status filter is provided, resolve matching concept IDs
+        if (reviewStatus) {
+          const validStatuses = ['overdue', 'due-today', 'reviewed', 'new'] as const
+          if (validStatuses.includes(reviewStatus as typeof validStatuses[number])) {
+            const reviewConceptIds = await reviewData.getConceptIdsByReviewStatus(
+              user.id,
+              reviewStatus as typeof validStatuses[number]
+            )
+            if (reviewConceptIds.length === 0) {
+              return reply.send({ message: 'Concepts retrieved', concepts: [], total: 0 })
+            }
+            // Intersect with tag filter if both are present
+            if (filteredConceptIds) {
+              const reviewSet = new Set(reviewConceptIds)
+              filteredConceptIds = filteredConceptIds.filter((id) => reviewSet.has(id))
+              if (filteredConceptIds.length === 0) {
+                return reply.send({ message: 'Concepts retrieved', concepts: [], total: 0 })
+              }
+            } else {
+              filteredConceptIds = reviewConceptIds
+            }
+          }
+        }
+
+        const result = await conceptsData.searchConcepts(user.id, {
+          search,
+          language,
+          state,
+          conceptIds: filteredConceptIds,
+          sortBy,
+          sortOrder,
+          page: page ? parseInt(page, 10) : undefined,
+          limit: limit ? parseInt(limit, 10) : undefined,
+        })
+
+        // Batch-load tags and review schedules for returned concepts
+        const conceptIds = result.concepts.map((c) => c.id)
+        const [tagsMap, reviewMap] = await Promise.all([
+          tagsData.getTagsForConcepts(conceptIds),
+          reviewData.getReviewSchedulesForConcepts(conceptIds),
+        ])
+
+        const conceptsWithMeta = result.concepts.map((c) => ({
+          ...c,
+          tags: tagsMap.get(c.id) ?? [],
+          nextReviewAt: reviewMap.get(c.id)?.nextReviewAt?.toISOString() ?? null,
+        }))
+
+        return reply.send({
+          message: 'Concepts retrieved',
+          concepts: conceptsWithMeta,
+          total: result.total,
+        })
+      } catch (error) {
+        request.log.error(error, 'Failed to retrieve concepts')
+        return reply.code(500).send({ error: 'Failed to retrieve concepts' })
       }
-
-      const result = await conceptsData.searchConcepts(user.id, {
-        search,
-        language,
-        state,
-        conceptIds: filteredConceptIds,
-        sortBy,
-        sortOrder,
-        page: page ? parseInt(page, 10) : undefined,
-        limit: limit ? parseInt(limit, 10) : undefined,
-      })
-
-      // Batch-load tags and review schedules for returned concepts
-      const conceptIds = result.concepts.map((c) => c.id)
-      const [tagsMap, reviewMap] = await Promise.all([
-        tagsData.getTagsForConcepts(conceptIds),
-        reviewData.getReviewSchedulesForConcepts(conceptIds),
-      ])
-
-      const conceptsWithMeta = result.concepts.map((c) => ({
-        ...c,
-        tags: tagsMap.get(c.id) ?? [],
-        nextReviewAt: reviewMap.get(c.id)?.nextReviewAt?.toISOString() ?? null,
-      }))
-
-      return reply.send({
-        message: 'Concepts retrieved',
-        concepts: conceptsWithMeta,
-        total: result.total,
-      })
     }
   )
 
@@ -585,40 +625,45 @@ export async function extensionRoutes(
         return reply.code(401).send({ error: 'Unauthorized' })
       }
 
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.code(404).send({ error: 'User not found' })
+      try {
+        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+        if (!user) {
+          return reply.code(404).send({ error: 'User not found' })
+        }
+
+        const concept = await conceptsData.findConceptById(conceptId, user.id)
+        if (!concept) {
+          return reply.code(404).send({ error: 'Concept not found' })
+        }
+
+        // Get tags for this concept
+        const tagsMap = await tagsData.getTagsForConcepts([conceptId])
+        const tags = tagsMap.get(conceptId) ?? []
+
+        // Get review schedule if it exists
+        const schedule = await reviewData.getScheduleForConcept(conceptId, user.id)
+
+        return reply.send({
+          concept: {
+            ...concept,
+            tags,
+            schedule: schedule
+              ? {
+                  easeFactor: schedule.easeFactor,
+                  interval: schedule.interval,
+                  repetitions: schedule.repetitions,
+                  nextReviewAt: schedule.nextReviewAt,
+                  lastReviewedAt: schedule.lastReviewedAt,
+                  totalReviews: schedule.totalReviews,
+                  correctReviews: schedule.correctReviews,
+                }
+              : null,
+          },
+        })
+      } catch (error) {
+        request.log.error(error, 'Failed to retrieve concept')
+        return reply.code(500).send({ error: 'Failed to retrieve concept' })
       }
-
-      const concept = await conceptsData.findConceptById(conceptId, user.id)
-      if (!concept) {
-        return reply.code(404).send({ error: 'Concept not found' })
-      }
-
-      // Get tags for this concept
-      const tagsMap = await tagsData.getTagsForConcepts([conceptId])
-      const tags = tagsMap.get(conceptId) ?? []
-
-      // Get review schedule if it exists
-      const schedule = await reviewData.getScheduleForConcept(conceptId, user.id)
-
-      return reply.send({
-        concept: {
-          ...concept,
-          tags,
-          schedule: schedule
-            ? {
-                easeFactor: schedule.easeFactor,
-                interval: schedule.interval,
-                repetitions: schedule.repetitions,
-                nextReviewAt: schedule.nextReviewAt,
-                lastReviewedAt: schedule.lastReviewedAt,
-                totalReviews: schedule.totalReviews,
-                correctReviews: schedule.correctReviews,
-              }
-            : null,
-        },
-      })
     }
   )
 
@@ -660,12 +705,17 @@ export async function extensionRoutes(
         return reply.code(400).send({ error: 'At least one field must be provided' })
       }
 
-      const updated = await conceptsData.updateConcept(conceptId, user.id, fields)
-      if (!updated) {
-        return reply.code(404).send({ error: 'Concept not found' })
-      }
+      try {
+        const updated = await conceptsData.updateConcept(conceptId, user.id, fields)
+        if (!updated) {
+          return reply.code(404).send({ error: 'Concept not found' })
+        }
 
-      return reply.send({ message: 'Concept updated', concept: updated })
+        return reply.send({ message: 'Concept updated', concept: updated })
+      } catch (error) {
+        request.log.error(error, 'Failed to update concept')
+        return reply.code(500).send({ error: 'Failed to update concept' })
+      }
     }
   )
 
@@ -689,35 +739,40 @@ export async function extensionRoutes(
         return reply.code(401).send({ error: 'Could not get user email' })
       }
 
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.code(401).send({ error: 'User not found' })
-      }
+      try {
+        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+        if (!user) {
+          return reply.code(401).send({ error: 'User not found' })
+        }
 
-      const concept = await conceptsData.findConceptById(conceptId, user.id)
-      if (!concept) {
-        return reply.code(404).send({ error: 'Concept not found' })
-      }
+        const concept = await conceptsData.findConceptById(conceptId, user.id)
+        if (!concept) {
+          return reply.code(404).send({ error: 'Concept not found' })
+        }
 
-      const settings = await userContextData.retrieveUserContext(email)
-      const model = resolveModel(settings)
+        const settings = await userContextData.retrieveUserContext(email)
+        const model = resolveModel(settings)
 
-      const prompt = `Generate a natural, everyday example sentence using the word/phrase "${concept.concept}" (${concept.sourceLanguage}).
+        const prompt = `Generate a natural, everyday example sentence using the word/phrase "${concept.concept}" (${concept.sourceLanguage}).
 Include the translation in ${concept.targetLanguage}.
 Format your response as JSON: { "exampleSentence": "<sentence in ${concept.sourceLanguage}> — <translation in ${concept.targetLanguage}>" }
 Keep it simple and practical. Only return the JSON, nothing else.`
 
-      const { text } = await generateText({ model, prompt, temperature: 0.7 })
+        const { text } = await generateText({ model, prompt, temperature: 0.7 })
 
-      let exampleSentence: string
-      try {
-        const parsed = JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim())
-        exampleSentence = parsed.exampleSentence
-      } catch {
-        exampleSentence = text.trim()
+        let exampleSentence: string
+        try {
+          const parsed = JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim())
+          exampleSentence = parsed.exampleSentence
+        } catch {
+          exampleSentence = text.trim()
+        }
+
+        return reply.send({ exampleSentence })
+      } catch (error) {
+        request.log.error(error, 'Failed to generate example sentence')
+        return reply.code(500).send({ error: 'Failed to generate example sentence' })
       }
-
-      return reply.send({ exampleSentence })
     }
   )
 
@@ -737,21 +792,26 @@ Keep it simple and practical. Only return the JSON, nothing else.`
         return reply.code(401).send({ error: 'Unauthorized' })
       }
 
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.code(401).send({ error: 'User not found' })
+      try {
+        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+        if (!user) {
+          return reply.code(401).send({ error: 'User not found' })
+        }
+
+        const deletedConcept = await conceptsData.deleteConcept(conceptId, user.id)
+
+        if (deletedConcept.length === 0) {
+          return reply.code(404).send({ error: 'Concept not found' })
+        }
+
+        return reply.send({
+          message: 'Concept deleted',
+          concept: deletedConcept[0],
+        })
+      } catch (error) {
+        request.log.error(error, 'Failed to delete concept')
+        return reply.code(500).send({ error: 'Failed to delete concept' })
       }
-
-      const deletedConcept = await conceptsData.deleteConcept(conceptId, user.id)
-
-      if (deletedConcept.length === 0) {
-        return reply.code(404).send({ error: 'Concept not found' })
-      }
-
-      return reply.send({
-        message: 'Concept deleted',
-        concept: deletedConcept[0],
-      })
     }
   )
 
@@ -765,33 +825,38 @@ Keep it simple and practical. Only return the JSON, nothing else.`
         return reply.code(401).send({ error: 'Could not get user email' })
       }
 
-      const supabaseId = getAuthenticatedUserId(request)
-      const user = supabaseId ? await usersData.retrieveUserBySupabaseId(supabaseId) : null
-      const settings = await userContextData.retrieveUserContext(email)
+      try {
+        const supabaseId = getAuthenticatedUserId(request)
+        const user = supabaseId ? await usersData.retrieveUserBySupabaseId(supabaseId) : null
+        const settings = await userContextData.retrieveUserContext(email)
 
-      // Mask API key for security
-      let maskedKey = null
-      if (settings.customApiKey) {
-        const key = settings.customApiKey
-        if (key.length > 8) {
-          maskedKey = `${key.slice(0, 3)}...${key.slice(-4)}`
-        } else {
-          maskedKey = '***'
+        // Mask API key for security
+        let maskedKey = null
+        if (settings.customApiKey) {
+          const key = settings.customApiKey
+          if (key.length > 8) {
+            maskedKey = `${key.slice(0, 3)}...${key.slice(-4)}`
+          } else {
+            maskedKey = '***'
+          }
         }
-      }
 
-      return reply.send({
-        name: user?.name ?? null,
-        targetLanguage: settings.targetLanguage,
-        personalContext: settings.context,
-        preferredProvider: settings.preferredProvider,
-        maskedApiKey: maskedKey,
-        hasCustomApiKey: !!settings.customApiKey,
-        dailyGoal: user?.dailyGoal ?? 10,
-        theme: user?.theme ?? 'system',
-        displayLanguage: user?.displayLanguage ?? 'English',
-        streakFreezes: user?.streakFreezes ?? 0,
-      })
+        return reply.send({
+          name: user?.name ?? null,
+          targetLanguage: settings.targetLanguage,
+          personalContext: settings.context,
+          preferredProvider: settings.preferredProvider,
+          maskedApiKey: maskedKey,
+          hasCustomApiKey: !!settings.customApiKey,
+          dailyGoal: user?.dailyGoal ?? 10,
+          theme: user?.theme ?? 'system',
+          displayLanguage: user?.displayLanguage ?? 'English',
+          streakFreezes: user?.streakFreezes ?? 0,
+        })
+      } catch (error) {
+        request.log.error(error, 'Failed to retrieve settings')
+        return reply.code(500).send({ error: 'Failed to retrieve settings' })
+      }
     }
   )
 
@@ -828,78 +893,83 @@ Keep it simple and practical. Only return the JSON, nothing else.`
         }
       }
 
-      const currentSettings = await userContextData.retrieveUserContext(email)
+      try {
+        const currentSettings = await userContextData.retrieveUserContext(email)
 
-      let newApiKey = currentSettings.customApiKey
-      if (customApiKey !== undefined) {
-         newApiKey = customApiKey
-      }
-
-      let newProvider = currentSettings.preferredProvider
-      if (preferredProvider !== undefined) {
-        newProvider = preferredProvider
-      }
-
-      const updatedSettings = await userContextData.saveNewContext(
-        email,
-        personalContext ?? currentSettings.context,
-        targetLanguage ?? currentSettings.targetLanguage,
-        newApiKey,
-        newProvider
-      )
-
-      // Update dailyGoal on the user record if provided
-      let updatedDailyGoal = user.dailyGoal
-      if (dailyGoal !== undefined) {
-        await usersData.updateDailyGoal(user.id, dailyGoal)
-        updatedDailyGoal = dailyGoal
-      }
-
-      // Update name if provided
-      let updatedName = user.name
-      if (newName !== undefined) {
-        await usersData.updateName(user.id, newName)
-        updatedName = newName
-      }
-
-      // Update theme if provided
-      let updatedTheme = user.theme
-      if (newTheme !== undefined) {
-        await usersData.updateTheme(user.id, newTheme)
-        updatedTheme = newTheme
-      }
-
-      // Update displayLanguage if provided
-      let updatedDisplayLanguage = user.displayLanguage
-      if (newDisplayLanguage !== undefined) {
-        await usersData.updateDisplayLanguage(user.id, newDisplayLanguage)
-        updatedDisplayLanguage = newDisplayLanguage
-      }
-
-      // Mask key for response
-      let maskedKey = null
-      if (updatedSettings.customApiKey) {
-        const key = updatedSettings.customApiKey
-        if (key.length > 8) {
-          maskedKey = `${key.slice(0, 3)}...${key.slice(-4)}`
-        } else {
-          maskedKey = '***'
+        let newApiKey = currentSettings.customApiKey
+        if (customApiKey !== undefined) {
+           newApiKey = customApiKey
         }
-      }
 
-      return reply.send({
-        message: 'Settings updated',
-        name: updatedName,
-        targetLanguage: updatedSettings.targetLanguage,
-        personalContext: updatedSettings.context,
-        preferredProvider: updatedSettings.preferredProvider,
-        maskedApiKey: maskedKey,
-        hasCustomApiKey: !!updatedSettings.customApiKey,
-        dailyGoal: updatedDailyGoal,
-        theme: updatedTheme,
-        displayLanguage: updatedDisplayLanguage ?? 'English',
-        streakFreezes: user.streakFreezes,
-      })
+        let newProvider = currentSettings.preferredProvider
+        if (preferredProvider !== undefined) {
+          newProvider = preferredProvider
+        }
+
+        const updatedSettings = await userContextData.saveNewContext(
+          email,
+          personalContext ?? currentSettings.context,
+          targetLanguage ?? currentSettings.targetLanguage,
+          newApiKey,
+          newProvider
+        )
+
+        // Update dailyGoal on the user record if provided
+        let updatedDailyGoal = user.dailyGoal
+        if (dailyGoal !== undefined) {
+          await usersData.updateDailyGoal(user.id, dailyGoal)
+          updatedDailyGoal = dailyGoal
+        }
+
+        // Update name if provided
+        let updatedName = user.name
+        if (newName !== undefined) {
+          await usersData.updateName(user.id, newName)
+          updatedName = newName
+        }
+
+        // Update theme if provided
+        let updatedTheme = user.theme
+        if (newTheme !== undefined) {
+          await usersData.updateTheme(user.id, newTheme)
+          updatedTheme = newTheme
+        }
+
+        // Update displayLanguage if provided
+        let updatedDisplayLanguage = user.displayLanguage
+        if (newDisplayLanguage !== undefined) {
+          await usersData.updateDisplayLanguage(user.id, newDisplayLanguage)
+          updatedDisplayLanguage = newDisplayLanguage
+        }
+
+        // Mask key for response
+        let maskedKey = null
+        if (updatedSettings.customApiKey) {
+          const key = updatedSettings.customApiKey
+          if (key.length > 8) {
+            maskedKey = `${key.slice(0, 3)}...${key.slice(-4)}`
+          } else {
+            maskedKey = '***'
+          }
+        }
+
+        return reply.send({
+          message: 'Settings updated',
+          name: updatedName,
+          targetLanguage: updatedSettings.targetLanguage,
+          personalContext: updatedSettings.context,
+          preferredProvider: updatedSettings.preferredProvider,
+          maskedApiKey: maskedKey,
+          hasCustomApiKey: !!updatedSettings.customApiKey,
+          dailyGoal: updatedDailyGoal,
+          theme: updatedTheme,
+          displayLanguage: updatedDisplayLanguage ?? 'English',
+          streakFreezes: user.streakFreezes,
+        })
+      } catch (error) {
+        request.log.error(error, 'Failed to update settings')
+        return reply.code(500).send({ error: 'Failed to update settings' })
+      }
     }
   )
 
@@ -923,32 +993,37 @@ Keep it simple and practical. Only return the JSON, nothing else.`
         return reply.code(400).send({ error: 'category and message are required' })
       }
 
-      await db.insert(feedbackTable).values({
-        userId: user.id,
-        category,
-        message: message.trim(),
-      })
+      try {
+        await db.insert(feedbackTable).values({
+          userId: user.id,
+          category,
+          message: message.trim(),
+        })
 
-      // Send email notification (non-blocking)
-      const resendKey = process.env.RESEND_API_KEY
-      if (resendKey) {
-        const email = await getAuthenticatedUserEmail(request)
-        fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${resendKey}`,
-          },
-          body: JSON.stringify({
-            from: 'Context Translator <feedback@resend.dev>',
-            to: 'sebastian.giupana@gmail.com',
-            subject: `[Feedback] ${category} from ${email ?? 'unknown'}`,
-            text: `Category: ${category}\nFrom: ${email ?? 'unknown'}\n\n${message.trim()}`,
-          }),
-        }).catch(console.error)
+        // Send email notification (non-blocking)
+        const resendKey = process.env.RESEND_API_KEY
+        if (resendKey) {
+          const email = await getAuthenticatedUserEmail(request)
+          fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${resendKey}`,
+            },
+            body: JSON.stringify({
+              from: 'Context Translator <feedback@resend.dev>',
+              to: 'sebastian.giupana@gmail.com',
+              subject: `[Feedback] ${category} from ${email ?? 'unknown'}`,
+              text: `Category: ${category}\nFrom: ${email ?? 'unknown'}\n\n${message.trim()}`,
+            }),
+          }).catch(console.error)
+        }
+
+        return reply.send({ message: 'Feedback submitted. Thank you!' })
+      } catch (error) {
+        request.log.error(error, 'Failed to submit feedback')
+        return reply.code(500).send({ error: 'Failed to submit feedback' })
       }
-
-      return reply.send({ message: 'Feedback submitted. Thank you!' })
     }
   )
 }

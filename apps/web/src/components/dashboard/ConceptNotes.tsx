@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -70,9 +71,12 @@ export default function ConceptNotes({
 
       if (res.ok) {
         onUpdate({ userNotes: value || null });
+      } else {
+        toast.error("Failed to save notes.", { id: "notes-save-error" });
       }
     } catch (error) {
       console.error("Failed to save notes:", error);
+      toast.error("Failed to save notes.", { id: "notes-save-error" });
     } finally {
       setSaving(false);
     }
@@ -99,9 +103,12 @@ export default function ConceptNotes({
       if (res.ok) {
         const data = await res.json();
         onUpdate({ exampleSentence: data.exampleSentence });
+      } else {
+        toast.error("Failed to generate example.");
       }
     } catch (error) {
       console.error("Failed to suggest example:", error);
+      toast.error("Failed to generate example.");
     } finally {
       setSuggesting(false);
     }

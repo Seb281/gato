@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import { Tags, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import TagBadge from "./TagBadge";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -147,9 +148,12 @@ export default function TagManager() {
           prev.map((t) => (t.id === editTag.id ? data.tag : t))
         );
         setEditTag(null);
+      } else {
+        toast.error("Failed to update tag.");
       }
     } catch (error) {
       console.error("Failed to update tag:", error);
+      toast.error("Failed to update tag.");
     } finally {
       setSaving(false);
     }
@@ -170,9 +174,12 @@ export default function TagManager() {
 
       if (res.ok) {
         setTags((prev) => prev.filter((t) => t.id !== tagId));
+      } else {
+        toast.error("Failed to delete tag.");
       }
     } catch (error) {
       console.error("Failed to delete tag:", error);
+      toast.error("Failed to delete tag.");
     } finally {
       setDeletingId(null);
     }

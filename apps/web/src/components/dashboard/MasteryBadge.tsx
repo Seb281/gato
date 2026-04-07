@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -55,9 +56,12 @@ export default function MasteryBadge({
 
       if (res.ok) {
         onStateChange(newState);
+      } else {
+        toast.error("Failed to update mastery level.");
       }
     } catch (error) {
       console.error("Failed to update mastery state:", error);
+      toast.error("Failed to update mastery level.");
     } finally {
       setUpdating(false);
     }

@@ -35,13 +35,18 @@ export async function tagRoutes(
         return reply.code(401).send({ error: 'Unauthorized' })
       }
 
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.send({ tags: [] })
-      }
+      try {
+        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+        if (!user) {
+          return reply.send({ tags: [] })
+        }
 
-      const tags = await tagsData.getUserTags(user.id)
-      return reply.send({ tags })
+        const tags = await tagsData.getUserTags(user.id)
+        return reply.send({ tags })
+      } catch (error) {
+        request.log.error(error, 'Failed to retrieve tags')
+        return reply.code(500).send({ error: 'Failed to retrieve tags' })
+      }
     }
   )
 
@@ -141,12 +146,17 @@ export async function tagRoutes(
         return reply.code(401).send({ error: 'User not found' })
       }
 
-      const deleted = await tagsData.deleteTag(tagId, user.id)
-      if (!deleted) {
-        return reply.code(404).send({ error: 'Tag not found' })
-      }
+      try {
+        const deleted = await tagsData.deleteTag(tagId, user.id)
+        if (!deleted) {
+          return reply.code(404).send({ error: 'Tag not found' })
+        }
 
-      return reply.send({ message: 'Tag deleted', tag: deleted })
+        return reply.send({ message: 'Tag deleted', tag: deleted })
+      } catch (error) {
+        request.log.error(error, 'Failed to delete tag')
+        return reply.code(500).send({ error: 'Failed to delete tag' })
+      }
     }
   )
 
@@ -175,18 +185,23 @@ export async function tagRoutes(
         return reply.code(401).send({ error: 'User not found' })
       }
 
-      const concept = await conceptsData.findConceptById(conceptId, user.id)
-      if (!concept) {
-        return reply.code(404).send({ error: 'Concept not found' })
-      }
+      try {
+        const concept = await conceptsData.findConceptById(conceptId, user.id)
+        if (!concept) {
+          return reply.code(404).send({ error: 'Concept not found' })
+        }
 
-      const tag = await tagsData.findTagById(tagId, user.id)
-      if (!tag) {
-        return reply.code(404).send({ error: 'Tag not found' })
-      }
+        const tag = await tagsData.findTagById(tagId, user.id)
+        if (!tag) {
+          return reply.code(404).send({ error: 'Tag not found' })
+        }
 
-      await tagsData.addTagToConcept(conceptId, tagId)
-      return reply.code(201).send({ message: 'Tag assigned' })
+        await tagsData.addTagToConcept(conceptId, tagId)
+        return reply.code(201).send({ message: 'Tag assigned' })
+      } catch (error) {
+        request.log.error(error, 'Failed to assign tag')
+        return reply.code(500).send({ error: 'Failed to assign tag' })
+      }
     }
   )
 
@@ -212,18 +227,23 @@ export async function tagRoutes(
         return reply.code(401).send({ error: 'User not found' })
       }
 
-      const concept = await conceptsData.findConceptById(conceptId, user.id)
-      if (!concept) {
-        return reply.code(404).send({ error: 'Concept not found' })
-      }
+      try {
+        const concept = await conceptsData.findConceptById(conceptId, user.id)
+        if (!concept) {
+          return reply.code(404).send({ error: 'Concept not found' })
+        }
 
-      const tag = await tagsData.findTagById(tagId, user.id)
-      if (!tag) {
-        return reply.code(404).send({ error: 'Tag not found' })
-      }
+        const tag = await tagsData.findTagById(tagId, user.id)
+        if (!tag) {
+          return reply.code(404).send({ error: 'Tag not found' })
+        }
 
-      await tagsData.removeTagFromConcept(conceptId, tagId)
-      return reply.send({ message: 'Tag removed' })
+        await tagsData.removeTagFromConcept(conceptId, tagId)
+        return reply.send({ message: 'Tag removed' })
+      } catch (error) {
+        request.log.error(error, 'Failed to remove tag')
+        return reply.code(500).send({ error: 'Failed to remove tag' })
+      }
     }
   )
 }

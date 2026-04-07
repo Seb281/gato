@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 
 export type QuizMode = "flashcard" | "multiple-choice" | "type-answer" | "contextual-recall";
@@ -69,9 +70,12 @@ export function useReviewSession() {
           setCurrentIndex(0);
           setResults([]);
           setSessionActive(true);
+        } else {
+          toast.error("Could not load review questions.");
         }
       } catch (error) {
         console.error("Failed to start session:", error);
+        toast.error("Could not load review questions.");
       } finally {
         setLoading(false);
       }

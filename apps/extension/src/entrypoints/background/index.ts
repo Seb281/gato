@@ -196,6 +196,8 @@ export default defineBackground(() => {
       case 'getAllowedSites':
         chrome.storage.sync.get('allowedSites').then(({ allowedSites = [] }) => {
           sendResponse({ success: true, sites: allowedSites })
+        }).catch(() => {
+          sendResponse({ success: false, sites: [] })
         })
         return true
 
@@ -230,6 +232,8 @@ export default defineBackground(() => {
           }
 
           sendResponse({ success: true, sites: updated })
+        }).catch(() => {
+          sendResponse({ success: false, sites: [] })
         })
         return true
       }
@@ -242,6 +246,8 @@ export default defineBackground(() => {
           try { await chrome.permissions.remove({ origins: [pattern] }) } catch { /* ok */ }
           await syncRegisteredContentScripts()
           sendResponse({ success: true, sites: updated })
+        }).catch(() => {
+          sendResponse({ success: false, sites: [] })
         })
         return true
       }
@@ -364,6 +370,8 @@ export default defineBackground(() => {
       case 'CHECK_LOGIN_STATUS':
         isAuthenticated().then((isLoggedIn) => {
           sendResponse({ isLoggedIn })
+        }).catch(() => {
+          sendResponse({ isLoggedIn: false })
         })
         return true
 
@@ -456,7 +464,7 @@ export default defineBackground(() => {
               return
             }
             const data = await response.json()
-            sendResponse({ items: data.items ?? data })
+            sendResponse({ items: data.questions ?? [] })
           })
           .catch(() => {
             sendResponse({ items: [] })
@@ -523,6 +531,8 @@ export default defineBackground(() => {
       case 'GET_EXTENSION_SESSION':
         supabase.auth.getSession().then(({ data: { session } }) => {
           sendResponse({ session: session || null })
+        }).catch(() => {
+          sendResponse({ session: null })
         })
         return true
 

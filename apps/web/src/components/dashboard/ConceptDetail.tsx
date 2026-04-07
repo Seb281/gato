@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { languageToBCP47 } from "@/lib/languageCodes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -173,21 +174,27 @@ export default function ConceptDetail({ conceptId }: ConceptDetailProps) {
   // --- Handlers ---
 
   async function patchConcept(fields: Record<string, string | null>) {
-    const token = await getToken();
-    if (!token) return null;
+    try {
+      const token = await getToken();
+      if (!token) return null;
 
-    const res = await fetch(`${API_URL}/saved-concepts/${conceptId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(fields),
-    });
+      const res = await fetch(`${API_URL}/saved-concepts/${conceptId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(fields),
+      });
 
-    if (res.ok) {
-      const data = await res.json();
-      return data.concept;
+      if (res.ok) {
+        const data = await res.json();
+        return data.concept;
+      } else {
+        toast.error("Failed to save changes.", { id: "patch-error" });
+      }
+    } catch {
+      toast.error("Failed to save changes.", { id: "patch-error" });
     }
     return null;
   }
@@ -201,6 +208,8 @@ export default function ConceptDetail({ conceptId }: ConceptDetailProps) {
     const updated = await patchConcept({ translation: translationDraft });
     if (updated) {
       setConcept((prev) => (prev ? { ...prev, translation: translationDraft } : prev));
+    } else {
+      return;
     }
     setEditingTranslation(false);
   }
@@ -251,9 +260,12 @@ export default function ConceptDetail({ conceptId }: ConceptDetailProps) {
         setConcept((prev) =>
           prev ? { ...prev, exampleSentence: data.exampleSentence } : prev
         );
+      } else {
+        toast.error("Failed to generate example sentence.");
       }
     } catch {
       console.error("Failed to suggest example");
+      toast.error("Failed to generate example sentence.");
     } finally {
       setSuggesting(false);
     }
@@ -272,9 +284,12 @@ export default function ConceptDetail({ conceptId }: ConceptDetailProps) {
 
       if (res.ok) {
         router.push("/dashboard/vocabulary");
+      } else {
+        toast.error("Failed to delete concept.");
       }
     } catch {
       console.error("Failed to delete concept");
+      toast.error("Failed to delete concept.");
     } finally {
       setDeleting(false);
     }

@@ -2,15 +2,28 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/entrypoints/background/helpers/supabaseAuth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Languages, Check, LogOut, User, BookOpen, PanelRight } from 'lucide-react'
+import {
+  Languages,
+  Check,
+  LogOut,
+  User,
+  BookOpen,
+  PanelRight,
+  ExternalLink,
+} from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import type { Session } from '@supabase/supabase-js'
 import { useTranslation } from '@/lib/i18n/useTranslation'
 import AuthForm from './AuthForm'
 
+const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD_URL
+
 async function openSidePanelToTab(tab?: string) {
   if (tab) await chrome.storage.session.set({ sidepanelTab: tab })
-  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  const [activeTab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  })
   if (activeTab?.windowId) {
     chrome.sidePanel.open({ windowId: activeTab.windowId })
     window.close()
@@ -21,7 +34,9 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [allowedSites, setAllowedSites] = useState<string[]>([])
-  const [currentSitePattern, setCurrentSitePattern] = useState<string | null>(null)
+  const [currentSitePattern, setCurrentSitePattern] = useState<string | null>(
+    null,
+  )
   const [dueCount, setDueCount] = useState(0)
   const { t } = useTranslation()
 
@@ -65,34 +80,42 @@ export default function App() {
 
   // Load allowed sites and derive current site pattern
   useEffect(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
-      if (!tab?.url) return
-      try {
-        const url = new URL(tab.url)
-        if (url.protocol === 'https:' || url.protocol === 'http:') {
-          const pattern = `${url.origin}/*`
-          setCurrentSitePattern(pattern)
+    chrome.tabs
+      .query({ active: true, currentWindow: true })
+      .then(async ([tab]) => {
+        if (!tab?.url) return
+        try {
+          const url = new URL(tab.url)
+          if (url.protocol === 'https:' || url.protocol === 'http:') {
+            const pattern = `${url.origin}/*`
+            setCurrentSitePattern(pattern)
 
-          // If permission was granted (e.g. popup closed before addAllowedSite ran),
-          // auto-add the site now
-          const sitesResponse = await chrome.runtime.sendMessage({ action: 'getAllowedSites' })
-          if (sitesResponse?.success) {
-            setAllowedSites(sitesResponse.sites)
-            if (!sitesResponse.sites.includes(pattern)) {
-              const granted = await chrome.permissions.contains({ origins: [pattern] })
-              if (granted) {
-                chrome.runtime.sendMessage(
-                  { action: 'addAllowedSite', pattern },
-                  (response) => {
-                    if (response?.success) setAllowedSites(response.sites)
-                  },
-                )
+            // If permission was granted (e.g. popup closed before addAllowedSite ran),
+            // auto-add the site now
+            const sitesResponse = await chrome.runtime.sendMessage({
+              action: 'getAllowedSites',
+            })
+            if (sitesResponse?.success) {
+              setAllowedSites(sitesResponse.sites)
+              if (!sitesResponse.sites.includes(pattern)) {
+                const granted = await chrome.permissions.contains({
+                  origins: [pattern],
+                })
+                if (granted) {
+                  chrome.runtime.sendMessage(
+                    { action: 'addAllowedSite', pattern },
+                    (response) => {
+                      if (response?.success) setAllowedSites(response.sites)
+                    },
+                  )
+                }
               }
             }
           }
+        } catch {
+          /* invalid URL, e.g. chrome:// */
         }
-      } catch { /* invalid URL, e.g. chrome:// */ }
-    })
+      })
   }, [])
 
   const isCurrentSiteAllowed = currentSitePattern
@@ -138,7 +161,9 @@ export default function App() {
   if (isLoading) {
     return (
       <div className='w-[380px] p-8 flex items-center justify-center'>
-        <p className='text-sm text-muted-foreground'>{t('ext.loadingSession')}</p>
+        <p className='text-sm text-muted-foreground'>
+          {t('ext.loadingSession')}
+        </p>
       </div>
     )
   }
@@ -172,7 +197,7 @@ export default function App() {
                 </div>
               ) : (
                 <Button
-                  variant='default'
+                  variant='outline'
                   size='sm'
                   onClick={handleAddCurrentSite}
                   className='w-full'
@@ -198,18 +223,30 @@ export default function App() {
               <div className='flex items-center gap-2'>
                 <BookOpen className='h-4 w-4 text-primary' />
                 <span className='text-sm font-medium'>
-                  {t('ext.wordsDue', { count: dueCount, words: dueCount === 1 ? 'word' : 'words' })}
+                  {t('ext.wordsDue', {
+                    count: dueCount,
+                    words: dueCount === 1 ? 'word' : 'words',
+                  })}
                 </span>
               </div>
-              <Button size='sm' onClick={() => openSidePanelToTab('review')}>
-                {t('ext.quickReview')}
+              <Button
+                variant='link'
+                size='sm'
+                onClick={() =>
+                  chrome.tabs.create({
+                    url: `${DASHBOARD_URL}/dashboard/review`,
+                  })
+                }
+              >
+                {t('ext.side.review')}
+                <ExternalLink className='h-3 w-3 ml-1' />
               </Button>
             </div>
           )}
 
           {/* Open Side Panel */}
           <Button
-            variant='outline'
+            variant='default'
             className='w-full'
             onClick={() => openSidePanelToTab()}
           >

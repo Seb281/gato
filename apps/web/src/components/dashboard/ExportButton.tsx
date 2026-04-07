@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,7 +39,7 @@ export default function ExportButton() {
       );
 
       if (!res.ok) {
-        console.error("Export failed:", res.statusText);
+        toast.error("Export failed. Please try again.");
         return;
       }
 
@@ -52,7 +53,7 @@ export default function ExportButton() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Export failed:", error);
+      toast.error("Export failed. Please try again.");
     } finally {
       setExporting(false);
     }

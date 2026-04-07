@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -143,9 +144,12 @@ export default function ImportDialog({ onComplete }: { onComplete?: () => void }
         const data: ImportResult = await res.json();
         setResult(data);
         onComplete?.();
+      } else {
+        toast.error("Import failed. Please check your file and try again.");
       }
     } catch (error) {
       console.error("Import failed:", error);
+      toast.error("Import failed. Please check your file and try again.");
     } finally {
       setImporting(false);
     }

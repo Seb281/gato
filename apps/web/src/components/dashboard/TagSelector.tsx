@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import {
   Popover,
@@ -63,6 +64,8 @@ export default function TagSelector({
         );
         if (res.ok) {
           onTagsChange(assignedTags.filter((t) => t.id !== tag.id));
+        } else {
+          toast.error("Failed to update tag.");
         }
       } else {
         const res = await fetch(
@@ -78,10 +81,13 @@ export default function TagSelector({
         );
         if (res.ok) {
           onTagsChange([...assignedTags, tag]);
+        } else {
+          toast.error("Failed to update tag.");
         }
       }
     } catch (error) {
       console.error("Failed to toggle tag:", error);
+      toast.error("Failed to update tag.");
     }
   }
 
@@ -101,9 +107,12 @@ export default function TagSelector({
       );
       if (res.ok) {
         onTagsChange(assignedTags.filter((t) => t.id !== tagId));
+      } else {
+        toast.error("Failed to remove tag.");
       }
     } catch (error) {
       console.error("Failed to remove tag:", error);
+      toast.error("Failed to remove tag.");
     }
   }
 

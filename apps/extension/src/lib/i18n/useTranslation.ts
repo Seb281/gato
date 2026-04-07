@@ -38,8 +38,14 @@ export function useTranslation() {
           typeof cached[cacheKey] === "string"
             ? JSON.parse(cached[cacheKey])
             : cached[cacheKey];
-        setStrings(parsed);
-        return;
+        // Invalidate cache if it's missing keys present in the source strings
+        const expectedKeys = Object.keys(UI_STRINGS);
+        const hasAllKeys = expectedKeys.every((k) => k in parsed);
+        if (hasAllKeys) {
+          setStrings(parsed);
+          return;
+        }
+        await chrome.storage.local.remove(cacheKey);
       } catch {
         await chrome.storage.local.remove(cacheKey);
       }
