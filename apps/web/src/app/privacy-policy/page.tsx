@@ -9,7 +9,7 @@ export default function PrivacyPolicyPage() {
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold tracking-tight mb-2">Privacy Policy</h1>
-        <p className="text-sm text-muted-foreground mb-10">Last updated: March 19, 2026</p>
+        <p className="text-sm text-muted-foreground mb-10">Last updated: April 7, 2026</p>
 
         <div className="space-y-10 text-muted-foreground">
 
@@ -146,8 +146,13 @@ export default function PrivacyPolicyPage() {
                     <td className="py-2">Stack traces, browser metadata</td>
                   </tr>
                   <tr>
+                    <td className="py-2 pr-4 font-medium text-foreground">DeepL</td>
+                    <td className="py-2 pr-4">Primary translation provider</td>
+                    <td className="py-2">Selected text and surrounding context</td>
+                  </tr>
+                  <tr>
                     <td className="py-2 pr-4 font-medium text-foreground">Google Gemini / OpenAI / Anthropic / Mistral</td>
-                    <td className="py-2 pr-4">AI translation (server-side)</td>
+                    <td className="py-2 pr-4">Enrichment data &amp; translation fallback (server-side)</td>
                     <td className="py-2">Selected text and surrounding context</td>
                   </tr>
                 </tbody>
@@ -174,15 +179,38 @@ export default function PrivacyPolicyPage() {
               </li>
               <li>
                 <span className="font-medium text-foreground">activeTab</span> — grants temporary access to the
-                currently active tab only when you invoke the extension (via the selection tooltip or the keyboard
-                shortcut <span className="font-mono text-sm">Ctrl+Shift+T</span> /{" "}
-                <span className="font-mono text-sm">Command+Shift+T</span>). The extension has no passive access to
-                background tabs.
+                currently active tab only when you invoke the extension (via the selection tooltip, context menu, or the
+                keyboard shortcut <span className="font-mono text-sm">Alt+T</span>). The extension has no passive
+                access to background tabs.
               </li>
               <li>
                 <span className="font-medium text-foreground">scripting</span> — injects the translation UI into the
-                active tab on demand. The script only runs when you explicitly trigger a translation; it is not present
-                on pages passively.
+                active tab on demand. On sites you enable, the content script is registered persistently so it
+                activates on page load. On other sites, it only runs when you explicitly trigger a translation via the
+                context menu; it is not present on pages passively.
+              </li>
+              <li>
+                <span className="font-medium text-foreground">contextMenus</span> — adds a "Translate" option to the
+                right-click menu so you can translate selected text on any page without pre-enabling the site.
+              </li>
+              <li>
+                <span className="font-medium text-foreground">sidePanel</span> — opens a sidebar workspace with
+                translation, history, saved concepts, spaced repetition review, and settings. No data is collected by
+                the side panel beyond what is described elsewhere in this policy.
+              </li>
+              <li>
+                <span className="font-medium text-foreground">alarms</span> — schedules periodic checks for spaced
+                repetition items that are due for review. No data leaves the browser via this permission.
+              </li>
+              <li>
+                <span className="font-medium text-foreground">notifications</span> — sends a local browser
+                notification when you have vocabulary items due for review, if you have enabled reminders in settings.
+              </li>
+              <li>
+                <span className="font-medium text-foreground">Optional host permissions</span> — when you enable the
+                extension on a specific site, Chrome prompts you to grant access to that site. This is requested
+                per-site at runtime rather than granted broadly at install time. The extension never has blanket access
+                to all websites.
               </li>
             </ul>
           </section>

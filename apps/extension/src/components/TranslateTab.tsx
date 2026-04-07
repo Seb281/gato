@@ -36,9 +36,10 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [showContextInput, setShowContextInput] = useState(false)
   const [personalContext, setPersonalContext] = useState('')
+  const [sourceUrl, setSourceUrl] = useState('')
   const requestIdRef = useRef(0)
 
-  // Load settings from storage
+  // Load settings from storage + active tab URL
   useEffect(() => {
     chrome.storage.sync.get(
       ['targetLanguage', 'personalContext'],
@@ -47,6 +48,9 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
         if (result.personalContext) setPersonalContext(result.personalContext as string)
       },
     )
+    chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+      if (tab?.url) setSourceUrl(tab.url)
+    })
   }, [])
 
   // Listen for settings changes (e.g., language changed in Settings tab)
@@ -111,6 +115,7 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
           translation: result.contextualTranslation,
           sourceLanguage: result.language,
           targetLanguage,
+          sourceUrl,
         },
       },
       (response) => {

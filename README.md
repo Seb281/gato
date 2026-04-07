@@ -1,18 +1,8 @@
 # Context-Aware Translator
 
-A Chrome extension that translates selected text using LLMs, with surrounding context for more accurate translations.
+A Chrome extension for learning languages in context. Translate text on any webpage with LLM-powered, context-aware translations — then build lasting vocabulary through enrichment data, saved concepts, and spaced repetition review.
 
-Select text on any webpage, press `Cmd+Shift+T` (or `Ctrl+Shift+T`), and get a context-aware translation in an overlay popup.
-
-## How it works
-
-1. User selects text on a webpage
-2. The extension captures the selected text plus surrounding context
-3. Text + context is sent to the backend API
-4. An LLM translates the text, informed by the surrounding context for better accuracy
-5. The translation is displayed in an inline popup
-
-## Tech stack
+## Tech Stack
 
 | App | Stack |
 |-----|-------|
@@ -22,29 +12,44 @@ Select text on any webpage, press `Cmd+Shift+T` (or `Ctrl+Shift+T`), and get a c
 
 **Infrastructure:** Supabase (auth + DB), Railway (API), Vercel (dashboard), Sentry (error tracking)
 
-**Supported LLM providers:** Google Gemini (default), OpenAI, Anthropic, Mistral — users can bring their own API keys.
+**LLM providers:** Google Gemini (default), OpenAI, Anthropic, Mistral — bring your own API key.
+
+## How It Works
+
+**DeepL for translation, LLMs for enrichment.** Translations go through DeepL for speed and accuracy, with LLMs as a fallback for unsupported languages. Enrichment data (pronunciation, grammar, related words, usage examples) is always LLM-generated — it's what LLMs are genuinely good at.
+
+**Context changes meaning.** When you select text, the extension captures the surrounding sentences and passes them to the translation and enrichment pipeline. "Bank" in a finance article translates differently than "bank" near a river — context disambiguation happens automatically.
+
+**Adaptive enrichment.** A single word gets full enrichment (phonetic, grammar, related words). A short phrase gets grammar and related words. A full sentence just gets translated — no unnecessary overhead.
+
+**Personal context shapes results.** Users can set context like "I'm a medical student learning Portuguese." This is injected into enrichment prompts, so explanations and examples become relevant to the user's domain.
+
+**Available in any language.** The entire UI is translatable into 30+ languages. Strings are translated via DeepL (with LLM fallback), cached in the database, and versioned — so updates propagate without redeploying the extension.
+
+**Spaced repetition built in.** Saved concepts are reviewed using the SM-2 algorithm with automatic state transitions (learning → familiar → mastered). Failed items resurface in minutes, not days.
+
+**Bring your own API key.** Ships with a free default (Gemini), but users can plug in their own OpenAI, Anthropic, Mistral, or Google key for a preferred provider.
 
 ## Features
 
-- Context-aware translations powered by LLMs
+- Multiple translation flows: in-page popup, context menu, sidepanel
+- Per-site activation — enable on specific sites, works instantly without refresh
 - Source language auto-detection
-- Saved concepts — build a personal translation dictionary
-- Custom API key support for multiple LLM providers
-- Personal context/glossary for domain-specific translations
+- Theme support (light/dark/system)
 - Auth sync between extension and web dashboard
 
 ## Development
 
 ```bash
 pnpm install
-pnpm dev          # Start all apps in development mode
+pnpm dev          # Start all apps
 ```
 
 ### Extension
 
 ```bash
-pnpm --filter context-aware-translator-extension dev
-pnpm --filter context-aware-translator-extension build
+pnpm dev:extension
+pnpm build:extension
 ```
 
 Load `.output/chrome-mv3` as an unpacked extension in `chrome://extensions`.
@@ -52,7 +57,7 @@ Load `.output/chrome-mv3` as an unpacked extension in `chrome://extensions`.
 ### API
 
 ```bash
-pnpm --filter context-aware-translator-api dev
+pnpm dev:api
 ```
 
-Requires environment variables for Supabase, Gemini, and database connection — see `apps/api/.env.default`.
+Requires environment variables — see `apps/api/.env.default`.
