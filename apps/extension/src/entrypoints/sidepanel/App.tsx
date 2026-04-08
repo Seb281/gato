@@ -59,7 +59,7 @@ export default function App() {
     null,
   )
 
-  useEffect(() => {
+  const checkCurrentSite = useCallback(() => {
     chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
       if (!tab?.url) return
       try {
@@ -75,12 +75,35 @@ export default function App() {
               }
             },
           )
+        } else {
+          setCurrentSitePattern(null)
+          setIsSiteEnabled(true)
         }
       } catch {
-        /* invalid URL */
+        setCurrentSitePattern(null)
+        setIsSiteEnabled(true)
       }
     })
   }, [])
+
+  useEffect(() => {
+    checkCurrentSite()
+
+    const onActivated = () => checkCurrentSite()
+    const onUpdated = (
+      _tabId: number,
+      changeInfo: { url?: string },
+    ) => {
+      if (changeInfo.url) checkCurrentSite()
+    }
+
+    chrome.tabs.onActivated.addListener(onActivated)
+    chrome.tabs.onUpdated.addListener(onUpdated)
+    return () => {
+      chrome.tabs.onActivated.removeListener(onActivated)
+      chrome.tabs.onUpdated.removeListener(onUpdated)
+    }
+  }, [checkCurrentSite])
 
   async function handleEnableSite() {
     if (!currentSitePattern) return
@@ -100,6 +123,12 @@ export default function App() {
       },
     )
   }
+
+  // Track side panel open/closed state via port to background
+  useEffect(() => {
+    const port = chrome.runtime.connect({ name: 'sidepanel' })
+    return () => port.disconnect()
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

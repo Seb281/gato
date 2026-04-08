@@ -116,6 +116,16 @@ export default defineBackground(() => {
     chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false })
   }
 
+  // Track side panel open/closed state via port lifecycle
+  chrome.runtime.onConnect.addListener((port) => {
+    if (port.name === 'sidepanel') {
+      chrome.storage.session.set({ sidepanelOpen: true })
+      port.onDisconnect.addListener(() => {
+        chrome.storage.session.set({ sidepanelOpen: false })
+      })
+    }
+  })
+
   chrome.runtime.onInstalled.addListener(() => {
     setupContextMenu()
     setupSidePanel()

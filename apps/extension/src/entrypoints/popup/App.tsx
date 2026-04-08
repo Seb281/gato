@@ -10,6 +10,7 @@ import {
   BookOpen,
   PanelRight,
   ExternalLink,
+  MessageSquare,
 } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import type { Session } from '@supabase/supabase-js'
@@ -38,6 +39,7 @@ export default function App() {
     null,
   )
   const [dueCount, setDueCount] = useState(0)
+  const [sidepanelOpen, setSidepanelOpen] = useState(false)
   const { t } = useTranslation()
 
   useEffect(() => {
@@ -55,6 +57,10 @@ export default function App() {
       else setDueCount(0)
     })
 
+    chrome.storage.session.get('sidepanelOpen', (result) => {
+      setSidepanelOpen(result.sidepanelOpen === true)
+    })
+
     const handleStorageChange = (
       changes: Record<string, chrome.storage.StorageChange>,
     ) => {
@@ -66,9 +72,20 @@ export default function App() {
     }
     chrome.storage.local.onChanged.addListener(handleStorageChange)
 
+    const handleSessionChange = (
+      changes: Record<string, chrome.storage.StorageChange>,
+      areaName: string,
+    ) => {
+      if (areaName === 'session' && changes.sidepanelOpen !== undefined) {
+        setSidepanelOpen(changes.sidepanelOpen.newValue === true)
+      }
+    }
+    chrome.storage.onChanged.addListener(handleSessionChange)
+
     return () => {
       subscription.unsubscribe()
       chrome.storage.local.onChanged.removeListener(handleStorageChange)
+      chrome.storage.onChanged.removeListener(handleSessionChange)
     }
   }, [])
 
@@ -245,14 +262,16 @@ export default function App() {
           )}
 
           {/* Open Side Panel */}
-          <Button
-            variant='default'
-            className='w-full'
-            onClick={() => openSidePanelToTab()}
-          >
-            <PanelRight className='h-4 w-4 mr-2' />
-            {t('ext.openSidePanel')}
-          </Button>
+          {!sidepanelOpen && (
+            <Button
+              variant='default'
+              className='w-full'
+              onClick={() => openSidePanelToTab()}
+            >
+              <PanelRight className='h-4 w-4 mr-2' />
+              {t('ext.openSidePanel')}
+            </Button>
+          )}
 
           <Separator />
 
@@ -285,6 +304,21 @@ export default function App() {
               </Button>
             </div>
           )}
+
+          {/* Feedback link */}
+          <Button
+            variant='link'
+            size='sm'
+            className='w-full text-muted-foreground pt-3'
+            onClick={() =>
+              chrome.tabs.create({
+                url: `${DASHBOARD_URL}/dashboard/feedback`,
+              })
+            }
+          >
+            <MessageSquare className='h-3.5 w-3.5 mr-1' />
+            {t('ext.sendFeedback')}
+          </Button>
         </CardContent>
       </Card>
     </div>
