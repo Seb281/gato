@@ -120,6 +120,25 @@ Single `chrome.runtime.onMessage.addListener` with a switch on `action`. Key act
 
 Content script CSS (`content.css`) uses scoped custom properties under `#context-translator-root` and `#context-translator-tooltip` selectors to avoid polluting host page styles. Dark mode toggled via `.dark` class on the root container, driven by `theme` storage key + `prefers-color-scheme` media query.
 
+### Error Handling
+
+**Background message handler:** Every promise chain in the `onMessage` handler MUST have a `.catch()` that calls `sendResponse` with an error matching the expected response shape. If `sendResponse` is never called, the caller hangs forever. Example:
+
+```typescript
+case 'getAllowedSites':
+  chrome.storage.sync.get('allowedSites').then(({ allowedSites = [] }) => {
+    sendResponse({ success: true, sites: allowedSites })
+  }).catch(() => {
+    sendResponse({ success: false, sites: [] })
+  })
+  return true  // required for async sendResponse
+```
+
+Rules:
+- Every `case` that does async work must `return true` AND have a `.catch()` calling `sendResponse`
+- The `.catch()` response shape must match the success shape (e.g., `{ success: false, sites: [] }` not `{ error: "..." }`) so callers can destructure without crashing
+- Content script message sends (e.g., pinging tabs) can use empty `.catch(() => {})` since there's no caller waiting
+
 ### Turborepo Integration
 
 Part of a monorepo managed by Turborepo:

@@ -24,7 +24,10 @@ import {
   TooltipContent,
 } from '@/components/ui/tooltip'
 import { useTranslation } from '@/lib/i18n/useTranslation'
-import type { TranslationResponse, EnrichmentResponse } from '@/types/translation'
+import type {
+  TranslationResponse,
+  EnrichmentResponse,
+} from '@/types/translation'
 
 interface TranslationPopupProps {
   selection: string
@@ -60,9 +63,9 @@ export default function TranslationPopup({
   const [sourceLanguage, setSourceLanguage] = useState('')
 
   const [status, setStatus] = useState<AuthStatus>('loading')
-  const [saveState, setSaveState] = useState<'idle' | 'saved' | 'alreadySaved' | 'error'>(
-    'idle',
-  )
+  const [saveState, setSaveState] = useState<
+    'idle' | 'saved' | 'alreadySaved' | 'error'
+  >('idle')
   const [fromCache, setFromCache] = useState(false)
   const [cachedConceptId, setCachedConceptId] = useState<number | null>(null)
   const [retranslated, setRetranslated] = useState(false)
@@ -169,7 +172,7 @@ export default function TranslationPopup({
     chrome.runtime.sendMessage(
       { type: 'CHECK_LOGIN_STATUS' },
       (response: { isLoggedIn: boolean }) => {
-          if (response && response.isLoggedIn) {
+        if (response && response.isLoggedIn) {
           setStatus('logged_in')
         } else {
           setStatus('logged_out')
@@ -179,11 +182,15 @@ export default function TranslationPopup({
   }, [])
 
   useEffect(() => {
-    chrome.storage.sync.get(['targetLanguage', 'sourceLanguage', 'personalContext'], (result) => {
-      setTargetLanguage((result.targetLanguage as string) || 'English')
-      setSourceLanguage((result.sourceLanguage as string) || 'auto')
-      if (result.personalContext) setPersonalContext(result.personalContext as string)
-    })
+    chrome.storage.sync.get(
+      ['targetLanguage', 'sourceLanguage', 'personalContext'],
+      (result) => {
+        setTargetLanguage((result.targetLanguage as string) || 'English')
+        setSourceLanguage((result.sourceLanguage as string) || 'auto')
+        if (result.personalContext)
+          setPersonalContext(result.personalContext as string)
+      },
+    )
   }, [])
 
   useEffect(() => {
@@ -416,9 +423,7 @@ export default function TranslationPopup({
           >
             <div className='flex items-center gap-2'>
               <Languages className='h-5 w-5 text-primary' />
-              <CardTitle className='text-lg'>
-                {t('ext.popup.title')}
-              </CardTitle>
+              <CardTitle className='text-lg'>{t('ext.popup.title')}</CardTitle>
             </div>
             <Button
               variant='ghost'
@@ -573,11 +578,10 @@ export default function TranslationPopup({
                             <Badge
                               variant='outline'
                               className='text-xs cursor-pointer hover:bg-secondary flex items-center gap-0.5'
-                              onClick={() =>
-                                setShowLangDropdown((v) => !v)
-                              }
+                              onClick={() => setShowLangDropdown((v) => !v)}
                             >
-                              {translation.language && translation.language !== targetLanguage
+                              {translation.language &&
+                              translation.language !== targetLanguage
                                 ? `${translation.language} → ${targetLanguage}`
                                 : targetLanguage}
                               <ChevronDown
@@ -632,9 +636,11 @@ export default function TranslationPopup({
                 {/* On-demand enrichment section */}
                 {(() => {
                   // Use LLM inline data if already present (fallback path), otherwise use enrichment state
-                  const data = translation.provider === 'llm' && translation.phoneticApproximation
-                    ? translation
-                    : enrichment
+                  const data =
+                    translation.provider === 'llm' &&
+                    translation.phoneticApproximation
+                      ? translation
+                      : enrichment
 
                   if (!showMore) {
                     return (
@@ -642,26 +648,40 @@ export default function TranslationPopup({
                         <div
                           onClick={() => {
                             setShowMore(true)
-                            if (!enrichment && !isEnriching && translation.provider !== 'llm') {
+                            if (
+                              !enrichment &&
+                              !isEnriching &&
+                              translation.provider !== 'llm'
+                            ) {
                               setIsEnriching(true)
                               chrome.runtime.sendMessage(
                                 {
                                   action: 'enrich',
                                   text: selection,
-                                  translation: translation.contextualTranslation,
+                                  translation:
+                                    translation.contextualTranslation,
                                   targetLanguage,
-                                  sourceLanguage: translation.language || sourceLanguage || '',
+                                  sourceLanguage:
+                                    translation.language ||
+                                    sourceLanguage ||
+                                    '',
                                   contextBefore,
                                   contextAfter,
                                   personalContext,
                                 },
-                                (response: { success: boolean; enrichment?: EnrichmentResponse }) => {
+                                (response: {
+                                  success: boolean
+                                  enrichment?: EnrichmentResponse
+                                }) => {
                                   if (chrome.runtime.lastError) {
                                     setIsEnriching(false)
                                     return
                                   }
                                   setIsEnriching(false)
-                                  if (response?.success && response.enrichment) {
+                                  if (
+                                    response?.success &&
+                                    response.enrichment
+                                  ) {
                                     setEnrichment(response.enrichment)
                                   }
                                 },
@@ -671,9 +691,7 @@ export default function TranslationPopup({
                           className='flex items-center gap-2 cursor-pointer group'
                         >
                           <div className='flex-1 h-px bg-border' />
-                          <ChevronDown
-                            className='h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:text-foreground'
-                          />
+                          <ChevronDown className='h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:text-foreground' />
                           <div className='flex-1 h-px bg-border' />
                         </div>
                       </div>
@@ -740,14 +758,13 @@ export default function TranslationPopup({
                             />
                           )}
 
-                        {data.commonUsage &&
-                          data.commonUsage !== 'no' && (
-                            <InfoItem
-                              label={t('ext.popup.usageNote')}
-                              value={data.commonUsage}
-                              icon={<Info className='h-4 w-4 text-amber-500' />}
-                            />
-                          )}
+                        {data.commonUsage && data.commonUsage !== 'no' && (
+                          <InfoItem
+                            label={t('ext.popup.usageNote')}
+                            value={data.commonUsage}
+                            icon={<Info className='h-4 w-4 text-amber-500' />}
+                          />
+                        )}
 
                         {data.grammarRules && (
                           <InfoItem
@@ -757,30 +774,17 @@ export default function TranslationPopup({
                           />
                         )}
 
-                        {data.commonness && (
-                          <div className='space-y-1.5'>
-                            <div className='flex items-center gap-2'>
-                              <BarChart2 className='h-4 w-4 text-muted-foreground' />
-                              <span className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                                {t('ext.popup.frequency')}
-                              </span>
-                            </div>
-                            <Badge
-                              variant='outline'
-                              className='text-xs max-w-full ml-5'
-                            >
-                              {data.commonness}
-                            </Badge>
-                          </div>
-                        )}
-
                         {(() => {
                           try {
                             const raw = data.relatedWords
                             if (!raw) return null
-                            const words: Array<{ word: string; translation: string; relation: string }> =
-                              typeof raw === 'string' ? JSON.parse(raw) : raw
-                            if (!Array.isArray(words) || words.length === 0) return null
+                            const words: Array<{
+                              word: string
+                              translation: string
+                              relation: string
+                            }> = typeof raw === 'string' ? JSON.parse(raw) : raw
+                            if (!Array.isArray(words) || words.length === 0)
+                              return null
                             return (
                               <div className='space-y-1.5'>
                                 <div className='flex items-center gap-2'>
@@ -799,8 +803,27 @@ export default function TranslationPopup({
                                 </p>
                               </div>
                             )
-                          } catch { return null }
+                          } catch {
+                            return null
+                          }
                         })()}
+
+                        {data.commonness && (
+                          <div className='space-y-1.5'>
+                            <div className='flex items-center gap-2'>
+                              <BarChart2 className='h-4 w-4 text-muted-foreground' />
+                              <span className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
+                                {t('ext.popup.frequency')}
+                              </span>
+                            </div>
+                            <Badge
+                              variant='outline'
+                              className='text-xs max-w-full ml-5'
+                            >
+                              {data.commonness}
+                            </Badge>
+                          </div>
+                        )}
                       </div>
                     )
                   }
