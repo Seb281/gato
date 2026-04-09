@@ -50,8 +50,18 @@ export default function TutorPage() {
   }>({ targetLanguage: null })
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const pendingMessageRef = useRef<string | null>(null)
 
   const { messages, isStreaming, error, send, stop } = useTutorChat(activeId)
+
+  // Send pending message after conversation is created and hook re-initializes
+  useEffect(() => {
+    if (activeId && pendingMessageRef.current && !isStreaming) {
+      const msg = pendingMessageRef.current
+      pendingMessageRef.current = null
+      send(msg)
+    }
+  }, [activeId, send, isStreaming])
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -184,14 +194,9 @@ export default function TutorPage() {
         const json = await res.json()
         const newConv = json.conversation
         setConversations((prev) => [newConv, ...prev])
-        setActiveId(newConv.id)
-
-        // Wait for the hook to initialize with the new ID, then send
-        // We need to send after state update, so we store the message
-        // and the hook's send will be called via an effect
         setInputValue("")
-        // Use a slight delay to let state propagate
-        setTimeout(() => send(trimmed), 50)
+        pendingMessageRef.current = trimmed
+        setActiveId(newConv.id)
         return
       } catch {
         toast.error("Failed to create conversation")
