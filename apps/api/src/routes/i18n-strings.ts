@@ -398,7 +398,23 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.popup.grammar": "Grammar",
   "ext.popup.frequency": "Frequency",
   "ext.popup.related": "Related",
+
+  // Tutor
+  "nav.teacher": "Teacher",
+  "tutor.newChat": "New conversation",
+  "tutor.placeholder": "Ask your teacher anything...",
+  "tutor.sending": "Thinking...",
+  "tutor.starters.vocabulary": "Practice vocabulary",
+  "tutor.starters.grammar": "Explain a grammar concept",
+  "tutor.starters.write": "Help me write something",
+  "tutor.starters.converse": "Free conversation",
+  "tutor.empty": "Start a conversation with your language teacher.",
+  "tutor.rateLimited": "Daily message limit reached. Add your own API key in settings for unlimited access.",
+  "tutor.deleteConfirm": "Delete this conversation?",
+  "tutor.conversations": "Conversations",
+  "tutor.newConversation": "New conversation",
+  "tutor.stop": "Stop",
 };
 
 export type StringKey = keyof typeof UI_STRINGS;
-export const STRINGS_VERSION = "9";
+export const STRINGS_VERSION = "10";
