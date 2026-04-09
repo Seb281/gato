@@ -383,7 +383,6 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.side.addContext": "Add context",
   "ext.side.contextLabel": "Context for the translation",
   "ext.side.contextPlaceholder": "e.g., This is from a cooking recipe...",
-  "ext.side.translatingTo": "Translating to",
 
   // Extension translation popup
   "ext.popup.translationUnavailable": "Translation unavailable",
