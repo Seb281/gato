@@ -11,6 +11,17 @@ export interface TranslationResponse {
   relatedWords?: string | Array<{ word: string; translation: string; relation: string }>
 }
 
+export interface SidepanelTranslationSignal {
+  inputText: string
+  result: TranslationResponse
+  fromCache: boolean
+  cachedConceptId?: number
+  contextBefore: string
+  contextAfter: string
+  sourceUrl: string
+  timestamp: number
+}
+
 export interface EnrichmentResponse {
   phoneticApproximation?: string
   fixedExpression?: string

@@ -11,6 +11,7 @@ import {
   Check,
   Info,
   BarChart2,
+  X,
 } from 'lucide-react'
 import { languageToBCP47 } from '@/utils/languageCodes'
 import { LANGUAGE_NAMES } from '@/entrypoints/content/helpers/detectLanguage'
@@ -18,6 +19,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation'
 import type {
   TranslationResponse,
   EnrichmentResponse,
+  SidepanelTranslationSignal,
 } from '@/types/translation'
 import type { Session } from '@supabase/supabase-js'
 
@@ -39,9 +41,10 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
   const [saveState, setSaveState] = useState<
     'idle' | 'saving' | 'saved' | 'error'
   >('idle')
-  const [showContextInput, setShowContextInput] = useState(false)
   const [personalContext, setPersonalContext] = useState('')
   const [sourceUrl, setSourceUrl] = useState('')
+  const [contextBefore, setContextBefore] = useState('')
+  const [contextAfter, setContextAfter] = useState('')
   const requestIdRef = useRef(0)
 
   // Load settings from storage + active tab URL
@@ -71,6 +74,43 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
     return () => chrome.storage.onChanged.removeListener(handler)
   }, [])
 
+  // Consume translation signals forwarded from content script via background
+  useEffect(() => {
+    function consumeSignal(signal: SidepanelTranslationSignal) {
+      requestIdRef.current++
+      setInputText(signal.inputText)
+      setResult(signal.result)
+      setIsTranslating(false)
+      setError(false)
+      setEnrichment(null)
+      setShowMore(false)
+      setSaveState('idle')
+      setSourceUrl(signal.sourceUrl)
+      setContextBefore(signal.contextBefore)
+      setContextAfter(signal.contextAfter)
+      chrome.storage.session.remove('sidepanelTranslation')
+    }
+
+    chrome.storage.session.get('sidepanelTranslation', (data) => {
+      if (data.sidepanelTranslation) {
+        consumeSignal(data.sidepanelTranslation as SidepanelTranslationSignal)
+      }
+    })
+
+    const handler = (
+      changes: Record<string, chrome.storage.StorageChange>,
+      areaName: string,
+    ) => {
+      if (areaName === 'session' && changes.sidepanelTranslation?.newValue) {
+        consumeSignal(
+          changes.sidepanelTranslation.newValue as SidepanelTranslationSignal,
+        )
+      }
+    }
+    chrome.storage.onChanged.addListener(handler)
+    return () => chrome.storage.onChanged.removeListener(handler)
+  }, [])
+
   const doTranslate = useCallback((text: string) => {
     if (!text.trim()) return
 
@@ -81,6 +121,8 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
     setEnrichment(null)
     setShowMore(false)
     setSaveState('idle')
+    setContextBefore('')
+    setContextAfter('')
 
     chrome.runtime.sendMessage(
       { action: 'translate', text, concept: text },
@@ -183,50 +225,16 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
 
   return (
     <div className='p-3 space-y-3'>
-      {/* Source input */}
-      <Textarea
-        value={inputText}
-        onChange={(e) => setInputText(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={t('ext.side.sourceText')}
-        className='min-h-[100px] resize-none text-sm'
-        rows={4}
-      />
-
-      {/* Collapsible context input */}
-      <div>
-        <button
-          type='button'
-          onClick={() => setShowContextInput(!showContextInput)}
-          className='flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors'
-        >
-          {showContextInput ? (
-            <ChevronUp className='h-3 w-3' />
-          ) : (
-            <ChevronDown className='h-3 w-3' />
-          )}
-          {t('ext.side.addContext')}
-        </button>
-        {showContextInput && (
-          <Textarea
-            value={personalContext}
-            onChange={(e) => setPersonalContext(e.target.value)}
-            placeholder={t('ext.side.contextPlaceholder')}
-            className='mt-1 min-h-[50px] resize-none text-xs'
-            rows={2}
-          />
-        )}
-      </div>
-
-      {/* Target language selector */}
-      <div className='flex items-center gap-2'>
+      {/* Target language */}
+      <p className='text-sm text-muted-foreground'>
+        {t('ext.side.translatingTo')}{' '}
         <select
           value={targetLanguage}
           onChange={(e) => {
             setTargetLanguage(e.target.value)
             chrome.storage.sync.set({ targetLanguage: e.target.value })
           }}
-          className='h-8 rounded-md bg-secondary px-2 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring flex-1'
+          className='italic font-bold text-sm text-muted-foreground bg-transparent border-none p-0 cursor-pointer focus-visible:outline-none appearance-none'
         >
           {Object.entries(LANGUAGE_NAMES).map(([code, name]) => (
             <option key={code} value={name}>
@@ -234,19 +242,102 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
             </option>
           ))}
         </select>
+      </p>
+
+      {/* Source input */}
+      <Textarea
+        value={inputText}
+        onChange={(e) => {
+          setInputText(e.target.value)
+          setContextBefore('')
+          setContextAfter('')
+        }}
+        onKeyDown={handleKeyDown}
+        placeholder={t('ext.side.sourceText')}
+        className='min-h-[100px] resize-none text-sm'
+        rows={4}
+      />
+
+      {/* Context */}
+      <div className='space-y-1'>
+        <p className='text-sm text-muted-foreground'>
+          {t('ext.side.contextLabel')}
+        </p>
+        {contextBefore || contextAfter ? (
+          <div className='rounded-lg bg-accent/30 p-3 text-sm leading-relaxed'>
+            <span className='text-muted-foreground'>{contextBefore}</span>{' '}
+            <span className='font-semibold text-foreground'>{inputText}</span>{' '}
+            <span className='text-muted-foreground'>{contextAfter}</span>
+          </div>
+        ) : (
+          <Textarea
+            value={personalContext}
+            onChange={(e) => setPersonalContext(e.target.value)}
+            placeholder={t('ext.side.contextPlaceholder')}
+            className='min-h-[50px] resize-none text-sm'
+            rows={2}
+          />
+        )}
       </div>
 
-      <Button
-        onClick={() => doTranslate(inputText)}
-        disabled={isTranslating || !inputText.trim()}
-        className='w-full'
-        size='sm'
-      >
-        {isTranslating && <Loader2 className='mr-2 h-3.5 w-3.5 animate-spin' />}
-        {isTranslating
-          ? t('ext.side.translating')
-          : t('ext.side.translateButton')}
-      </Button>
+      {result ? (
+        <div className='flex gap-2 justify-between'>
+          {session && (
+            <Button
+              variant='ghost'
+              size='sm'
+              className='flex-[2] text-sm'
+              onClick={handleSave}
+              disabled={saveState === 'saving' || saveState === 'saved'}
+            >
+              {saveState === 'saved' ? (
+                <>
+                  <Check className='h-3.5 w-3.5 mr-1' />
+                  {t('ext.side.conceptSaved')}
+                </>
+              ) : saveState === 'error' ? (
+                t('ext.side.saveFailed')
+              ) : (
+                <>
+                  <Plus className='h-3.5 w-3.5 mr-1' />
+                  {t('ext.side.saveConceptButton')}
+                </>
+              )}
+            </Button>
+          )}
+          <Button
+            variant='ghost'
+            size='sm'
+            className={`${session ? 'flex-[1]' : 'w-full'} text-sm`}
+            onClick={() => {
+              setResult(null)
+              setEnrichment(null)
+              setShowMore(false)
+              setSaveState('idle')
+              setInputText('')
+              setContextBefore('')
+              setContextAfter('')
+            }}
+          >
+            <X className='h-3.5 w-3.5 mr-1' />
+            {t('ext.side.clearTranslation')}
+          </Button>
+        </div>
+      ) : (
+        <Button
+          onClick={() => doTranslate(inputText)}
+          disabled={isTranslating || !inputText.trim()}
+          className='w-full text-sm'
+          size='sm'
+        >
+          {isTranslating && (
+            <Loader2 className='mr-2 h-3.5 w-3.5 animate-spin' />
+          )}
+          {isTranslating
+            ? t('ext.side.translating')
+            : t('ext.side.translateButton')}
+        </Button>
+      )}
 
       {/* Error */}
       {error && (
@@ -265,7 +356,7 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
           </div>
 
           {result.language && (
-            <p className='text-[10px] text-muted-foreground'>
+            <p className='text-sm text-muted-foreground'>
               {t('ext.side.detectedLanguage', { language: result.language })}
             </p>
           )}
@@ -278,7 +369,7 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
                 setShowMore(next)
                 if (next) handleLoadEnrichment()
               }}
-              className='flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors'
+              className='flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors'
             >
               {showMore ? (
                 <ChevronUp className='h-3 w-3' />
@@ -289,9 +380,9 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
             </button>
 
             {showMore && (
-              <div className='mt-2 space-y-2'>
+              <div className='mt-3 space-y-4'>
                 {isEnriching && (
-                  <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+                  <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                     <Loader2 className='h-3 w-3 animate-spin' />
                     <span>{t('ext.side.translating')}</span>
                   </div>
@@ -342,7 +433,7 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
                       <div className='space-y-1'>
                         <div className='flex items-center gap-2'>
                           <Info className='h-4 w-4 text-purple-500' />
-                          <p className='text-[10px] font-semibold uppercase tracking-wide text-muted-foreground'>
+                          <p className='text-sm font-semibold uppercase tracking-wide text-muted-foreground'>
                             {t('ext.popup.related')}
                           </p>
                         </div>
@@ -351,7 +442,7 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
                             <Badge
                               key={i}
                               variant='outline'
-                              className='text-[10px]'
+                              className='text-sm font-light'
                             >
                               {r.word} — {r.translation}
                             </Badge>
@@ -363,11 +454,14 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
                       <div className='space-y-1'>
                         <div className='flex items-center gap-2'>
                           <BarChart2 className='h-4 w-4 text-muted-foreground' />
-                          <p className='text-[10px] font-semibold uppercase tracking-wide text-muted-foreground'>
+                          <p className='text-sm font-semibold uppercase tracking-wide text-muted-foreground'>
                             {t('ext.popup.frequency')}
                           </p>
                         </div>
-                        <Badge variant='secondary' className='text-[10px] ml-6'>
+                        <Badge
+                          variant='outline'
+                          className='text-sm ml-6 font-light'
+                        >
                           {enrichment.commonness}
                         </Badge>
                       </div>
@@ -377,31 +471,6 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
               </div>
             )}
           </div>
-
-          {/* Save button */}
-          {session && (
-            <Button
-              variant='outline'
-              size='sm'
-              className='w-full'
-              onClick={handleSave}
-              disabled={saveState === 'saving' || saveState === 'saved'}
-            >
-              {saveState === 'saved' ? (
-                <>
-                  <Check className='h-3.5 w-3.5 mr-1' />
-                  {t('ext.side.conceptSaved')}
-                </>
-              ) : saveState === 'error' ? (
-                t('ext.side.saveFailed')
-              ) : (
-                <>
-                  <Plus className='h-3.5 w-3.5 mr-1' />
-                  {t('ext.side.saveConceptButton')}
-                </>
-              )}
-            </Button>
-          )}
         </div>
       )}
     </div>
@@ -421,11 +490,11 @@ function DetailItem({
     <div className='space-y-1'>
       <div className='flex items-center gap-2'>
         {icon}
-        <p className='text-[10px] font-semibold uppercase tracking-wide text-muted-foreground'>
+        <p className='text-sm font-semibold uppercase tracking-wide text-muted-foreground'>
           {label}
         </p>
       </div>
-      <p className={`text-xs ${icon ? 'pl-6' : ''}`}>{value}</p>
+      <p className={`text-sm ${icon ? 'pl-6' : ''}`}>{value}</p>
     </div>
   )
 }

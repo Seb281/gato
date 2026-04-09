@@ -364,10 +364,13 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.side.saveConceptButton": "Save to vocabulary",
   "ext.side.conceptSaved": "Saved to vocabulary!",
   "ext.side.saveFailed": "Failed to save",
+  "ext.side.clearTranslation": "Clear",
   "ext.side.translationError": "Translation failed. Try again.",
   "ext.side.detectedLanguage": "Detected: {language}",
   "ext.side.addContext": "Add context",
+  "ext.side.contextLabel": "Context for the translation",
   "ext.side.contextPlaceholder": "e.g., This is from a cooking recipe...",
+  "ext.side.translatingTo": "Translating to",
 
   // Extension translation popup
   "ext.popup.translationUnavailable": "Translation unavailable",
@@ -385,6 +388,7 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.popup.updateTranslation": "Update translation",
   "ext.popup.addNew": "Add new",
   "ext.popup.context": "Get details on grammar and usage",
+  "ext.popup.surroundingContext": "Surrounding context",
   "ext.popup.translation": "Translation",
   "ext.popup.changeLanguage": "Change target language",
   "ext.popup.retranslate": "Re-translate",

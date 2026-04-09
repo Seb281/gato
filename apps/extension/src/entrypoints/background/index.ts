@@ -126,6 +126,9 @@ export default defineBackground(() => {
     }
   })
 
+  // Allow content scripts to read session storage (e.g. sidepanelOpen state)
+  chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' })
+
   chrome.runtime.onInstalled.addListener(() => {
     setupContextMenu()
     setupSidePanel()
@@ -302,6 +305,27 @@ export default defineBackground(() => {
           })
           .then(({ translateObject, fromCache, cachedConceptId, targetLanguage, sourceLanguage }: any) => {
             sendResponse({ success: true, translateObject, fromCache, cachedConceptId })
+
+            // Forward to sidepanel if open and request came from content script
+            if (sender.tab) {
+              chrome.storage.session.get('sidepanelOpen', (spResult) => {
+                if (spResult.sidepanelOpen) {
+                  chrome.storage.session.set({
+                    sidepanelTranslation: {
+                      inputText: message.concept || message.text,
+                      result: translateObject,
+                      fromCache: !!fromCache,
+                      cachedConceptId: cachedConceptId ?? undefined,
+                      contextBefore: message.contextBefore || '',
+                      contextAfter: message.contextAfter || '',
+                      sourceUrl: sender.tab?.url ?? '',
+                      timestamp: Date.now(),
+                    },
+                    sidepanelTab: 'translate',
+                  })
+                }
+              })
+            }
 
             // Push to translation history in session storage
             const translationObj = translateObject as {

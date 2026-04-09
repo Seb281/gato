@@ -41,7 +41,32 @@ export default defineContentScript({
       }
     })
 
-    tooltip.init(showTranslationPopup)
+    function translateToSidepanel(): void {
+      tooltip.hide()
+      if (!storedRange) return
+
+      const selection = storedRange.toString()
+      chrome.runtime.sendMessage({
+        action: 'translate',
+        text: `${storedContext.before} [${selection}] ${storedContext.after}`,
+        selection,
+        contextBefore: storedContext.before,
+        contextAfter: storedContext.after,
+        concept: selection,
+      })
+    }
+
+    function handleTooltipClick(): void {
+      chrome.storage.session.get('sidepanelOpen', (result) => {
+        if (result?.sidepanelOpen) {
+          translateToSidepanel()
+        } else {
+          showTranslationPopup()
+        }
+      })
+    }
+
+    tooltip.init(handleTooltipClick)
 
     function captureSelection(): boolean {
       const expandedRange = handleSelection.getExpandedSelection()
@@ -134,12 +159,27 @@ export default defineContentScript({
           return true
         }
         if (message.action === "showTranslation") {
-          const hasSelection = captureSelection()
-          if (hasSelection) {
-            showTranslationPopup()
-          } else if (message.selectionText) {
-            showTranslationPopupWithText(message.selectionText)
-          }
+          chrome.storage.session.get('sidepanelOpen', (result) => {
+            if (result?.sidepanelOpen) {
+              const hasSelection = captureSelection()
+              if (hasSelection) {
+                translateToSidepanel()
+              } else if (message.selectionText) {
+                chrome.runtime.sendMessage({
+                  action: 'translate',
+                  text: message.selectionText,
+                  concept: message.selectionText,
+                })
+              }
+            } else {
+              const hasSelection = captureSelection()
+              if (hasSelection) {
+                showTranslationPopup()
+              } else if (message.selectionText) {
+                showTranslationPopupWithText(message.selectionText)
+              }
+            }
+          })
         }
         return false
       }

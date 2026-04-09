@@ -14,10 +14,10 @@ export default defineConfig({
     plugins: [tailwindcss()],
   }),
   manifest: {
-    name: 'Context-Aware Translator',
+    name: 'CAT — Translate & Learn in Context',
     description:
-      'Smart, context-aware text translation for any webpage. Select text, get a translation that understands the surrounding context.',
-    version: '1.0.0',
+      'Select text on any webpage to get context-aware translations, pronunciation, grammar breakdowns, and spaced repetition — learn languages while you browse.',
+    version: '2.0.0',
     icons: {
       16: 'icon/icon-16.png',
       48: 'icon/icon-48.png',

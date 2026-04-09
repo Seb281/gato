@@ -543,7 +543,7 @@ export default function TranslationPopup({
           {showContext && (contextBefore || contextAfter) && (
             <div className='space-y-2'>
               <span className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                {t('ext.popup.context')}
+                {t('ext.popup.surroundingContext')}
               </span>
               <div className='rounded-lg bg-accent/30 p-3 text-sm leading-relaxed'>
                 <span className='text-muted-foreground'>{contextBefore}</span>{' '}

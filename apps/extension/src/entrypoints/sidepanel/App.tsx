@@ -233,12 +233,12 @@ export default function App() {
 
         {/* Tab content */}
         <div className='flex-1 overflow-y-auto'>
-          {activeTab === 'translate' && (
+          <div className={activeTab !== 'translate' ? 'hidden' : undefined}>
             <TranslateTab
               session={session}
               onSwitchToSettings={() => setActiveTab('settings')}
             />
-          )}
+          </div>
           {activeTab === 'history' && <HistoryTab session={session} />}
           {activeTab === 'saved' && <SavedTab session={session} />}
           {activeTab === 'settings' && <SettingsTab session={session} />}
