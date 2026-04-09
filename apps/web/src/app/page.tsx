@@ -44,7 +44,7 @@ export default async function Home() {
 
           <div className="flex justify-center gap-4 flex-wrap">
             <a
-              href="https://chrome.google.com/webstore"
+              href="https://chromewebstore.google.com/detail/nbljhkoabjlchochcncpnjjbpfakdndd"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -220,7 +220,7 @@ export default async function Home() {
           <div className="bg-secondary rounded-2xl p-12 text-center space-y-6">
             <h2 className="text-3xl font-bold">Start Learning Today</h2>
             <a
-              href="https://chrome.google.com/webstore"
+              href="https://chromewebstore.google.com/detail/nbljhkoabjlchochcncpnjjbpfakdndd"
               target="_blank"
               rel="noopener noreferrer"
             >
