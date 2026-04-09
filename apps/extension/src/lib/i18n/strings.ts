@@ -374,4 +374,4 @@ export const UI_STRINGS: Record<string, string> = {
 };
 
 export type StringKey = keyof typeof UI_STRINGS;
-export const STRINGS_VERSION = "8";
+export const STRINGS_VERSION = "9";

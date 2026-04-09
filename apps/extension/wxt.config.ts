@@ -16,7 +16,7 @@ export default defineConfig({
   manifest: {
     name: 'CAT — Translate & Learn in Context',
     description:
-      'Select text on any webpage to get context-aware translations, pronunciation, grammar breakdowns, and spaced repetition — learn languages while you browse.',
+      'Learn languages while you browse — select text for translations, pronunciation, grammar notes, and spaced repetition.',
     version: '2.0.0',
     icons: {
       16: 'icon/icon-16.png',

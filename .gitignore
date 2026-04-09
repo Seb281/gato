@@ -57,6 +57,7 @@ coverage/
 
 # Docs (internal research / notes)
 docs/
+canva/
 
 # Misc
 *.local
