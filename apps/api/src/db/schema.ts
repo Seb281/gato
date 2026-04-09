@@ -120,6 +120,30 @@ export const reviewSessionsTable = pgTable('review_sessions', {
   completedAt: timestamp('completed_at').defaultNow().notNull(),
 })
 
+export const tutorConversationsTable = pgTable('tutor_conversations', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => usersTable.id, { onDelete: 'cascade' }),
+  title: text('title'),
+  messageCount: integer('message_count').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+})
+
+export const tutorMessagesTable = pgTable('tutor_messages', {
+  id: serial('id').primaryKey(),
+  conversationId: integer('conversation_id')
+    .notNull()
+    .references(() => tutorConversationsTable.id, { onDelete: 'cascade' }),
+  role: text('role').notNull(),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
 export const feedbackTable = pgTable('feedback', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => usersTable.id, { onDelete: 'cascade' }),
@@ -156,3 +180,8 @@ export const uiTranslationsTable = pgTable(
 )
 
 export type ReviewSession = typeof reviewSessionsTable.$inferSelect
+
+export type TutorConversation = typeof tutorConversationsTable.$inferSelect
+export type NewTutorConversation = typeof tutorConversationsTable.$inferInsert
+export type TutorMessage = typeof tutorMessagesTable.$inferSelect
+export type NewTutorMessage = typeof tutorMessagesTable.$inferInsert
