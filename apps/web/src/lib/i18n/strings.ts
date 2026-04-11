@@ -37,6 +37,7 @@ export const UI_STRINGS: Record<string, string> = {
   "translate.alreadySaved": "Already saved",
   "translate.saveFailed": "Failed to save",
   "translate.error": "Translation failed. Please try again.",
+  "translate.listen": "Listen",
   "translate.addContext": "Add context",
   "translate.contextPlaceholder": "e.g., This is from a cooking recipe...",
   "translate.contextHint": "Help the translator understand the meaning better",
