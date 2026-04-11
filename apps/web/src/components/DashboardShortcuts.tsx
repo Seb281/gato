@@ -1,12 +1,18 @@
 "use client";
 
-import { useDashboardShortcuts } from "@/hooks/useDashboardShortcuts";
-
 /**
- * Registers dashboard keyboard shortcuts.
- * Renders nothing — side-effects only.
+ * Mounts dashboard keyboard shortcuts and the keyboard shortcuts help modal.
+ * The hook has no DOM output; the modal is a controlled Dialog toggled by "?".
  */
+
+import { useState } from "react";
+import { useDashboardShortcuts } from "@/hooks/useDashboardShortcuts";
+import KeyboardShortcutsHelp from "@/components/dashboard/KeyboardShortcutsHelp";
+
 export default function DashboardShortcuts() {
-  useDashboardShortcuts();
-  return null;
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  useDashboardShortcuts({ onOpenHelp: () => setHelpOpen(true) });
+
+  return <KeyboardShortcutsHelp open={helpOpen} onOpenChange={setHelpOpen} />;
 }

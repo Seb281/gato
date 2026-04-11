@@ -1013,8 +1013,8 @@ Keep it simple and practical. Only return the JSON, nothing else.`
             body: JSON.stringify({
               from: 'Context Translator <feedback@resend.dev>',
               to: 'sebastian.giupana@gmail.com',
-              subject: `[Feedback] ${category} from ${email ?? 'unknown'}`,
-              text: `Category: ${category}\nFrom: ${email ?? 'unknown'}\n\n${message.trim()}`,
+              subject: `[From-CAT] Message from ${user.name ?? email ?? 'unknown'}`,
+              text: `Category: ${category}\nFrom: ${user.name ?? 'unknown'} <${email ?? 'unknown'}>\n\n${message.trim()}`,
             }),
           }).catch(console.error)
         }

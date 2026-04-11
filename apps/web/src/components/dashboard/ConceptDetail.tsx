@@ -37,8 +37,9 @@ import {
   Target,
   TrendingUp,
   Percent,
+  History,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import MasteryBadge from "./MasteryBadge";
 import TagBadge from "./TagBadge";
 import TagSelector from "./TagSelector";
@@ -57,6 +58,14 @@ type Schedule = {
   lastReviewedAt: string | null;
   totalReviews: number;
   correctReviews: number;
+};
+
+type ReviewRating = "again" | "hard" | "good" | "easy";
+
+type ReviewHistoryEntry = {
+  date: string;
+  rating: ReviewRating;
+  correct: boolean;
 };
 
 type ConceptData = {
@@ -114,6 +123,9 @@ export default function ConceptDetail({ conceptId }: ConceptDetailProps) {
   // Example suggestion
   const [suggesting, setSuggesting] = useState(false);
 
+  // Per-concept review history timeline. `null` = loading, `[]` = loaded but empty.
+  const [history, setHistory] = useState<ReviewHistoryEntry[] | null>(null);
+
   const getToken = useCallback(async () => {
     const {
       data: { session },
@@ -162,6 +174,34 @@ export default function ConceptDetail({ conceptId }: ConceptDetailProps) {
   useEffect(() => {
     fetchConcept();
   }, [fetchConcept]);
+
+  // Fetch review history in parallel with the concept. Kept in its own effect
+  // so the main concept fetch stays fast even if the history endpoint is slow,
+  // and history failures never flip the main `error` state — the timeline
+  // just shows the empty state in that case.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const res = await fetch(`${API_URL}/review/history/${conceptId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          if (!cancelled) setHistory([]);
+          return;
+        }
+        const data = await res.json();
+        if (!cancelled) setHistory(data.history ?? []);
+      } catch {
+        if (!cancelled) setHistory([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [API_URL, conceptId, getToken]);
 
   // Cleanup debounce timers
   useEffect(() => {
@@ -668,6 +708,19 @@ export default function ConceptDetail({ conceptId }: ConceptDetailProps) {
         </Card>
       )}
 
+      {/* Review History Card — per-concept rating timeline */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Review History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ReviewHistoryTimeline history={history} />
+        </CardContent>
+      </Card>
+
       {/* Delete Section */}
       <div className="pt-2 pb-8">
         <Separator className="mb-6" />
@@ -710,6 +763,90 @@ export default function ConceptDetail({ conceptId }: ConceptDetailProps) {
           </DialogContent>
         </Dialog>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Maps a rating label to a Badge variant + visible copy. Keeping this outside
+ * the component so it's a pure lookup — no dependency on props or state.
+ */
+const RATING_DISPLAY: Record<
+  ReviewRating,
+  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+> = {
+  again: { label: "Again", variant: "destructive" },
+  hard: { label: "Hard", variant: "outline" },
+  good: { label: "Good", variant: "secondary" },
+  easy: { label: "Easy", variant: "default" },
+};
+
+/**
+ * Renders the review history timeline for a single concept.
+ *
+ * Handles three states explicitly: loading (`history === null`), empty
+ * (`history.length === 0`), and populated. The populated case caps the
+ * visible list at 20 rows — anything older is hinted at with a count but not
+ * rendered to keep the detail page from growing unbounded as a user logs
+ * hundreds of reviews over time.
+ */
+function ReviewHistoryTimeline({
+  history,
+}: {
+  history: ReviewHistoryEntry[] | null;
+}) {
+  if (history === null) {
+    return (
+      <p className="text-sm text-muted-foreground">Loading history…</p>
+    );
+  }
+
+  if (history.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No reviews yet. Practice this concept to start building a history.
+      </p>
+    );
+  }
+
+  const MAX_VISIBLE = 20;
+  const visible = history.slice(0, MAX_VISIBLE);
+  const hiddenCount = history.length - visible.length;
+
+  return (
+    <div className="space-y-2">
+      {visible.map((entry, i) => {
+        const display = RATING_DISPLAY[entry.rating];
+        const when = new Date(entry.date);
+        return (
+          <div
+            key={`${entry.date}-${i}`}
+            className="flex items-center justify-between gap-3 py-1 border-b border-border/50 last:border-0"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              {entry.correct ? (
+                <Check className="size-4 text-green-500 shrink-0" />
+              ) : (
+                <X className="size-4 text-destructive shrink-0" />
+              )}
+              <Badge variant={display.variant} className="shrink-0">
+                {display.label}
+              </Badge>
+            </div>
+            <span
+              className="text-xs text-muted-foreground truncate"
+              title={format(when, "PPpp")}
+            >
+              {formatDistanceToNow(when, { addSuffix: true })}
+            </span>
+          </div>
+        );
+      })}
+      {hiddenCount > 0 && (
+        <p className="text-xs text-muted-foreground italic pt-1">
+          …and {hiddenCount} earlier review{hiddenCount === 1 ? "" : "s"}
+        </p>
+      )}
     </div>
   );
 }

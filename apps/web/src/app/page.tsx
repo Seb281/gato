@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import ComparisonTable from "@/components/landing/ComparisonTable";
+import DemoAnimation from "@/components/landing/DemoAnimation";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -69,6 +71,9 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* Demo animation */}
+      <DemoAnimation />
 
       {/* How it works */}
       <section className="py-16 md:py-24">
@@ -213,6 +218,9 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* Comparison table */}
+      <ComparisonTable />
 
       {/* CTA */}
       <section className="py-16 md:py-24">

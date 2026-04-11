@@ -4,7 +4,23 @@ import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 
-export type QuizMode = "flashcard" | "multiple-choice" | "type-answer" | "contextual-recall";
+export type QuizMode =
+  | "flashcard"
+  | "multiple-choice"
+  | "type-answer"
+  | "contextual-recall"
+  | "sentence-builder";
+
+/**
+ * Server-delivered challenge attached to a sentence-builder question.
+ * The API withholds `correctOrdering` from the client — that only comes
+ * back after validate, so the puzzle stays a puzzle.
+ */
+export type SentenceBuilderChallenge = {
+  id: string;
+  nativeSentence: string;
+  tiles: string[];
+};
 
 export type Question = {
   conceptId: number;
@@ -18,6 +34,7 @@ export type Question = {
   options?: string[];
   contextBefore?: string | null;
   contextAfter?: string | null;
+  challenge?: SentenceBuilderChallenge;
 };
 
 export type SessionResult = {
@@ -49,6 +66,74 @@ export function useReviewSession() {
           data: { session },
         } = await supabase.auth.getSession();
         if (!session) return;
+
+        // Sentence-builder has its own shape: we fetch due concepts using
+        // the existing /quiz/generate pipeline (as plain flashcard questions)
+        // and then mint one LLM-backed challenge per concept in parallel.
+        // Concepts whose challenge generation fails are dropped rather than
+        // failing the whole session — the user still sees the ones that
+        // succeeded.
+        if (mode === "sentence-builder") {
+          const baseParams = new URLSearchParams({
+            type: "flashcard",
+            count: count.toString(),
+          });
+          const baseRes = await fetch(
+            `${API_URL}/quiz/generate?${baseParams}`,
+            { headers: { Authorization: `Bearer ${session.access_token}` } }
+          );
+          if (!baseRes.ok) {
+            toast.error("Could not load review questions.");
+            return;
+          }
+          const baseData = await baseRes.json();
+          if (!baseData.questions || baseData.questions.length === 0) {
+            setQuestions([]);
+            setSessionActive(false);
+            return;
+          }
+
+          const withChallenges = await Promise.all(
+            (baseData.questions as Question[]).map(async (q) => {
+              try {
+                const r = await fetch(
+                  `${API_URL}/review/sentence-builder/generate`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${session.access_token}`,
+                    },
+                    body: JSON.stringify({ conceptId: q.conceptId }),
+                  }
+                );
+                if (!r.ok) return null;
+                const { challenge } = (await r.json()) as {
+                  challenge: SentenceBuilderChallenge;
+                };
+                const withChallenge: Question = { ...q, challenge };
+                return withChallenge;
+              } catch {
+                return null;
+              }
+            })
+          );
+
+          const usable = withChallenges.filter(
+            (q): q is Question => q !== null
+          );
+          if (usable.length === 0) {
+            toast.error("Could not generate sentence challenges.");
+            setQuestions([]);
+            setSessionActive(false);
+            return;
+          }
+          setQuestions(usable);
+          setCurrentIndex(0);
+          setResults([]);
+          setSessionActive(true);
+          return;
+        }
 
         const params = new URLSearchParams({
           type: mode,

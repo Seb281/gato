@@ -120,6 +120,36 @@ export const reviewSessionsTable = pgTable('review_sessions', {
   completedAt: timestamp('completed_at').defaultNow().notNull(),
 })
 
+/**
+ * Per-item review log. One row per rating submitted through
+ * `POST /review/:conceptId/result`. Lets the detail page show a history
+ * timeline for a concept and keeps raw data around for future analytics
+ * without mutating the aggregates in `review_schedule`.
+ *
+ * `sessionId` is nullable because the session row is only written after the
+ * client finishes and POSTs to `/review/sessions` — at the moment an
+ * individual rating is logged, the session id isn't known yet. Storing null
+ * is better than blocking the log on session metadata the handler doesn't have.
+ */
+export const reviewEventsTable = pgTable('review_events', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => usersTable.id, { onDelete: 'cascade' }),
+  sessionId: integer('session_id').references(() => reviewSessionsTable.id, {
+    onDelete: 'set null',
+  }),
+  conceptId: integer('concept_id')
+    .notNull()
+    .references(() => conceptsTable.id, { onDelete: 'cascade' }),
+  rating: text('rating').notNull(), // 'again' | 'hard' | 'good' | 'easy'
+  correct: integer('correct').notNull(), // 0 | 1 — mirrors quality >= 3
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+export type ReviewEvent = typeof reviewEventsTable.$inferSelect
+export type NewReviewEvent = typeof reviewEventsTable.$inferInsert
+
 export const feedbackTable = pgTable('feedback', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => usersTable.id, { onDelete: 'cascade' }),
@@ -129,6 +159,34 @@ export const feedbackTable = pgTable('feedback', {
 })
 
 export type Feedback = typeof feedbackTable.$inferSelect
+
+/**
+ * One "word of the day" suggestion per user per calendar date. Stored so
+ * the card shows a deterministic, stable suggestion for a given day — the
+ * LLM only runs on the first request of the day, every subsequent visit
+ * reads from this table. Keyed (user, date) to make upserts trivial.
+ */
+export const dailySuggestionsTable = pgTable(
+  'daily_suggestions',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => usersTable.id, { onDelete: 'cascade' }),
+    date: text('date').notNull(), // YYYY-MM-DD in user's local day
+    word: text('word').notNull(),
+    translation: text('translation').notNull(),
+    sourceLanguage: text('source_language').notNull(),
+    targetLanguage: text('target_language').notNull(),
+    rationale: text('rationale'),
+    exampleSentence: text('example_sentence'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.userId, t.date)]
+)
+
+export type DailySuggestion = typeof dailySuggestionsTable.$inferSelect
+export type NewDailySuggestion = typeof dailySuggestionsTable.$inferInsert
 
 export type User = typeof usersTable.$inferSelect
 export type NewUser = typeof usersTable.$inferInsert

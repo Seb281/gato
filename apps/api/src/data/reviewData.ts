@@ -1,7 +1,32 @@
 import { db } from '../db/index.ts'
 import { and, eq, lte, gte, lt, sql, ne, inArray, isNull, desc, or, isNotNull } from 'drizzle-orm'
-import { reviewScheduleTable, conceptsTable, reviewSessionsTable } from '../db/schema.ts'
-import type { ReviewSchedule, Concept, ReviewSession } from '../db/schema.ts'
+import {
+  reviewScheduleTable,
+  conceptsTable,
+  reviewSessionsTable,
+  reviewEventsTable,
+} from '../db/schema.ts'
+import type { ReviewSchedule, Concept, ReviewSession, ReviewEvent } from '../db/schema.ts'
+
+/**
+ * Labels stored in `review_events.rating`. Keeping this as a const tuple
+ * gives us a compile-time union for the logging helper and a runtime array
+ * for validation.
+ */
+export const REVIEW_RATINGS = ['again', 'hard', 'good', 'easy'] as const
+export type ReviewRating = (typeof REVIEW_RATINGS)[number]
+
+/**
+ * Convert an SM-2 numeric quality (0-5) into one of the four review rating
+ * labels the event log stores. Used when the client submits a numeric
+ * `quality` instead of a label — keeps the log shape consistent.
+ */
+export function numericQualityToRating(quality: number): ReviewRating {
+  if (quality >= 5) return 'easy'
+  if (quality === 4) return 'good'
+  if (quality === 3) return 'hard'
+  return 'again'
+}
 
 const reviewData = {
   async getDueConcepts(
@@ -324,6 +349,63 @@ const reviewData = {
       })
       .returning()
     return result[0]!
+  },
+
+  /**
+   * Append a single rating event to the review log. Non-blocking callers
+   * should wrap this in `.catch(...)` — we never want a failed log to take
+   * down the main rating path. `sessionId` is optional because it isn't
+   * known at the time the handler fires.
+   */
+  async logReviewEvent(data: {
+    userId: number
+    conceptId: number
+    rating: ReviewRating
+    correct: boolean
+    sessionId?: number | null
+  }): Promise<ReviewEvent> {
+    const result = await db
+      .insert(reviewEventsTable)
+      .values({
+        userId: data.userId,
+        conceptId: data.conceptId,
+        rating: data.rating,
+        correct: data.correct ? 1 : 0,
+        sessionId: data.sessionId ?? null,
+      })
+      .returning()
+    return result[0]!
+  },
+
+  /**
+   * Return every logged review event for a given concept belonging to the
+   * given user, most recent first. Projected down to the minimum the web
+   * history timeline needs — no need to expose internal ids.
+   */
+  async getReviewHistoryForConcept(
+    userId: number,
+    conceptId: number
+  ): Promise<{ date: Date; rating: ReviewRating; correct: boolean }[]> {
+    const rows = await db
+      .select({
+        createdAt: reviewEventsTable.createdAt,
+        rating: reviewEventsTable.rating,
+        correct: reviewEventsTable.correct,
+      })
+      .from(reviewEventsTable)
+      .where(
+        and(
+          eq(reviewEventsTable.userId, userId),
+          eq(reviewEventsTable.conceptId, conceptId)
+        )
+      )
+      .orderBy(desc(reviewEventsTable.createdAt))
+
+    return rows.map((r) => ({
+      date: r.createdAt,
+      rating: r.rating as ReviewRating,
+      correct: r.correct === 1,
+    }))
   },
 
   async getSessionHistory(

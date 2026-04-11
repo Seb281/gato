@@ -16,13 +16,16 @@ import { useRouter } from "next/navigation";
  * Single-key shortcuts:
  *   /       Focus the search input (element with data-search-input attribute)
  *   Escape  Blur the active element
+ *   ?       Invoke options.onOpenHelp (typically opens the shortcuts help modal)
  *
- * All shortcuts are suppressed when focus is inside an input or textarea.
+ * All shortcuts are suppressed when focus is inside an input, textarea, or
+ * contenteditable element.
  */
-export function useDashboardShortcuts() {
+export function useDashboardShortcuts(options?: { onOpenHelp?: () => void }) {
   const router = useRouter();
   const [firstKey, setFirstKey] = useState<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onOpenHelp = options?.onOpenHelp;
 
   useEffect(() => {
     function clearFirstKey() {
@@ -90,6 +93,12 @@ export function useDashboardShortcuts() {
         return;
       }
 
+      if (e.key === "?") {
+        e.preventDefault();
+        onOpenHelp?.();
+        return;
+      }
+
       if (e.key === "Escape") {
         const active = document.activeElement as HTMLElement | null;
         active?.blur();
@@ -105,5 +114,5 @@ export function useDashboardShortcuts() {
       }
     };
     // firstKey must be in deps so the closure always reads the latest value
-  }, [firstKey, router]);
+  }, [firstKey, router, onOpenHelp]);
 }

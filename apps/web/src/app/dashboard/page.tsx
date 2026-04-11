@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import GoalRing from "@/components/dashboard/GoalRing";
+import WordOfTheDay from "@/components/dashboard/WordOfTheDay";
 import { checkMilestones } from "@/components/dashboard/MilestoneToast";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
@@ -261,6 +262,8 @@ export default function DashboardHome() {
               </CardContent>
             </Card>
           </div>
+
+          <WordOfTheDay />
 
           {/* Recent Words placeholder */}
           <Card>

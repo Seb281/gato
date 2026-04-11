@@ -20,6 +20,7 @@ import {
   Loader2,
   GraduationCap,
   PartyPopper,
+  Blocks,
 } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -48,6 +49,12 @@ const MODES = [
     labelKey: "review.contextRecall",
     icon: FileText,
     descKey: "review.contextRecallDesc",
+  },
+  {
+    value: "sentence-builder",
+    labelKey: "review.sentenceBuilder",
+    icon: Blocks,
+    descKey: "review.sentenceBuilderDesc",
   },
 ] as const;
 

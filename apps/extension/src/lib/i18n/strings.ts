@@ -34,6 +34,16 @@ export const UI_STRINGS: Record<string, string> = {
   "home.recentWordsEmpty":
     "Your recently saved words will appear here. Use the extension to translate and save new vocabulary.",
   "home.viewAll": "View all",
+  "home.wordOfTheDay.title": "Word of the Day",
+  "home.wordOfTheDay.hearIt": "Hear it",
+  "home.wordOfTheDay.save": "Save to vocabulary",
+  "home.wordOfTheDay.saved": "Saved",
+  "home.wordOfTheDay.alreadySaved": "Already in your vocabulary",
+  "home.wordOfTheDay.saveFailed": "Could not save word",
+  "home.wordOfTheDay.empty":
+    "Set a target language or save a word to start getting daily suggestions.",
+  "home.wordOfTheDay.error": "Could not load suggestion.",
+  "home.wordOfTheDay.speechUnsupported": "Speech synthesis not supported in this browser",
 
   // Review page
   "review.title": "Review",
@@ -50,6 +60,9 @@ export const UI_STRINGS: Record<string, string> = {
   "review.contextRecall": "Context Recall",
   "review.contextRecallDesc":
     "See the original sentence with the word removed. Fill in the blank from memory.",
+  "review.sentenceBuilder": "Sentence Builder",
+  "review.sentenceBuilderDesc":
+    "Rebuild a target-language sentence by tapping word tiles in the right order.",
   "review.noVocabulary": "No vocabulary yet",
   "review.noVocabularyDesc":
     "Save some words to start reviewing. Use the extension to translate and save new vocabulary.",
@@ -229,6 +242,8 @@ export const UI_STRINGS: Record<string, string> = {
 
   // Common
   "common.loading": "Loading...",
+  "common.saving": "Saving...",
+  "common.notSignedIn": "Not signed in.",
   "common.error":
     "Something went wrong loading data. Check your connection and try refreshing.",
   "common.goToDashboard": "Go to Dashboard",
@@ -371,6 +386,33 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.popup.grammar": "Grammar",
   "ext.popup.frequency": "Frequency",
   "ext.popup.related": "Related",
+
+  // Keyboard shortcuts help modal (web dashboard only; never rendered in the extension)
+  "shortcuts.title": "Keyboard shortcuts",
+  "shortcuts.section.navigation": "Navigation",
+  "shortcuts.section.quiz": "Quiz Review",
+  "shortcuts.section.help": "Help",
+  "shortcuts.nav.home": "Go to Home",
+  "shortcuts.nav.vocabulary": "Go to Vocabulary",
+  "shortcuts.nav.review": "Go to Review",
+  "shortcuts.nav.progress": "Go to Progress",
+  "shortcuts.nav.settings": "Go to Settings",
+  "shortcuts.nav.focusSearch": "Focus search",
+  "shortcuts.nav.blur": "Blur input",
+  "shortcuts.quiz.reveal": "Reveal answer",
+  "shortcuts.quiz.rate": "Rate or select option",
+  "shortcuts.quiz.submit": "Submit answer",
+  "shortcuts.help.toggle": "Toggle this dialog",
+
+  // Per-concept review history timeline (web dashboard only; never rendered in the extension)
+  "concept.history.title": "Review History",
+  "concept.history.loading": "Loading history…",
+  "concept.history.empty": "No reviews yet. Practice this concept to start building a history.",
+  "concept.history.more": "…and {count} earlier reviews",
+  "concept.history.rating.again": "Again",
+  "concept.history.rating.hard": "Hard",
+  "concept.history.rating.good": "Good",
+  "concept.history.rating.easy": "Easy",
 };
 
 export type StringKey = keyof typeof UI_STRINGS;

@@ -10,6 +10,7 @@ import FlashcardQuiz from "@/components/dashboard/quiz/FlashcardQuiz";
 import MultipleChoiceQuiz from "@/components/dashboard/quiz/MultipleChoiceQuiz";
 import TypeAnswerQuiz from "@/components/dashboard/quiz/TypeAnswerQuiz";
 import ContextualRecallQuiz from "@/components/dashboard/quiz/ContextualRecallQuiz";
+import SentenceBuilderQuiz from "@/components/dashboard/quiz/SentenceBuilderQuiz";
 import SessionSummary from "@/components/dashboard/quiz/SessionSummary";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
@@ -113,6 +114,13 @@ export default function ReviewSessionPage() {
       )}
       {currentQuestion && mode === "contextual-recall" && (
         <ContextualRecallQuiz
+          key={currentQuestion.conceptId}
+          question={currentQuestion}
+          onAnswer={submitAnswer}
+        />
+      )}
+      {currentQuestion && mode === "sentence-builder" && (
+        <SentenceBuilderQuiz
           key={currentQuestion.conceptId}
           question={currentQuestion}
           onAnswer={submitAnswer}
