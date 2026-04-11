@@ -40,6 +40,7 @@ export const UI_STRINGS: Record<string, string> = {
   "translate.alreadySaved": "Already saved",
   "translate.saveFailed": "Failed to save",
   "translate.error": "Translation failed. Please try again.",
+  "translate.listen": "Listen",
 
   // Dashboard home
   "home.welcomeBack": "Welcome back, {name}",

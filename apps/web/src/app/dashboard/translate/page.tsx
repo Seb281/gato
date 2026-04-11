@@ -64,7 +64,14 @@ export default function TranslatePage() {
   const [sourceText, setSourceText] = useState("");
   const [sourceLanguage, setSourceLanguage] = useState("auto");
   const [targetLanguage, setTargetLanguage] = useState("English");
+  // `personalContext` mirrors the user's global profile context (managed
+  // in Settings) and is sent with every translation to improve relevance.
+  // It is never displayed or editable on this page — edit in Settings.
   const [personalContext, setPersonalContext] = useState("");
+  // `surroundingContext` is the per-query context the user types in the
+  // "Add context" collapsible — e.g. the sentence the word came from.
+  // This maps to the API's `contextBefore` field.
+  const [surroundingContext, setSurroundingContext] = useState("");
   const [isTranslating, setIsTranslating] = useState(false);
   const [result, setResult] = useState<TranslationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -128,7 +135,10 @@ export default function TranslatePage() {
         method: "POST",
         headers,
         body: JSON.stringify({
-          text: sourceText,
+          // Use the structured format: explicit selection + surrounding
+          // context, so the API's per-query context path is taken.
+          selection: sourceText,
+          contextBefore: surroundingContext,
           targetLanguage,
           sourceLanguage: sourceLanguage === "auto" ? "" : sourceLanguage,
           personalContext,
@@ -144,6 +154,16 @@ export default function TranslatePage() {
 
       const data = await res.json();
       setResult(data);
+
+      // On successful auto-detect, populate the Select with the detected
+      // language so the UI reflects what the API decided. If the detected
+      // name isn't in our curated list, leave "auto" untouched.
+      if (sourceLanguage === "auto" && data.language) {
+        const detected = LANGUAGES.find(
+          (l) => l.toLowerCase() === String(data.language).toLowerCase()
+        );
+        if (detected) setSourceLanguage(detected);
+      }
     } catch (err) {
       if (currentRequestId === requestIdRef.current) {
         setError(
@@ -235,6 +255,7 @@ export default function TranslatePage() {
           targetLanguage,
           sourceLanguage: result.language || "",
           personalContext,
+          contextBefore: surroundingContext,
         }),
       });
 
@@ -295,10 +316,23 @@ export default function TranslatePage() {
                   ))}
                 </SelectContent>
               </Select>
-              {result && result.language && sourceLanguage === "auto" && (
-                <Badge variant="secondary" className="text-xs">
-                  {t("translate.autoDetect")}: {result.language}
-                </Badge>
+              {sourceText.trim() && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Pick the best signal for the source language:
+                    // explicit user choice first, then auto-detected result.
+                    const lang =
+                      sourceLanguage !== "auto"
+                        ? sourceLanguage
+                        : result?.language;
+                    speakText(sourceText, lang ?? "");
+                  }}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={t("translate.listen")}
+                >
+                  <Volume2 className="h-4 w-4" />
+                </button>
               )}
             </div>
 
@@ -322,8 +356,8 @@ export default function TranslatePage() {
               </button>
               {showContext && (
                 <Textarea
-                  value={personalContext}
-                  onChange={(e) => setPersonalContext(e.target.value)}
+                  value={surroundingContext}
+                  onChange={(e) => setSurroundingContext(e.target.value)}
                   placeholder={t("translate.contextPlaceholder")}
                   className="mt-2 min-h-[60px] resize-none text-sm"
                 />
@@ -380,20 +414,6 @@ export default function TranslatePage() {
               {result && (
                 <div className="space-y-3">
                   <p className="text-lg">{result.contextualTranslation}</p>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() =>
-                        speakText(
-                          result.contextualTranslation,
-                          targetLanguage
-                        )
-                      }
-                      className="text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <Volume2 className="h-4 w-4" />
-                    </button>
-                  </div>
                 </div>
               )}
 
