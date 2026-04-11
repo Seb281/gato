@@ -120,6 +120,36 @@ export const reviewSessionsTable = pgTable('review_sessions', {
   completedAt: timestamp('completed_at').defaultNow().notNull(),
 })
 
+/**
+ * Per-item review log. One row per rating submitted through
+ * `POST /review/:conceptId/result`. Lets the detail page show a history
+ * timeline for a concept and keeps raw data around for future analytics
+ * without mutating the aggregates in `review_schedule`.
+ *
+ * `sessionId` is nullable because the session row is only written after the
+ * client finishes and POSTs to `/review/sessions` — at the moment an
+ * individual rating is logged, the session id isn't known yet. Storing null
+ * is better than blocking the log on session metadata the handler doesn't have.
+ */
+export const reviewEventsTable = pgTable('review_events', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => usersTable.id, { onDelete: 'cascade' }),
+  sessionId: integer('session_id').references(() => reviewSessionsTable.id, {
+    onDelete: 'set null',
+  }),
+  conceptId: integer('concept_id')
+    .notNull()
+    .references(() => conceptsTable.id, { onDelete: 'cascade' }),
+  rating: text('rating').notNull(), // 'again' | 'hard' | 'good' | 'easy'
+  correct: integer('correct').notNull(), // 0 | 1 — mirrors quality >= 3
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+export type ReviewEvent = typeof reviewEventsTable.$inferSelect
+export type NewReviewEvent = typeof reviewEventsTable.$inferInsert
+
 export const feedbackTable = pgTable('feedback', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => usersTable.id, { onDelete: 'cascade' }),

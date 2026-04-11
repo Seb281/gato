@@ -4,7 +4,8 @@ import {
   getAuthenticatedUserId,
 } from '../middleware/supabaseAuth.ts'
 import { usersData } from '../data/usersData.ts'
-import reviewData from '../data/reviewData.ts'
+import reviewData, { numericQualityToRating } from '../data/reviewData.ts'
+import type { ReviewRating } from '../data/reviewData.ts'
 import conceptsData from '../data/conceptsData.ts'
 import { sm2, QUALITY_MAP } from '../utils/sm2.ts'
 import type { QualityLabel } from '../utils/sm2.ts'
@@ -100,11 +101,14 @@ export async function reviewRoutes(
 
         // Resolve quality — accept either a number or a label
         let quality: number
+        let rating: ReviewRating
         const rawQuality = request.body.quality
         if (typeof rawQuality === 'string' && rawQuality in QUALITY_MAP) {
+          rating = rawQuality as ReviewRating
           quality = QUALITY_MAP[rawQuality as QualityLabel]
         } else if (typeof rawQuality === 'number' && rawQuality >= 0 && rawQuality <= 5) {
           quality = rawQuality
+          rating = numericQualityToRating(rawQuality)
         } else {
           return reply.code(400).send({ error: 'quality must be 0-5 or one of: again, hard, good, easy' })
         }
@@ -140,6 +144,17 @@ export async function reviewRoutes(
           statsData.updateDailyActivity(user.id, 'correctReviews').catch(console.error)
         }
 
+        // Log the raw rating event for the per-concept history timeline.
+        // Non-blocking — a failed insert must not fail the response.
+        reviewData
+          .logReviewEvent({
+            userId: user.id,
+            conceptId,
+            rating,
+            correct: quality >= 3,
+          })
+          .catch((err) => request.log.error(err, 'Failed to log review event'))
+
         return reply.send({
           message: 'Review recorded',
           nextReviewAt: result.nextReviewAt,
@@ -149,6 +164,42 @@ export async function reviewRoutes(
       } catch (error) {
         request.log.error(error, 'Failed to record review result')
         return reply.code(500).send({ error: 'Failed to record review result' })
+      }
+    }
+  )
+
+  // GET /review/history/:conceptId — per-concept rating timeline
+  fastify.get<{ Params: { conceptId: string } }>(
+    '/review/history/:conceptId',
+    { preHandler: [requireAuth] },
+    async (
+      request: FastifyRequest<{ Params: { conceptId: string } }>,
+      reply: FastifyReply
+    ) => {
+      const conceptId = parseInt(request.params.conceptId, 10)
+      if (isNaN(conceptId)) {
+        return reply.code(400).send({ error: 'Invalid concept ID' })
+      }
+
+      const supabaseId = getAuthenticatedUserId(request)
+      if (!supabaseId) {
+        return reply.code(401).send({ error: 'Unauthorized' })
+      }
+
+      try {
+        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+        if (!user) {
+          return reply.send({ history: [] })
+        }
+
+        const history = await reviewData.getReviewHistoryForConcept(
+          user.id,
+          conceptId
+        )
+        return reply.send({ history })
+      } catch (error) {
+        request.log.error(error, 'Failed to retrieve review history')
+        return reply.code(500).send({ error: 'Failed to retrieve review history' })
       }
     }
   )
