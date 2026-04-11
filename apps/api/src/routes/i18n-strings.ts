@@ -415,6 +415,16 @@ export const UI_STRINGS: Record<string, string> = {
   "shortcuts.quiz.rate": "Rate or select option",
   "shortcuts.quiz.submit": "Submit answer",
   "shortcuts.help.toggle": "Toggle this dialog",
+
+  // Per-concept review history timeline (web dashboard detail page)
+  "concept.history.title": "Review History",
+  "concept.history.loading": "Loading history…",
+  "concept.history.empty": "No reviews yet. Practice this concept to start building a history.",
+  "concept.history.more": "…and {count} earlier reviews",
+  "concept.history.rating.again": "Again",
+  "concept.history.rating.hard": "Hard",
+  "concept.history.rating.good": "Good",
+  "concept.history.rating.easy": "Easy",
 };
 
 export type StringKey = keyof typeof UI_STRINGS;
