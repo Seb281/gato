@@ -31,8 +31,11 @@ const MORE_ITEMS = [
   { labelKey: "nav.translate", icon: Languages, href: "/dashboard/translate" },
   { labelKey: "nav.tags", icon: Tags, href: "/dashboard/tags" },
   { labelKey: "nav.feedback", icon: MessageSquare, href: "/dashboard/feedback" },
-  { labelKey: "nav.importExport", icon: ArrowUpDown, href: "/dashboard/import-export" },
+];
+
+const SETTINGS_ITEMS = [
   { labelKey: "nav.settings", icon: Settings, href: "/dashboard/settings" },
+  { labelKey: "nav.importExport", icon: ArrowUpDown, href: "/dashboard/import-export" },
 ];
 
 export default function MobileNav({
@@ -52,7 +55,7 @@ export default function MobileNav({
     return pathname.startsWith(href);
   }
 
-  const moreActive = MORE_ITEMS.some((item) => isActive(item.href));
+  const moreActive = [...MORE_ITEMS, ...SETTINGS_ITEMS].some((item) => isActive(item.href));
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-xl">
@@ -95,7 +98,7 @@ export default function MobileNav({
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium",
                     isActive(item.href)
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-accent text-accent-foreground"
                       : "text-muted-foreground"
                   )}
                 >
@@ -103,7 +106,26 @@ export default function MobileNav({
                   {t(item.labelKey)}
                 </Link>
               ))}
-              <div className="my-2" />
+
+              <div className="h-px bg-border/40 my-2" />
+
+              {SETTINGS_ITEMS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium",
+                    isActive(item.href)
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  <item.icon className="size-5" />
+                  {t(item.labelKey)}
+                </Link>
+              ))}
+
               <form action={signOutAction}>
                 <button
                   type="submit"

@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Superpowers brainstorming artifacts
+.superpowers/
+
 # Build outputs
 dist/
 .output/

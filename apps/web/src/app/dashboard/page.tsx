@@ -143,12 +143,12 @@ export default function DashboardHome() {
   const goalMet = todayReviews >= dailyGoal;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">
+        <h1 className="font-display text-4xl">
           {userName ? t("home.welcomeBack", { name: userName }) : t("home.welcomeBackGeneric")}
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground mt-2">
           {t("home.learningOverview")}
         </p>
       </div>
@@ -172,7 +172,7 @@ export default function DashboardHome() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
-                  <Target className="size-5 text-muted-foreground" />
+                  <Target className="size-5 text-primary" />
                   {t("home.todaysProgress")}
                 </CardTitle>
               </CardHeader>
@@ -196,7 +196,7 @@ export default function DashboardHome() {
             <Card className="flex flex-col">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
-                  <GraduationCap className="size-5 text-muted-foreground" />
+                  <GraduationCap className="size-5 text-amber-500" />
                   {t("home.review")}
                 </CardTitle>
               </CardHeader>
@@ -228,7 +228,7 @@ export default function DashboardHome() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="size-5 text-muted-foreground" />
+                  <BarChart3 className="size-5 text-blue-500" />
                   {t("home.quickStats")}
                 </CardTitle>
               </CardHeader>
@@ -270,7 +270,7 @@ export default function DashboardHome() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="size-5 text-muted-foreground" />
+                  <BookOpen className="size-5 text-primary" />
                   {t("home.recentWords")}
                 </CardTitle>
                 <Button variant="ghost" size="sm" asChild>

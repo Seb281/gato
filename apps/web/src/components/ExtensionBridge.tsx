@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { Session } from '@supabase/supabase-js'
 
 /**
- * Pushes Supabase auth state to the Context-Aware Translator extension
+ * Pushes Supabase auth state to the Gato extension
  * via window.postMessage. The extension's auth-bridge content script
  * listens for these messages and relays them to the background service worker.
  * Renders nothing — side-effects only.

@@ -10,10 +10,10 @@ export default function ImportExportPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t("importExport.title")}</h1>
-        <p className="text-muted-foreground">
+        <h1 className="font-display text-4xl">{t("importExport.title")}</h1>
+        <p className="text-muted-foreground mt-2">
           {t("importExport.subtitle")}
         </p>
       </div>
@@ -22,7 +22,7 @@ export default function ImportExportPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Download className="size-5 text-muted-foreground" />
+              <Download className="size-5 text-primary" />
               {t("importExport.export")}
             </CardTitle>
           </CardHeader>
@@ -37,7 +37,7 @@ export default function ImportExportPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Upload className="size-5 text-muted-foreground" />
+              <Upload className="size-5 text-primary" />
               {t("importExport.import")}
             </CardTitle>
           </CardHeader>

@@ -1,7 +1,7 @@
 /**
  * Static marketing comparison table.
  *
- * A feature-by-feature contrast between Context-Aware Translator and the
+ * A feature-by-feature contrast between Gato and the
  * tools it tends to get measured against: Google Translate (in-browser
  * translation), Anki (offline SRS), and Duolingo (gamified course).
  *
@@ -122,25 +122,27 @@ function Cell({ support }: { support: Support }) {
 
 export default function ComparisonTable() {
   return (
-    <section className="py-16 md:py-24">
+    <section className="py-20 md:py-24">
       <div className="max-w-5xl mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center mb-4">
-          How it compares
-        </h2>
-        <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-12">
-          Context-Aware Translator combines the in-page convenience of a
-          translator with the long-term memory of a spaced-repetition app.
-        </p>
+        <div className="text-center mb-14">
+          <h2 className="font-display text-4xl">
+            How Gato compares
+          </h2>
+          <p className="text-base text-stone-500 dark:text-stone-400 mt-3 max-w-lg mx-auto leading-relaxed">
+            The in-page convenience of a translator with the long-term memory
+            of a spaced-repetition app.
+          </p>
+        </div>
 
-        <div className="overflow-x-auto rounded-xl border bg-card">
+        <div className="overflow-x-auto rounded-xl bg-card">
           <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b bg-muted/30">
                 <th className="text-left p-4 font-semibold w-[38%]">
                   Feature
                 </th>
-                <th className="p-4 font-semibold text-center">
-                  Context-Aware Translator
+                <th className="p-4 font-semibold text-center text-primary">
+                  Gato
                 </th>
                 <th className="p-4 font-semibold text-center text-muted-foreground">
                   Google Translate

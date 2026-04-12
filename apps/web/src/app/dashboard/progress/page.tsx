@@ -118,11 +118,11 @@ export default function ProgressPage() {
   const totalForBar = overview?.totalConcepts ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("progress.title")}</h1>
-          <p className="text-muted-foreground">{t("progress.subtitle")}</p>
+          <h1 className="font-display text-4xl">{t("progress.title")}</h1>
+          <p className="text-muted-foreground mt-2">{t("progress.subtitle")}</p>
         </div>
         {overview && overview.totalConcepts > 0 && <ShareProgressDialog />}
       </div>
@@ -210,7 +210,7 @@ export default function ProgressPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="size-5 text-muted-foreground" />
+            <TrendingUp className="size-5 text-primary" />
             {t("progress.accuracyTrend")}
           </CardTitle>
         </CardHeader>
@@ -224,7 +224,7 @@ export default function ProgressPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="size-5 text-muted-foreground" />
+              <BarChart3 className="size-5 text-blue-500" />
               {t("progress.vocabularyBreakdown")}
             </CardTitle>
           </CardHeader>

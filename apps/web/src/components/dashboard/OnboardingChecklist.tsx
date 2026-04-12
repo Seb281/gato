@@ -41,7 +41,7 @@ export function OnboardingChecklist({
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
-          <Rocket className="size-5 text-muted-foreground" />
+          <Rocket className="size-5 text-primary" />
           Get Started
         </CardTitle>
       </CardHeader>

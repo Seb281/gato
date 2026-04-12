@@ -404,7 +404,7 @@ export default function ConceptDetail({ conceptId }: ConceptDetailProps) {
       <Card>
         <CardContent className="pt-6 space-y-3">
           <div className="flex items-start justify-between gap-4">
-            <h1 className="text-3xl font-bold">{concept.concept}</h1>
+            <h1 className="font-display text-4xl">{concept.concept}</h1>
             <MasteryBadge
               conceptId={concept.id}
               state={concept.state}
@@ -509,7 +509,7 @@ export default function ConceptDetail({ conceptId }: ConceptDetailProps) {
             {concept.grammarRules && (
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4 text-blue-500" />
+                  <BookOpen className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium text-muted-foreground">
                     Grammar Rules
                   </span>
@@ -523,7 +523,7 @@ export default function ConceptDetail({ conceptId }: ConceptDetailProps) {
             {concept.commonUsage && (
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-blue-500" />
+                  <MessageSquare className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium text-muted-foreground">
                     Common Usage
                   </span>
@@ -537,7 +537,7 @@ export default function ConceptDetail({ conceptId }: ConceptDetailProps) {
             {concept.commonness && (
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-blue-500" />
+                  <BarChart3 className="h-4 w-4 text-amber-500" />
                   <span className="text-sm font-medium text-muted-foreground">
                     Commonness
                   </span>
@@ -551,7 +551,7 @@ export default function ConceptDetail({ conceptId }: ConceptDetailProps) {
             {concept.fixedExpression && (
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-blue-500" />
+                  <Sparkles className="h-4 w-4 text-amber-500" />
                   <span className="text-sm font-medium text-muted-foreground">
                     Fixed Expression
                   </span>

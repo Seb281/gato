@@ -7,6 +7,7 @@ export const UI_STRINGS: Record<string, string> = {
   "nav.tags": "Tags",
   "nav.importExport": "Import / Export",
   "nav.settings": "Settings",
+  "nav.preferences": "Preferences",
   "nav.feedback": "Feedback",
   "nav.collapse": "Collapse",
   "nav.signOut": "Sign Out",
@@ -283,7 +284,7 @@ export const UI_STRINGS: Record<string, string> = {
   "common.concepts": "concepts",
 
   // Extension popup
-  "ext.title": "Context-Aware Translator",
+  "ext.title": "Gato",
   "ext.enabledOnSite": "Enabled on this site",
   "ext.disabledOnSite": "Not enabled on this site",
   "ext.enableSite": "Enable on this site",
@@ -405,7 +406,7 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.popup.usageLimitDesc":
     "The shared translation service has reached its usage limit. Connect your own AI API key to keep translating without interruption.",
   "ext.popup.dashboardHint": "Dashboard \u2192 Settings \u2192 AI Provider",
-  "ext.popup.title": "Context-Aware Translation",
+  "ext.popup.title": "Gato",
   "ext.popup.selectedText": "Selected Text",
   "ext.popup.showContext": "Show surrounding context",
   "ext.popup.savedTooltip":

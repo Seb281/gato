@@ -1,22 +1,68 @@
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import {
-  ArrowRight,
-  ArrowUpDown,
-  BarChart3,
-  BookmarkPlus,
-  Brain,
-  Cpu,
-  GraduationCap,
-  Languages,
-  ListChecks,
-  MousePointer,
-  Timer,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ComparisonTable from "@/components/landing/ComparisonTable";
-import DemoAnimation from "@/components/landing/DemoAnimation";
+
+const STEPS = [
+  {
+    number: 1,
+    title: "Select & Translate",
+    description:
+      "Highlight any word or phrase on a webpage. Get a context-aware translation instantly.",
+  },
+  {
+    number: 2,
+    title: "Save & Organize",
+    description:
+      "Save translations to your vocabulary. Tag and organize words by topic.",
+  },
+  {
+    number: 3,
+    title: "Review & Master",
+    description:
+      "Spaced repetition adapts to your pace. Flashcards, quizzes, and typing exercises.",
+  },
+];
+
+const FEATURES = [
+  {
+    emoji: "🧠",
+    title: "Context-Aware AI",
+    description:
+      "Translations that understand the surrounding text and your personal learning context.",
+  },
+  {
+    emoji: "⏱",
+    title: "Spaced Repetition",
+    description:
+      "SM-2 algorithm schedules reviews at optimal intervals for long-term retention.",
+  },
+  {
+    emoji: "📝",
+    title: "Multiple Quiz Modes",
+    description:
+      "Flashcards, multiple choice, type-the-answer, contextual recall, and sentence builder.",
+  },
+  {
+    emoji: "📊",
+    title: "Progress Tracking",
+    description:
+      "Activity heatmaps, accuracy trends, streaks, and mastery tracking.",
+  },
+  {
+    emoji: "🔌",
+    title: "Multi-Provider AI",
+    description:
+      "Google Gemini, OpenAI, Anthropic, or Mistral. Bring your own API key.",
+  },
+  {
+    emoji: "↕️",
+    title: "Import & Export",
+    description: "Export to Anki, CSV, or JSON. Import from other tools.",
+  },
+];
 
 export default async function Home() {
   const supabase = await createClient();
@@ -26,25 +72,67 @@ export default async function Home() {
 
   return (
     <div className="bg-background text-foreground">
-      {/* Hero */}
-      <section className="py-16 md:py-24">
-        <div className="max-w-5xl mx-auto px-4 text-center space-y-8">
-          <div className="flex justify-center">
-            <div className="p-4 rounded-full bg-primary/10">
-              <Languages className="size-12 text-primary" />
-            </div>
+      {/* Nav */}
+      <nav className="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between">
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 font-semibold text-sm text-foreground"
+        >
+          <Image
+            src="/cat-icon.png"
+            alt="Gato"
+            width={24}
+            height={24}
+            className="hue-rotate-[30deg] saturate-[1.1]"
+          />
+          Gato
+        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="#features"
+            className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          >
+            Features
+          </Link>
+          <Link
+            href="#compare"
+            className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          >
+            Compare
+          </Link>
+          {user ? (
+            <Link href="/dashboard">
+              <Button size="sm">Get Started</Button>
+            </Link>
+          ) : (
+            <Link href="/sign-in">
+              <Button size="sm">Get Started</Button>
+            </Link>
+          )}
+        </div>
+      </nav>
+
+      {/* Hero — Option A: Giant wordmark, tiny cat accent */}
+      <section className="py-20 md:py-28">
+        <div className="max-w-5xl mx-auto px-4 text-center">
+          <div className="relative inline-block">
+            <h1 className="font-display text-[112px] sm:text-[128px] leading-none tracking-[-2px]">
+              Gato
+            </h1>
+            <Image
+              src="/cat-icon.png"
+              alt=""
+              width={36}
+              height={36}
+              className="absolute bottom-3 -right-12 hue-rotate-[30deg] saturate-[1.1]"
+              aria-hidden="true"
+            />
           </div>
-
-          <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-            Context-Aware Translator
-          </h1>
-
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Translate text on any webpage, save words to your vocabulary, and
-            master them with spaced repetition.
+          <p className="text-lg text-stone-500 dark:text-stone-400 max-w-[480px] mx-auto mt-5 leading-[1.6]">
+            Learn languages from the web. Translate text on any page, build your
+            vocabulary, and master words with spaced repetition.
           </p>
-
-          <div className="flex justify-center gap-4 flex-wrap">
+          <div className="flex justify-center gap-3 mt-8">
             <a
               href="https://chromewebstore.google.com/detail/nbljhkoabjlchochcncpnjjbpfakdndd"
               target="_blank"
@@ -72,174 +160,149 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Demo animation */}
-      <DemoAnimation />
+      {/* Divider */}
+      <div className="max-w-5xl mx-auto px-4">
+        <div className="h-px bg-border" />
+      </div>
 
       {/* How it works */}
-      <section className="py-16 md:py-24">
+      <section className="py-20 md:py-24">
         <div className="max-w-5xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            How it works
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="text-center p-6">
-              <div className="p-3 rounded-full bg-primary/10 mx-auto mb-4 w-fit">
-                <MousePointer className="size-6 text-primary" />
+          <div className="text-center mb-14">
+            <h2 className="font-display text-4xl">How it works</h2>
+            <p className="text-base text-stone-500 dark:text-stone-400 mt-3 leading-relaxed">
+              From reading to fluency in three steps
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-10">
+            {STEPS.map((step) => (
+              <div key={step.number} className="text-center">
+                <div className="w-11 h-11 rounded-full bg-accent text-accent-foreground font-bold text-lg flex items-center justify-center mx-auto mb-5">
+                  {step.number}
+                </div>
+                <h3 className="text-[17px] font-semibold mb-2">{step.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {step.description}
+                </p>
               </div>
-              <h3 className="text-lg font-semibold mb-2">
-                Select &amp; Translate
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Select any text on a webpage. Right-click or use the floating
-                button to get an AI-powered, context-aware translation.
-              </p>
-            </Card>
-
-            <Card className="text-center p-6">
-              <div className="p-3 rounded-full bg-primary/10 mx-auto mb-4 w-fit">
-                <BookmarkPlus className="size-6 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Save &amp; Organize</h3>
-              <p className="text-sm text-muted-foreground">
-                Save translations to your personal vocabulary. Tag and organize
-                words by topic.
-              </p>
-            </Card>
-
-            <Card className="text-center p-6">
-              <div className="p-3 rounded-full bg-primary/10 mx-auto mb-4 w-fit">
-                <GraduationCap className="size-6 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">
-                Review &amp; Master
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Review with spaced repetition. Flashcards, multiple choice, and
-                typing exercises adapt to your learning pace.
-              </p>
-            </Card>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Feature grid */}
-      <section className="py-16 md:py-24">
+      {/* Divider */}
+      <div className="max-w-5xl mx-auto px-4">
+        <div className="h-px bg-border" />
+      </div>
+
+      {/* Features */}
+      <section id="features" className="py-20 md:py-24">
         <div className="max-w-5xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Features</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="flex gap-4">
-              <div className="p-3 rounded-full bg-primary/10 h-fit">
-                <Brain className="size-6 text-primary" />
+          <div className="text-center mb-14">
+            <h2 className="font-display text-4xl">Features</h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-8">
+            {FEATURES.map((feature) => (
+              <div
+                key={feature.title}
+                className="flex gap-4 p-6 rounded-xl border border-border/60 bg-card"
+              >
+                <div className="w-10 h-10 rounded-[10px] bg-accent flex items-center justify-center shrink-0 text-lg">
+                  {feature.emoji}
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-semibold mb-1">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-1">
-                  Context-Aware AI
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Translations that understand the surrounding text and your
-                  personal learning context.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="p-3 rounded-full bg-primary/10 h-fit">
-                <Timer className="size-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-1">
-                  Spaced Repetition
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  SM-2 algorithm schedules reviews at optimal intervals for
-                  long-term retention.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="p-3 rounded-full bg-primary/10 h-fit">
-                <ListChecks className="size-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-1">
-                  Multiple Quiz Modes
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Flashcards, multiple choice, type-the-answer, and contextual
-                  recall.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="p-3 rounded-full bg-primary/10 h-fit">
-                <BarChart3 className="size-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-1">
-                  Progress Tracking
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Activity heatmaps, accuracy trends, streaks, and mastery
-                  tracking.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="p-3 rounded-full bg-primary/10 h-fit">
-                <Cpu className="size-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-1">
-                  Multi-Provider AI
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Choose between Google Gemini, OpenAI, Anthropic, or Mistral.
-                  Bring your own API key.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="p-3 rounded-full bg-primary/10 h-fit">
-                <ArrowUpDown className="size-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-1">
-                  Import &amp; Export
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Export to Anki, CSV, or JSON. Import from other tools.
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
+
+      {/* Divider */}
+      <div className="max-w-5xl mx-auto px-4">
+        <div className="h-px bg-border" />
+      </div>
 
       {/* Comparison table */}
-      <ComparisonTable />
+      <div id="compare">
+        <ComparisonTable />
+      </div>
 
       {/* CTA */}
-      <section className="py-16 md:py-24">
+      <section className="py-20 md:py-24">
         <div className="max-w-5xl mx-auto px-4">
-          <div className="bg-secondary rounded-2xl p-12 text-center space-y-6">
-            <h2 className="text-3xl font-bold">Start Learning Today</h2>
-            <a
-              href="https://chromewebstore.google.com/detail/nbljhkoabjlchochcncpnjjbpfakdndd"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button size="lg" className="gap-2">
-                Install Extension
-                <ArrowRight className="size-4" />
-              </Button>
-            </a>
+          <div className="relative overflow-hidden bg-primary rounded-2xl px-8 py-16 md:py-20 text-center">
+            {/* Subtle circle decoration */}
+            <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/[0.06]" />
+            <h2 className="font-display text-4xl text-primary-foreground relative">
+              Start learning today
+            </h2>
+            <p className="text-primary-foreground/80 mt-3 relative">
+              Free and open source. Install the extension and start building
+              your vocabulary.
+            </p>
+            <div className="flex justify-center gap-3 mt-8 relative">
+              <a
+                href="https://chromewebstore.google.com/detail/nbljhkoabjlchochcncpnjjbpfakdndd"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button
+                  size="lg"
+                  className="gap-2 bg-white text-primary hover:bg-white/90"
+                >
+                  Install Extension
+                  <ArrowRight className="size-4" />
+                </Button>
+              </a>
+              <a
+                href="https://github.com"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white/30 text-primary-foreground bg-transparent hover:bg-white/10"
+                >
+                  View on GitHub
+                </Button>
+              </a>
+            </div>
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="max-w-5xl mx-auto px-4 py-8 text-center">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 font-semibold text-sm text-foreground mb-3"
+        >
+          <Image
+            src="/cat-icon.png"
+            alt="Gato"
+            width={20}
+            height={20}
+            className="hue-rotate-[30deg] saturate-[1.1]"
+          />
+          Gato
+        </Link>
+        <div className="mt-2">
+          <Link
+            href="/privacy-policy"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Privacy Policy
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -10,6 +10,7 @@ export const UI_STRINGS: Record<string, string> = {
   "nav.tags": "Tags",
   "nav.importExport": "Import / Export",
   "nav.settings": "Settings",
+  "nav.preferences": "Preferences",
   "nav.feedback": "Feedback",
   "nav.collapse": "Collapse",
   "nav.signOut": "Sign Out",

@@ -292,7 +292,7 @@ export default function SettingsForm() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <User className="size-5 text-muted-foreground" />
+            <User className="size-5 text-primary" />
             <div>
               <CardTitle>{t("settings.profile")}</CardTitle>
               <CardDescription>
@@ -318,7 +318,7 @@ export default function SettingsForm() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Target className="size-5 text-muted-foreground" />
+            <Target className="size-5 text-amber-500" />
             <div>
               <CardTitle>{t("settings.dailyGoal")}</CardTitle>
               <CardDescription>
@@ -375,7 +375,7 @@ export default function SettingsForm() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Languages className="size-5 text-muted-foreground" />
+            <Languages className="size-5 text-blue-500" />
             <div>
               <CardTitle>{t("settings.displayLanguage")}</CardTitle>
               <CardDescription>{t("settings.displayLanguageDesc")}</CardDescription>
@@ -440,7 +440,7 @@ export default function SettingsForm() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Globe className="h-5 w-5 text-muted-foreground" />
+            <Globe className="h-5 w-5 text-primary" />
             <div>
               <CardTitle>{t("settings.allowedWebsites")}</CardTitle>
               <CardDescription>

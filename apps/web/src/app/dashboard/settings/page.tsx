@@ -7,10 +7,10 @@ export default function SettingsPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t("settings.title")}</h1>
-        <p className="text-muted-foreground">
+        <h1 className="font-display text-4xl">{t("settings.title")}</h1>
+        <p className="text-muted-foreground mt-2">
           {t("settings.subtitle")}
         </p>
       </div>

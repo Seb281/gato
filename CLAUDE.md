@@ -13,11 +13,64 @@ Turborepo monorepo with three apps:
 | **Web** | `apps/web/` | Next.js (App Router), React, Supabase Auth, shadcn/ui, Tailwind, Sonner toasts | `pnpm dev:web` (not yet wired) |
 
 ```bash
-pnpm dev              # Start all apps
+pnpm dev              # Start all apps via turbo
 pnpm dev:api          # API only
 pnpm dev:extension    # Extension only
 pnpm build            # Build all apps
+
+# DB (run from apps/api or with --filter api)
+pnpm --filter api db:generate   # Drizzle migration from schema diff
+pnpm --filter api db:migrate    # Apply migrations
+pnpm --filter api db:studio     # Open Drizzle Studio
+pnpm --filter api db:seed       # Seed DB
+
+# Type-check / lint
+pnpm --filter context-aware-translator-extension compile   # tsc --noEmit (extension)
+pnpm --filter web lint                                     # eslint (web)
 ```
+
+Package manager is **pnpm** — never `npm` or `yarn`. The extension loads from `apps/extension/.output/chrome-mv3` as an unpacked extension after `pnpm build:extension`.
+
+For extension internals (entry points, content script lifecycle, translation flows, storage keys, background message handler rules), see `apps/extension/CLAUDE.md` — treat it as authoritative for anything under `apps/extension/`.
+
+## API Architecture (`apps/api/`)
+
+The API is a layered Fastify app. Each layer has one job; dependencies flow inward only.
+
+```
+routes/        HTTP layer — Fastify route registration, request/reply, validation, auth gate
+  ↓
+controllers/   Orchestration — resolves models, composes services, shapes responses
+  ↓
+services/      External integrations (DeepL, translation orchestrator)
+  ↓
+data/          Domain queries (concepts, tags, review, users, stats) — the only place that touches `db`
+  ↓
+db/            Drizzle schema + client (`db/schema.ts`, `db/index.ts`)
+```
+
+**Adding a new endpoint:** register in `routes/`, delegate to a controller or a `data/*.ts` helper. Do not call Drizzle directly from a route handler — go through `data/`.
+
+**Auth:** `middleware/supabaseAuth.ts` exposes `requireAuth`, `getAuthenticatedUserEmail`, `getAuthenticatedUserId`. Protected routes call `requireAuth` first; handlers then read the user via the helpers. Supabase validates the bearer token; the local `usersTable` row is looked up by `supabaseId`.
+
+**CORS:** `app.ts` allows any `chrome-extension://` origin plus the comma-separated `ALLOWED_ORIGINS` env var (dashboard URLs). When adding a new frontend, add its origin to `ALLOWED_ORIGINS`.
+
+## Translation Pipeline
+
+Translation is **DeepL-first, LLM-fallback**, implemented in `services/translationOrchestrator.ts`:
+
+1. If DeepL is configured AND the target language resolves to a DeepL code, call DeepL. Return `{ provider: 'deepl' }` — enrichment is fetched separately via the `enrich` action.
+2. Otherwise (or on DeepL failure), fall back to an LLM call that returns translation **and** all enrichment fields in one shot. Return `{ provider: 'llm' }`.
+
+The LLM model is resolved per-request by `resolveModel` in `controllers/translationController.ts`. It supports **BYOK**: if the user has `customApiKey` + `preferredProvider` set (`google` / `openai` / `anthropic` / `mistral`), that provider is used; otherwise the app-level default (Gemini) is used. The default model IDs live in `config/models.ts` — update that file, not individual call sites, when changing defaults.
+
+## Database Schema
+
+Drizzle schema is the source of truth at `apps/api/src/db/schema.ts`. Key tables: `usersTable`, `conceptsTable` (saved vocab with SM-2 state), `tagsTable`, plus review/stats/feedback tables. Workflow: edit `schema.ts` → `pnpm --filter api db:generate` → review SQL in `drizzle/` → `db:migrate`. Production uses **Supabase Postgres**, not Neon.
+
+## Web App (`apps/web/`)
+
+Next.js App Router. Dashboard is grouped under `src/app/dashboard/` with nested routes (`translate`, `vocabulary`, `review`, `progress`, `tags`, `settings`, `import-export`, `feedback`). Auth is Supabase via `@supabase/ssr`. Top-level `proxy.ts` forwards API calls so the browser talks to the Next.js origin (avoids third-party cookie issues with the extension auth bridge).
 
 ## Error Handling Patterns
 

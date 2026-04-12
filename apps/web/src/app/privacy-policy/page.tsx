@@ -1,31 +1,31 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy – Context-Aware Translator",
+  title: "Privacy Policy – Gato",
 };
 
 export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-3xl mx-auto px-6 py-16">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Privacy Policy</h1>
+        <h1 className="font-display text-4xl mb-2">Privacy Policy</h1>
         <p className="text-sm text-muted-foreground mb-10">Last updated: April 9, 2026</p>
 
         <div className="space-y-10 text-muted-foreground">
 
           {/* 1. Introduction */}
           <section>
-            <h2 className="text-xl font-bold text-foreground mb-3">1. Introduction</h2>
+            <h2 className="font-display text-2xl text-foreground mb-3">1. Introduction</h2>
             <p>
-              This Privacy Policy describes how Context-Aware Translator ("we", "our", or "us") collects, uses, and
-              protects information when you use the Context-Aware Translator Chrome extension and its companion web
+              This Privacy Policy describes how Gato ("we", "our", or "us") collects, uses, and
+              protects information when you use the Gato Chrome extension and its companion web
               dashboard (collectively, the "Service"). By using the Service you agree to the practices described here.
             </p>
           </section>
 
           {/* 2. Information We Collect */}
           <section>
-            <h2 className="text-xl font-bold text-foreground mb-3">2. Information We Collect</h2>
+            <h2 className="font-display text-2xl text-foreground mb-3">2. Information We Collect</h2>
 
             <h3 className="font-bold text-foreground mb-2">Extension data</h3>
             <ul className="list-disc pl-6 space-y-1 mb-4">
@@ -77,7 +77,7 @@ export default function PrivacyPolicyPage() {
 
           {/* 3. How We Use Your Information */}
           <section>
-            <h2 className="text-xl font-bold text-foreground mb-3">3. How We Use Your Information</h2>
+            <h2 className="font-display text-2xl text-foreground mb-3">3. How We Use Your Information</h2>
             <ul className="list-disc pl-6 space-y-1">
               <li>Provide, operate, and improve the translation service.</li>
               <li>Authenticate your account and synchronise preferences across devices.</li>
@@ -93,7 +93,7 @@ export default function PrivacyPolicyPage() {
 
           {/* 4. Data Storage & Retention */}
           <section>
-            <h2 className="text-xl font-bold text-foreground mb-3">4. Data Storage &amp; Retention</h2>
+            <h2 className="font-display text-2xl text-foreground mb-3">4. Data Storage &amp; Retention</h2>
             <p className="mb-3">
               Preferences and account data are stored in a PostgreSQL database hosted on Railway. Auth data is managed
               by Supabase. The web dashboard is hosted on Vercel.
@@ -111,7 +111,7 @@ export default function PrivacyPolicyPage() {
 
           {/* 5. Third-Party Services */}
           <section>
-            <h2 className="text-xl font-bold text-foreground mb-3">5. Third-Party Services</h2>
+            <h2 className="font-display text-2xl text-foreground mb-3">5. Third-Party Services</h2>
             <p className="mb-3">
               The following third-party services process data on our behalf. Each is bound by its own privacy policy.
             </p>
@@ -166,7 +166,7 @@ export default function PrivacyPolicyPage() {
 
           {/* 6. Chrome Extension Permissions Explained */}
           <section>
-            <h2 className="text-xl font-bold text-foreground mb-3">6. Chrome Extension Permissions Explained</h2>
+            <h2 className="font-display text-2xl text-foreground mb-3">6. Chrome Extension Permissions Explained</h2>
             <ul className="list-disc pl-6 space-y-2">
               <li>
                 <span className="font-medium text-foreground">storage</span> — used to persist your authentication
@@ -217,7 +217,7 @@ export default function PrivacyPolicyPage() {
 
           {/* 7. Your Rights */}
           <section>
-            <h2 className="text-xl font-bold text-foreground mb-3">7. Your Rights</h2>
+            <h2 className="font-display text-2xl text-foreground mb-3">7. Your Rights</h2>
             <ul className="list-disc pl-6 space-y-1">
               <li>
                 <span className="font-medium text-foreground">Access</span> — you can view all saved concepts and
@@ -245,7 +245,7 @@ export default function PrivacyPolicyPage() {
 
           {/* 8. Data Security */}
           <section>
-            <h2 className="text-xl font-bold text-foreground mb-3">8. Data Security</h2>
+            <h2 className="font-display text-2xl text-foreground mb-3">8. Data Security</h2>
             <p>
               All data in transit is encrypted via TLS. Custom API keys are stored encrypted at rest. We follow
               industry-standard practices for access control and secret management. No method of transmission or storage
@@ -255,7 +255,7 @@ export default function PrivacyPolicyPage() {
 
           {/* 9. Changes to This Policy */}
           <section>
-            <h2 className="text-xl font-bold text-foreground mb-3">9. Changes to This Policy</h2>
+            <h2 className="font-display text-2xl text-foreground mb-3">9. Changes to This Policy</h2>
             <p>
               We may update this policy from time to time. When we do, we will revise the "Last updated" date at the
               top of this page. Continued use of the Service after changes are posted constitutes your acceptance of the
@@ -266,7 +266,7 @@ export default function PrivacyPolicyPage() {
 
           {/* 10. Contact */}
           <section>
-            <h2 className="text-xl font-bold text-foreground mb-3">10. Contact</h2>
+            <h2 className="font-display text-2xl text-foreground mb-3">10. Contact</h2>
             <p>
               If you have questions about this policy or wish to exercise your rights, please contact us at{" "}
               <a

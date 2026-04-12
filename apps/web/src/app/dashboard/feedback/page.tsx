@@ -72,10 +72,10 @@ export default function FeedbackPage() {
 
   if (sent) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("feedback.title")}</h1>
-          <p className="text-muted-foreground">{t("feedback.subtitle")}</p>
+          <h1 className="font-display text-4xl">{t("feedback.title")}</h1>
+          <p className="text-muted-foreground mt-2">{t("feedback.subtitle")}</p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-12">
@@ -96,16 +96,16 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t("feedback.title")}</h1>
-        <p className="text-muted-foreground">{t("feedback.subtitle")}</p>
+        <h1 className="font-display text-4xl">{t("feedback.title")}</h1>
+        <p className="text-muted-foreground mt-2">{t("feedback.subtitle")}</p>
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <MessageSquare className="size-5 text-muted-foreground" />
+            <MessageSquare className="size-5 text-primary" />
             <div>
               <CardTitle>{t("feedback.sendFeedback")}</CardTitle>
               <CardDescription>

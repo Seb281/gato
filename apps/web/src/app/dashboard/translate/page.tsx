@@ -287,12 +287,12 @@ export default function TranslatePage() {
   const parsedRelated = parseRelatedWords(enrichment?.relatedWords);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">
+        <h1 className="font-display text-4xl">
           {t("translate.title")}
         </h1>
-        <p className="text-muted-foreground">{t("translate.subtitle")}</p>
+        <p className="text-muted-foreground mt-2">{t("translate.subtitle")}</p>
       </div>
 
       {/* Translation panels */}

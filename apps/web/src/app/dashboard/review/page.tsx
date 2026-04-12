@@ -119,10 +119,10 @@ export default function ReviewPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t("review.title")}</h1>
-        <p className="text-muted-foreground">
+        <h1 className="font-display text-4xl">{t("review.title")}</h1>
+        <p className="text-muted-foreground mt-2">
           {t("review.subtitle")}
         </p>
       </div>
@@ -154,9 +154,9 @@ export default function ReviewPage() {
           <CardContent className="flex items-center gap-4 pt-6">
             <div className="p-3 rounded-lg bg-secondary">
               {dueCount === 0 ? (
-                <PartyPopper className="size-6 text-muted-foreground" />
+                <PartyPopper className="size-6 text-emerald-500" />
               ) : (
-                <GraduationCap className="size-6 text-muted-foreground" />
+                <GraduationCap className="size-6 text-amber-500" />
               )}
             </div>
             <div className="flex-1">
@@ -202,7 +202,7 @@ export default function ReviewPage() {
             >
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <mode.icon className="size-5 text-muted-foreground" />
+                  <mode.icon className={`size-5 ${selectedMode === mode.value ? "text-primary" : "text-muted-foreground"}`} />
                   {t(mode.labelKey)}
                 </CardTitle>
               </CardHeader>

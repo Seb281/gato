@@ -5,7 +5,8 @@ import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { createClient } from '@/lib/supabase/client'
 import { authVariablesLight, authVariablesDark } from '@/lib/auth-theme'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Languages } from 'lucide-react'
+
+import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -33,14 +34,14 @@ export default function SignUpPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-      <Link href="/" className="mb-8 flex items-center gap-2 font-bold text-2xl">
-        <Languages className="size-8 text-primary" />
-        <span className="text-foreground">Context Translator</span>
+      <Link href="/" className="mb-8 flex items-center gap-3 text-2xl">
+        <Image src="/cat-icon.png" alt="Gato" width={32} height={32} className="hue-rotate-[30deg] saturate-[1.1]" />
+        <span className="font-display text-foreground">Gato</span>
       </Link>
 
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle>Create Account</CardTitle>
+          <CardTitle className="font-display text-2xl">Create Account</CardTitle>
           <p className="text-muted-foreground text-sm">Start building your vocabulary</p>
         </CardHeader>
         <CardContent>

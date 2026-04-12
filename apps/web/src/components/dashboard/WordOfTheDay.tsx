@@ -158,7 +158,7 @@ export default function WordOfTheDay() {
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
-          <Sparkles className="size-5 text-muted-foreground" />
+          <Sparkles className="size-5 text-amber-500" />
           {t("home.wordOfTheDay.title")}
         </CardTitle>
       </CardHeader>

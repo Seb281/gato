@@ -119,7 +119,7 @@ export async function GET() {
               fontWeight: 500,
             }}
           >
-            Context-Aware Translator
+            Gato
           </span>
           <div
             style={{
@@ -285,7 +285,7 @@ export async function GET() {
             color: 'rgba(255,255,255,0.25)',
           }}
         >
-          <span>context-aware-translator.vercel.app</span>
+          <span>gato.vercel.app</span>
           <span>{today}</span>
         </div>
       </div>

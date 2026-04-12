@@ -64,8 +64,8 @@ export default function SessionSummary({
     <div className="flex flex-col items-center gap-6 w-full max-w-lg mx-auto">
       <Card className="w-full">
         <CardHeader className="text-center pb-2">
-          <Trophy className="size-10 text-muted-foreground mx-auto mb-2" />
-          <CardTitle className="text-2xl">{t("quiz.sessionComplete")}</CardTitle>
+          <Trophy className="size-10 text-amber-500 mx-auto mb-2" />
+          <CardTitle className="font-display text-3xl">{t("quiz.sessionComplete")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Stats */}
