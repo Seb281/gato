@@ -254,7 +254,7 @@ export default function App() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex-1 flex items-center justify-center p-3 transition-colors ${
                       activeTab === tab.id
-                        ? 'text-foreground bg-secondary'
+                        ? 'text-accent-foreground bg-accent'
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
@@ -385,7 +385,7 @@ function TranslationCard({
               disabled={saveState === 'saving' || saveState === 'saved'}
               className={`p-0.5 transition-colors ${
                 saveState === 'saved'
-                  ? 'text-green-600'
+                  ? 'text-emerald-600'
                   : saveState === 'error'
                     ? 'text-destructive'
                     : 'text-muted-foreground hover:text-foreground'

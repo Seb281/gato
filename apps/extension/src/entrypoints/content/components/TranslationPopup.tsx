@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   X,
-  Languages,
   Volume2,
   Info,
   GripVertical,
@@ -12,6 +11,7 @@ import {
   AlignLeft,
   BarChart2,
 } from 'lucide-react'
+import catIcon from '@/assets/cat-icon'
 import { languageToBCP47 } from '@/utils/languageCodes'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -422,8 +422,13 @@ export default function TranslationPopup({
             onMouseDown={handleMouseDown}
           >
             <div className='flex items-center gap-2'>
-              <Languages className='h-5 w-5 text-primary' />
-              <CardTitle className='text-lg'>{t('ext.popup.title')}</CardTitle>
+              <img
+                src={catIcon}
+                alt='Gato'
+                className='h-5 w-5'
+                style={{ filter: 'hue-rotate(30deg) saturate(1.1)' }}
+              />
+              <CardTitle className='font-bold tracking-tight'>Gato</CardTitle>
             </div>
             <Button
               variant='ghost'
@@ -464,7 +469,7 @@ export default function TranslationPopup({
                   (saveState === 'saved' ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className='h-6 w-6 flex items-center justify-center text-green-600 cursor-default'>
+                        <div className='h-6 w-6 flex items-center justify-center text-emerald-600 cursor-default'>
                           <Check className='h-3.5 w-3.5' />
                         </div>
                       </TooltipTrigger>

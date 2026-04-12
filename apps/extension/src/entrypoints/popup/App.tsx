@@ -3,7 +3,6 @@ import { supabase } from '@/entrypoints/background/helpers/supabaseAuth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
-  Languages,
   Check,
   LogOut,
   User,
@@ -12,6 +11,7 @@ import {
   ExternalLink,
   MessageSquare,
 } from 'lucide-react'
+import catIcon from '@/assets/cat-icon'
 import { Separator } from '@/components/ui/separator'
 import type { Session } from '@supabase/supabase-js'
 import { useTranslation } from '@/lib/i18n/useTranslation'
@@ -190,8 +190,13 @@ export default function App() {
       <Card className='rounded-none shadow-none'>
         <CardHeader>
           <div className='flex items-center gap-2'>
-            <Languages className='h-5 w-5 text-primary' />
-            <CardTitle className='text-lg'>{t('ext.title')}</CardTitle>
+            <img
+              src={catIcon}
+              alt='Gato'
+              className='h-5 w-5'
+              style={{ filter: 'hue-rotate(30deg) saturate(1.1)' }}
+            />
+            <CardTitle className='font-bold tracking-tight'>Gato</CardTitle>
           </div>
 
           {/* Current site toggle */}
@@ -199,7 +204,7 @@ export default function App() {
             {currentSitePattern ? (
               isCurrentSiteAllowed ? (
                 <div className='flex items-center justify-between'>
-                  <span className='flex items-center gap-1 text-sm text-green-600 dark:text-green-400 font-medium'>
+                  <span className='flex items-center gap-1 text-sm text-emerald-600 dark:text-emerald-400 font-medium'>
                     <Check className='h-3.5 w-3.5' />
                     {t('ext.enabledOnSite')}
                   </span>
