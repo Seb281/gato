@@ -1,3 +1,7 @@
+/**
+ * Extracts a JSON object from an LLM response string.
+ * Strips markdown code fences and finds the first `{...}` block.
+ */
 export function extractJSON(apiResponse: string): object {
   // Remove markdown code blocks if present
   const cleanedResponse = apiResponse.replace(/```json\n?|\n?```/g, '').trim()
@@ -14,26 +18,29 @@ export function extractJSON(apiResponse: string): object {
   throw new Error('No valid JSON found in response')
 }
 
-export function getSelectionLength(text: string): number {
-  const match = text.match(/\[([^\]]+)\]/)
-  const selection: string = match?.[1] ?? ''
-
-  return selection.split(' ').length
-}
-
+/**
+ * Builds the LLM translation prompt.
+ *
+ * @param selection  - The word or phrase the user selected.
+ * @param targetLanguage - Language to translate into.
+ * @param sourceLanguage - Source language (empty / "UNKNOWN" = auto-detect).
+ * @param personalContext - Optional personal context to guide translation style.
+ * @param context - Optional surrounding text that provides sentence context.
+ */
 export function promptBuilder(
-  text: string,
+  selection: string,
   targetLanguage: string,
   sourceLanguage: string,
   personalContext: string,
+  context?: string,
 ): string {
   let unknownSourceLang: boolean = false
   if (!sourceLanguage || sourceLanguage === 'UNKNOWN') {
     unknownSourceLang = true
   }
 
-  const selectionLength: number = getSelectionLength(text)
-  const textLengh: number = text.split(' ').length
+  const selectionLength = selection.trim().split(/\s+/).length
+  const hasContext = !!context && context !== selection
 
   let promptAdjustment: Array<string>
 
@@ -49,7 +56,7 @@ export function promptBuilder(
     '"relatedWords": Array of up to 5 related words as JSON: [{"word": "...", "translation": "...", "relation": "synonym|antonym|family"}]. Words in source language, translations in target language. "family" means same word family (e.g. noun/verb/adjective forms). Return empty array [] if none.'
 
   if (selectionLength === 1) {
-    if (textLengh === selectionLength) {
+    if (!hasContext) {
       promptAdjustment = [
         'do the following',
         '',
@@ -71,7 +78,7 @@ export function promptBuilder(
       ]
     }
   } else if (selectionLength < 6) {
-    if (textLengh === selectionLength) {
+    if (!hasContext) {
       promptAdjustment = [
         'do the following',
         '',
@@ -111,6 +118,11 @@ export function promptBuilder(
     : ''
   const resolvedTarget = targetLanguage ?? 'English'
 
+  // Reconstruct bracket format only for the LLM prompt text, not the API contract
+  const promptText = hasContext
+    ? context!.replace(selection, `[${selection}]`)
+    : `[${selection}]`
+
   const promptContents = `For the text I provide, ${promptAdjustment[0]}:
 
 Translate to ${resolvedTarget} and return a JSON object with these keys. Write all field values in ${resolvedTarget}:
@@ -119,7 +131,7 @@ Translate to ${resolvedTarget} and return a JSON object with these keys. Write a
 "contextualTranslation": Best ${resolvedTarget} translation of the marked ${promptAdjustment[2]} in this context.
 "phoneticApproximation": Phonetic approximation of the ORIGINAL ${promptAdjustment[2]} (NOT the translation), written using ${resolvedTarget} sounds so a ${resolvedTarget} speaker can pronounce it.${optField3}${optField4}${optField5}${optField6}${personalCtx}
 
-Text: ${text}`
+Text: ${promptText}`
 
   return promptContents
 }

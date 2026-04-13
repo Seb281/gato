@@ -3,6 +3,7 @@ import { resolveDeepLTarget, resolveDeepLSource, deepLDetectedToName } from '../
 import { generateText } from 'ai'
 import { extractJSON, promptBuilder } from '../controllers/helpers.ts'
 
+/** Parameters for the translation orchestrator. */
 interface TranslateParams {
   selection: string
   context?: string | undefined
@@ -13,20 +14,12 @@ interface TranslateParams {
   model: any
 }
 
-interface TranslateResult {
-  contextualTranslation: string
-  language: string
-  provider: 'deepl' | 'llm'
-  /** Present only when LLM fallback was used (all enrichment fields in one shot) */
-  phoneticApproximation?: string
-  fixedExpression?: string
-  commonUsage?: string
-  grammarRules?: string
-  commonness?: string
-  relatedWords?: string | Array<{ word: string; translation: string; relation: string }>
-}
-
-export async function translateText(params: TranslateParams): Promise<TranslateResult> {
+/**
+ * Translates text using DeepL as the primary provider and LLM as fallback.
+ * Returns the raw translation result — callers are responsible for
+ * normalizing fields like relatedWords before sending to clients.
+ */
+export async function translateText(params: TranslateParams) {
   // --- Try DeepL first ---
   if (isDeepLConfigured()) {
     const targetCode = resolveDeepLTarget(params.targetLanguage)
@@ -49,7 +42,7 @@ export async function translateText(params: TranslateParams): Promise<TranslateR
         return {
           contextualTranslation: result.translatedText,
           language: detectedLanguage,
-          provider: 'deepl',
+          provider: 'deepl' as const,
         }
       } catch (error) {
         console.warn('DeepL translation failed, falling back to LLM:', error)
@@ -63,31 +56,21 @@ export async function translateText(params: TranslateParams): Promise<TranslateR
   return translateWithLLM(params)
 }
 
-async function translateWithLLM(params: TranslateParams): Promise<TranslateResult> {
+/**
+ * Translates using an LLM model. Builds a prompt with selection + optional
+ * context and returns the full enrichment payload in one shot.
+ */
+async function translateWithLLM(params: TranslateParams) {
   if (!params.model) {
     throw new Error('No LLM model configured for translation fallback')
   }
 
-  // Reconstruct the bracket format the LLM promptBuilder expects
-  let text: string
-  if (params.context) {
-    const idx = params.context.indexOf(params.selection)
-    if (idx >= 0) {
-      const before = params.context.slice(0, idx)
-      const after = params.context.slice(idx + params.selection.length)
-      text = `${before}[${params.selection}] ${after}`.trim()
-    } else {
-      text = `[${params.selection}]`
-    }
-  } else {
-    text = `[${params.selection}]`
-  }
-
   const prompt = promptBuilder(
-    text,
+    params.selection,
     params.targetLanguage,
     params.sourceLanguage,
-    params.personalContext || ''
+    params.personalContext || '',
+    params.context,
   )
 
   let result: Record<string, any>
@@ -106,7 +89,7 @@ async function translateWithLLM(params: TranslateParams): Promise<TranslateResul
   return {
     contextualTranslation: result.contextualTranslation,
     language: result.language || params.sourceLanguage || 'Unknown',
-    provider: 'llm',
+    provider: 'llm' as const,
     phoneticApproximation: result.phoneticApproximation,
     fixedExpression: result.fixedExpression,
     commonUsage: result.commonUsage,

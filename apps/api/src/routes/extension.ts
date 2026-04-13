@@ -13,6 +13,7 @@ import { usersData, userContextData } from '../data/usersData.ts'
 import statsData from '../data/statsData.ts'
 import { db } from '../db/index.ts'
 import { feedbackTable } from '../db/schema.ts'
+import type { SaveConceptRequest } from '@gato/shared'
 
 type ExportQuerystring = {
   format?: 'csv' | 'json' | 'anki'
@@ -31,15 +32,8 @@ type ImportBody = {
   concepts: ImportConceptItem[]
 }
 
-type SaveConceptBody = {
-  concept: string
-  translation: string
-  sourceLanguage: string
-  targetLanguage: string
-  contextBefore?: string
-  contextAfter?: string
-  sourceUrl?: string
-}
+/** @see SaveConceptRequest from @gato/shared — reused as the route body type. */
+type SaveConceptBody = SaveConceptRequest
 
 type UpdateConceptBody = {
   translation?: string

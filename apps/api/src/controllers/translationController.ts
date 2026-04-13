@@ -10,6 +10,8 @@ import { getAuthenticatedUserEmail, supabase } from '../middleware/supabaseAuth.
 import { userContextData } from '../data/usersData.ts'
 import conceptsData from '../data/conceptsData.ts'
 import { translateText } from '../services/translationOrchestrator.ts'
+import { parseRelatedWords } from '@gato/shared'
+import type { TranslationRequest, EnrichmentRequest } from '@gato/shared'
 import 'dotenv/config'
 
 const systemGeminiKey = process.env.GEMINI_API_KEY
@@ -22,6 +24,11 @@ const google = systemGeminiKey
   ? createGoogleGenerativeAI({ apiKey: systemGeminiKey })
   : null
 
+/**
+ * Resolves the AI model to use based on user settings.
+ * Supports BYOK (bring-your-own-key) for OpenAI, Google, Anthropic, and Mistral.
+ * Falls back to the system-level Gemini model when no custom key is set.
+ */
 export function resolveModel(settings: { customApiKey: string | null; preferredProvider: string | null }) {
   let model: any = google ? google(MODELS.system) : null
 
@@ -44,6 +51,11 @@ export function resolveModel(settings: { customApiKey: string | null; preferredP
   return model
 }
 
+/**
+ * Background enrichment for a saved concept.
+ * Runs an LLM call to populate linguistic metadata (phonetics, usage, grammar, etc.)
+ * and persists the result to the database.
+ */
 export async function enrichConceptInBackground(
   conceptId: number,
   concept: string,
@@ -65,20 +77,20 @@ export async function enrichConceptInBackground(
     }
 
     const prompt = promptBuilder(
-      `[${concept}]`,
+      concept,
       targetLanguage,
       sourceLanguage,
-      ''
+      '',
     )
 
     const { text } = await generateText({ model, prompt, temperature: 0 })
     const result = extractJSON(text) as Record<string, any>
 
-    // Serialize relatedWords array to JSON string if present
-    let relatedWordsJson: string | null = null
-    if (Array.isArray(result.relatedWords) && result.relatedWords.length > 0) {
-      relatedWordsJson = JSON.stringify(result.relatedWords)
-    }
+    // Normalize and serialize relatedWords for DB storage
+    const normalized = parseRelatedWords(result.relatedWords)
+    const relatedWordsJson: string | null = normalized.length > 0
+      ? JSON.stringify(normalized)
+      : null
 
     await conceptsData.enrichConcept(conceptId, {
       phoneticApproximation: result.phoneticApproximation ?? null,
@@ -93,26 +105,21 @@ export async function enrichConceptInBackground(
   }
 }
 
-type TranslationRequest = {
-  text: string
-  targetLanguage: string
-  sourceLanguage: string
-  personalContext: string
-  selection?: string
-  contextBefore?: string
-  contextAfter?: string
-}
-
+/**
+ * POST /translation handler.
+ * Translates a user-selected word/phrase, optionally using surrounding context.
+ * Normalizes relatedWords in the response before sending.
+ */
 export async function translate(
   request: FastifyRequest<{ Body: TranslationRequest }>,
   reply: FastifyReply
 ): Promise<void> {
-  const { text, targetLanguage, sourceLanguage, personalContext, selection, contextBefore, contextAfter } =
+  const { selection, targetLanguage, sourceLanguage, personalContext, contextBefore, contextAfter } =
     request.body
 
-  if ((!text && !selection) || !targetLanguage) {
+  if (!selection || !targetLanguage) {
     return reply.status(400).send({
-      error: 'Missing required fields: text/selection, targetLanguage',
+      error: 'Missing required fields: selection, targetLanguage',
     })
   }
 
@@ -135,31 +142,28 @@ export async function translate(
       console.warn('Failed to resolve user settings for translation:', authError)
     }
 
-    // Determine selection and context
-    let resolvedSelection: string
-    let resolvedContext: string | undefined
-
-    if (selection) {
-      // New format: separated fields
-      resolvedSelection = selection
-      resolvedContext = [contextBefore, selection, contextAfter].filter(Boolean).join(' ')
-    } else {
-      // Legacy format: extract selection from [brackets]
-      const bracketMatch = text.match(/\[([^\]]+)\]/)
-      resolvedSelection = (bracketMatch && bracketMatch[1]) ? bracketMatch[1] : text
-      resolvedContext = bracketMatch ? text : undefined
-    }
+    // Build context from surrounding text segments
+    const resolvedContext = [contextBefore, selection, contextAfter].filter(Boolean).join(' ')
 
     const translationResult = await translateText({
-      selection: resolvedSelection,
+      selection,
       context: resolvedContext,
       targetLanguage,
-      sourceLanguage,
-      personalContext,
+      sourceLanguage: sourceLanguage || '',
+      personalContext: personalContext || '',
       model,
     })
 
-    return reply.status(200).send(translationResult)
+    // Normalize relatedWords before sending to the client.
+    // The result is a union — relatedWords only exists on the LLM branch.
+    const raw = translationResult as Record<string, unknown>
+    const response = {
+      ...translationResult,
+      relatedWords: raw.relatedWords
+        ? parseRelatedWords(raw.relatedWords as any)
+        : undefined,
+    }
+    return reply.status(200).send(response)
 
   } catch (error) {
     request.log.error(error, 'Translation error')
@@ -170,18 +174,13 @@ export async function translate(
   }
 }
 
-type EnrichRequest = {
-  text: string
-  translation: string
-  targetLanguage: string
-  sourceLanguage: string
-  personalContext?: string
-  contextBefore?: string
-  contextAfter?: string
-}
-
+/**
+ * POST /translation/enrich handler.
+ * Enriches an already-translated word with linguistic metadata (phonetics, grammar, etc.).
+ * Normalizes relatedWords in the response before sending.
+ */
 export async function enrich(
-  request: FastifyRequest<{ Body: EnrichRequest }>,
+  request: FastifyRequest<{ Body: EnrichmentRequest }>,
   reply: FastifyReply
 ): Promise<void> {
   try {
@@ -234,8 +233,15 @@ export async function enrich(
       temperature: 0,
     })
 
-    const enrichmentResult = extractJSON(responseText)
-    return reply.status(200).send(enrichmentResult)
+    // Normalize relatedWords before sending to the client
+    const enrichmentResult = extractJSON(responseText) as Record<string, any>
+    const response = {
+      ...enrichmentResult,
+      relatedWords: enrichmentResult.relatedWords
+        ? parseRelatedWords(enrichmentResult.relatedWords)
+        : undefined,
+    }
+    return reply.status(200).send(response)
 
   } catch (error) {
     request.log.error(error, 'Enrichment error')
