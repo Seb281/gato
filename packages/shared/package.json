@@ -1,0 +1,11 @@
+{
+  "name": "@gato/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./translation": "./src/translation/index.ts",
+    "./i18n": "./src/i18n/strings.ts"
+  }
+}
