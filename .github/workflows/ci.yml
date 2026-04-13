@@ -30,6 +30,9 @@ jobs:
       - name: Type-check extension
         run: pnpm --filter context-aware-translator-extension compile
 
+      - name: Type-check web
+        run: pnpm --filter web compile
+
       - name: Lint web
         run: pnpm --filter web lint
 

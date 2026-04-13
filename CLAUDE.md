@@ -134,7 +134,7 @@ When adding/removing/renaming i18n keys: edit the shared file. Bump `STRINGS_VER
 ## PBR Checklist
 
 ### Verification
-- **Quality gate:** `pnpm --filter api build && pnpm --filter context-aware-translator-extension compile && pnpm --filter web lint`
+- **Quality gate:** `pnpm --filter api build && pnpm --filter context-aware-translator-extension compile && pnpm --filter web compile && pnpm --filter web lint`
 - **Build:** `pnpm build`
 - **Extension zip:** `pnpm --filter context-aware-translator-extension zip` — verify output is self-contained (no external workspace refs in manifest or bundle)
 
