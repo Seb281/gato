@@ -117,7 +117,11 @@ export async function translate(
   const { selection, targetLanguage, sourceLanguage, personalContext, contextBefore, contextAfter } =
     request.body
 
-  if (!selection || !targetLanguage) {
+  // TODO: Remove `text` fallback once the new extension (v2 with `selection` field) ships to CWS.
+  // Live extension sends `text` (plain string) when no expanded selection is available.
+  const resolvedSelection = selection || (request.body as unknown as Record<string, unknown>).text as string | undefined
+
+  if (!resolvedSelection || !targetLanguage) {
     return reply.status(400).send({
       error: 'Missing required fields: selection, targetLanguage',
     })
@@ -143,10 +147,10 @@ export async function translate(
     }
 
     // Build context from surrounding text segments
-    const resolvedContext = [contextBefore, selection, contextAfter].filter(Boolean).join(' ')
+    const resolvedContext = [contextBefore, resolvedSelection, contextAfter].filter(Boolean).join(' ')
 
     const translationResult = await translateText({
-      selection,
+      selection: resolvedSelection,
       context: resolvedContext,
       targetLanguage,
       sourceLanguage: sourceLanguage || '',
