@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Monorepo Structure
 
-Turborepo monorepo with three apps:
+Turborepo monorepo with three apps and one shared package:
 
-| App | Path | Stack | Dev command |
+| Package | Path | Stack | Dev command |
 |---|---|---|---|
 | **API** | `apps/api/` | Fastify, Drizzle ORM, Supabase (Postgres), DeepL, AI SDK (Gemini/OpenAI/Anthropic/Mistral) | `pnpm dev:api` |
 | **Extension** | `apps/extension/` | WXT, Chrome MV3, React, TypeScript, Tailwind v4 | `pnpm dev:extension` |
 | **Web** | `apps/web/` | Next.js (App Router), React, Supabase Auth, shadcn/ui, Tailwind, Sonner toasts | `pnpm dev:web` (not yet wired) |
+| **Shared** | `packages/shared/` | TypeScript (no build step — raw TS consumed by all apps) | — |
 
 ```bash
 pnpm dev              # Start all apps via turbo
@@ -124,15 +125,11 @@ try {
 
 **Deduplication:** For auto-save or debounced operations, pass `{ id: "unique-id" }` to `toast.error()` to prevent duplicate toasts stacking up.
 
-## i18n String Sync
+## i18n Strings
 
-UI strings are defined in three places that must stay in sync:
+UI strings live in a single source of truth: `packages/shared/src/i18n/strings.ts` (exported from `@gato/shared`). All three apps import from there — no mirrored files.
 
-1. `apps/api/src/routes/i18n-strings.ts` — source of truth for translatable keys
-2. `apps/extension/src/lib/i18n/strings.ts` — extension's English defaults + `STRINGS_VERSION`
-3. `apps/web/src/lib/i18n/strings.ts` — web app's English defaults
-
-When adding/removing/renaming i18n keys: update all three files. Bump `STRINGS_VERSION` in the extension strings file to invalidate cached translations.
+When adding/removing/renaming i18n keys: edit the shared file. Bump `STRINGS_VERSION` to invalidate cached translations in the extension and web app.
 
 ## PBR Checklist
 
@@ -146,11 +143,12 @@ When adding/removing/renaming i18n keys: update all three files. Bump `STRINGS_V
 - Error paths handled (no silent failures)
 - Types match across layers (API response ↔ shared types ↔ FE consumers)
 - No hardcoded user-facing strings (use i18n keys)
+- Translation types match across layers (API response ↔ `@gato/shared` types ↔ FE consumers)
 
 ### Cross-Phase Integration
 - Schema changes → `pnpm --filter api db:generate` → review SQL → `db:migrate`
 - New API endpoints → update CORS if new origin needed
-- i18n key changes → bump `STRINGS_VERSION`
+- i18n key changes → edit `packages/shared/src/i18n/strings.ts`, bump `STRINGS_VERSION`
 
 ### Commit Conventions
 - Short subject line, imperative mood

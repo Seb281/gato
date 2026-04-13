@@ -60,7 +60,7 @@ right-click → background contextMenu handler
 | `Tooltip` | `src/entrypoints/content/components/Tooltip.tsx` | Content script (small "Translate" button on selection) |
 | `TranslateTab` | `src/components/TranslateTab.tsx` | Sidepanel Translate tab |
 
-`TranslationPopup` and `TranslateTab` are separate implementations with overlapping features (translate, speak, enrich, save). They are NOT shared components.
+`TranslationPopup` and `TranslateTab` are separate implementations with overlapping features (translate, speak, enrich, save). They are NOT shared components — but both use canonical types and `parseRelatedWords` from `@gato/shared`.
 
 ### Settings Auto-Save
 
@@ -104,8 +104,8 @@ Single `chrome.runtime.onMessage.addListener` with a switch on `action`. Key act
 - `src/entrypoints/content/components/`: TranslationPopup, Tooltip (rendered in page DOM)
 - `src/components/`: Shared components used by sidepanel (TranslateTab, SavedConceptCard, etc.)
 - `src/components/ui/`: shadcn/ui primitives (Button, Card, Badge, etc.)
-- `src/lib/i18n/`: Internationalization (useTranslation hook, locale files)
-- `src/types/`: TypeScript types (translation.ts)
+- `src/lib/i18n/`: Internationalization (`useTranslation` hook — strings imported from `@gato/shared`)
+- `src/types/`: TypeScript types (`translation.ts` re-exports from `@gato/shared`, keeps `SidepanelTranslationSignal` locally)
 - `src/utils/`: Utility functions (languageCodes.ts)
 
 ### Configuration
