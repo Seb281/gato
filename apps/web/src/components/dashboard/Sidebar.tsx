@@ -157,7 +157,7 @@ export default function Sidebar({
           </Button>
 
           {/* Feedback */}
-          {renderNavLink({ labelKey: "nav.feedback", icon: MessageSquare, href: "/dashboard/feedback" })}
+          {renderNavLink({ labelKey: "nav.feedback", icon: MessageSquare, href: "/feedback" })}
 
           {/* Settings group */}
           {collapsed ? (
