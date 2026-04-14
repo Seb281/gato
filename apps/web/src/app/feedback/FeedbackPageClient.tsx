@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
@@ -49,6 +49,7 @@ export default function FeedbackPageClient({
   const { t } = useTranslation();
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+  const [mounted, setMounted] = useState(false);
   const [category, setCategory] = useState("feature");
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
@@ -103,6 +104,12 @@ export default function FeedbackPageClient({
     } finally {
       setSending(false);
     }
+  }
+
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-background" />;
   }
 
   return (
