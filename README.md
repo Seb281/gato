@@ -2,17 +2,17 @@
 
 A Chrome extension for learning languages in context. Translate text on any webpage with LLM-powered, context-aware translations — then build lasting vocabulary through enrichment data, saved concepts, and spaced repetition review.
 
-## Tech Stack
+## Architecture
 
-| App | Stack |
-|-----|-------|
-| `apps/extension` | React, TypeScript, WXT, Tailwind CSS, Radix UI |
-| `apps/api` | Fastify, Drizzle ORM, PostgreSQL, Vercel AI SDK |
-| `apps/web` | Next.js, Tailwind CSS, Radix UI |
-
-**Infrastructure:** Supabase (auth + DB), Railway (API), Vercel (dashboard), Sentry (error tracking)
-
-**LLM providers:** Google Gemini (default), OpenAI, Anthropic, Mistral — bring your own API key.
+```mermaid
+graph LR
+    EXT[Chrome Extension] <-->|translate / enrich / sync| API[API — Fastify]
+    WEB[Web Dashboard] -->|proxy| NJP[Next.js Server]
+    NJP -->|forward| API
+    API <-->|translate| DEEPL[DeepL]
+    API <-->|enrich / fallback translate| LLM[LLM Providers<br>Gemini · OpenAI · Anthropic · Mistral]
+    API <-->|auth + data| SUPA[Supabase<br>Auth · Postgres]
+```
 
 ## How It Works
 
@@ -37,6 +37,22 @@ A Chrome extension for learning languages in context. Translate text on any webp
 - Source language auto-detection
 - Theme support (light/dark/system)
 - Auth sync between extension and web dashboard
+
+## Tech Stack
+
+| App | Stack |
+|-----|-------|
+| `apps/extension` | React, TypeScript, WXT, Tailwind CSS, Radix UI |
+| `apps/api` | Fastify, Drizzle ORM, PostgreSQL, Vercel AI SDK |
+| `apps/web` | Next.js, Tailwind CSS, Radix UI |
+
+**Infrastructure:** Supabase (auth + DB), Railway (API), Vercel (dashboard), Sentry (error tracking)
+
+**LLM providers:** Google Gemini (default), OpenAI, Anthropic, Mistral — bring your own API key.
+
+## Architecture Decisions
+
+Design rationale is documented in [`apps/api/adr/`](apps/api/adr/).
 
 ## Development
 
