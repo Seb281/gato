@@ -30,7 +30,7 @@ const TABS = [
 const MORE_ITEMS = [
   { labelKey: "nav.translate", icon: Languages, href: "/dashboard/translate" },
   { labelKey: "nav.tags", icon: Tags, href: "/dashboard/tags" },
-  { labelKey: "nav.feedback", icon: MessageSquare, href: "/dashboard/feedback" },
+  { labelKey: "nav.feedback", icon: MessageSquare, href: "/feedback" },
 ];
 
 const SETTINGS_ITEMS = [

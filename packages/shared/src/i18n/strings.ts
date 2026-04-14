@@ -316,7 +316,7 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.sendFeedback": "Send Feedback",
   "ext.openDashboard": "Open Dashboard",
   "ext.signedIn": "Signed in",
-  "ext.logout": "Logout",
+  "ext.logout": "Sign out",
   "ext.loadingSession": "Loading session...",
   "ext.enabledSitesLabel": "Enabled Sites",
   "ext.remove": "Remove",

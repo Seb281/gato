@@ -42,6 +42,25 @@ export async function requireAuth(
 }
 
 /**
+ * Middleware that optionally authenticates.
+ * Attaches user to request if valid token present, otherwise continues without user.
+ */
+export async function optionalAuth(
+  request: FastifyRequest,
+  _reply: FastifyReply
+): Promise<void> {
+  const authHeader = request.headers.authorization
+  if (!authHeader) return
+
+  const token = authHeader.replace('Bearer ', '')
+  const { data: { user } } = await supabase.auth.getUser(token)
+
+  if (user) {
+    ;(request as any).user = user
+  }
+}
+
+/**
  * Get the authenticated user's email from Supabase.
  */
 export async function getAuthenticatedUserEmail(

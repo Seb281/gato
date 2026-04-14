@@ -15,6 +15,8 @@ import {
   X,
   MessageSquare,
   Languages,
+  LogOut,
+  User,
 } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -916,7 +918,7 @@ function SettingsTab({ session }: { session: Session | null }) {
           variant='outline'
           className='w-full'
           onClick={() =>
-            chrome.tabs.create({ url: `${DASHBOARD_URL}/dashboard/feedback` })
+            chrome.tabs.create({ url: `${DASHBOARD_URL}/feedback` })
           }
         >
           <MessageSquare className='h-4 w-4 mr-2' />
@@ -951,13 +953,38 @@ function SettingsTab({ session }: { session: Session | null }) {
         </div>
       </div>
 
-      {!session && (
-        <>
-          <Separator />
-          <p className='text-xs text-center text-muted-foreground'>
-            {t('ext.side.signInToSync')}
-          </p>
-        </>
+      <Separator />
+
+      {/* Account */}
+      {session ? (
+        <div className='flex items-center justify-between'>
+          <div className='flex items-center gap-2'>
+            <div className='w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center'>
+              <User className='h-4 w-4 text-primary' />
+            </div>
+            <div className='flex flex-col'>
+              <span className='text-xs font-medium truncate max-w-[180px]'>
+                {session.user.email}
+              </span>
+              <span className='text-[10px] text-muted-foreground'>
+                {t('ext.signedIn')}
+              </span>
+            </div>
+          </div>
+          <Button
+            variant='ghost'
+            size='sm'
+            onClick={() => supabase.auth.signOut()}
+            className='text-muted-foreground hover:text-destructive'
+          >
+            <LogOut className='h-4 w-4 mr-1' />
+            {t('ext.logout')}
+          </Button>
+        </div>
+      ) : (
+        <p className='text-xs text-center text-muted-foreground'>
+          {t('ext.side.signInToSync')}
+        </p>
       )}
     </div>
   )

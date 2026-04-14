@@ -316,7 +316,7 @@ export default function App() {
             className='w-full text-muted-foreground pt-3'
             onClick={() =>
               chrome.tabs.create({
-                url: `${DASHBOARD_URL}/dashboard/feedback`,
+                url: `${DASHBOARD_URL}/feedback`,
               })
             }
           >

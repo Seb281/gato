@@ -232,21 +232,28 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
     <div className='p-3 space-y-3'>
       {/* Target language */}
       <p className='text-sm text-muted-foreground'>
-        {t('ext.side.translatingTo')}{' '}
-        <select
-          value={targetLanguage}
-          onChange={(e) => {
-            setTargetLanguage(e.target.value)
-            chrome.storage.sync.set({ targetLanguage: e.target.value })
-          }}
-          className='italic font-bold text-sm text-muted-foreground bg-transparent border-none p-0 cursor-pointer focus-visible:outline-none appearance-none'
-        >
-          {Object.entries(LANGUAGE_NAMES).map(([code, name]) => (
-            <option key={code} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
+        {(() => {
+          const template = t('ext.side.translatingTo', { language: '__SLOT__' })
+          const parts = template.split('__SLOT__')
+          const selectEl = (
+            <select
+              key='lang-select'
+              value={targetLanguage}
+              onChange={(e) => {
+                setTargetLanguage(e.target.value)
+                chrome.storage.sync.set({ targetLanguage: e.target.value })
+              }}
+              className='italic font-bold text-sm text-muted-foreground bg-transparent border-none p-0 cursor-pointer focus-visible:outline-none appearance-none'
+            >
+              {Object.entries(LANGUAGE_NAMES).map(([code, name]) => (
+                <option key={code} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          )
+          return <>{parts[0]}{selectEl}{parts[1]}</>
+        })()}
       </p>
 
       {/* Source input */}

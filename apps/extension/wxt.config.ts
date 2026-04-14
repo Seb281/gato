@@ -26,6 +26,12 @@ export default defineConfig({
     permissions: ['storage', 'tabs', 'activeTab', 'scripting', 'contextMenus', 'alarms', 'notifications', 'sidePanel'],
     host_permissions: ['https://gato.giupana.com/*'],
     optional_host_permissions: ['https://*/*', 'http://*/*'],
+    web_accessible_resources: [
+      {
+        resources: ['cat-icon.png'],
+        matches: ['<all_urls>'],
+      },
+    ],
     commands: {
       '_execute_side_panel': {
         suggested_key: {
