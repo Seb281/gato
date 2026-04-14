@@ -3,6 +3,7 @@ import { generateText } from 'ai'
 import { translate, enrich, enrichConceptInBackground, resolveModel } from '../controllers/translationController.ts'
 import {
   requireAuth,
+  optionalAuth,
   getAuthenticatedUserEmail,
   getAuthenticatedUserId,
 } from '../middleware/supabaseAuth.ts'
@@ -11,8 +12,7 @@ import tagsData from '../data/tagsData.ts'
 import reviewData from '../data/reviewData.ts'
 import { usersData, userContextData } from '../data/usersData.ts'
 import statsData from '../data/statsData.ts'
-import { db } from '../db/index.ts'
-import { feedbackTable } from '../db/schema.ts'
+
 import type { SaveConceptRequest } from '@gato/shared'
 
 type ExportQuerystring = {
@@ -967,38 +967,44 @@ Keep it simple and practical. Only return the JSON, nothing else.`
     }
   )
 
-  // POST /feedback — submit user feedback
-  fastify.post<{ Body: { category: string; message: string } }>(
+  // POST /feedback — submit feedback (authenticated or anonymous)
+  fastify.post<{ Body: { category: string; message: string; email?: string; website?: string } }>(
     '/feedback',
-    { preHandler: [requireAuth] },
-    async (request: FastifyRequest<{ Body: { category: string; message: string } }>, reply: FastifyReply) => {
-      const supabaseId = getAuthenticatedUserId(request)
-      if (!supabaseId) {
-        return reply.code(401).send({ error: 'Unauthorized' })
+    { preHandler: [optionalAuth] },
+    async (request: FastifyRequest<{ Body: { category: string; message: string; email?: string; website?: string } }>, reply: FastifyReply) => {
+      const { category, message, email: bodyEmail, website } = request.body
+
+      // Honeypot — bots fill hidden fields, humans don't
+      if (website) {
+        return reply.send({ message: 'Feedback submitted. Thank you!' })
       }
 
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.code(401).send({ error: 'User not found' })
-      }
-
-      const { category, message } = request.body
       if (!category || !message?.trim()) {
         return reply.code(400).send({ error: 'category and message are required' })
       }
 
-      try {
-        await db.insert(feedbackTable).values({
-          userId: user.id,
-          category,
-          message: message.trim(),
-        })
+      if (message.trim().length > 2000) {
+        return reply.code(400).send({ error: 'message must be 2000 characters or less' })
+      }
 
-        // Send email notification (non-blocking)
+      try {
+        // Resolve sender identity — prefer authenticated user, fall back to body email
+        let senderName = 'anonymous'
+        let senderEmail = bodyEmail || 'no email provided'
+
+        const supabaseId = getAuthenticatedUserId(request)
+        if (supabaseId) {
+          const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+          if (user) {
+            senderName = user.name ?? 'unknown'
+            senderEmail = (await getAuthenticatedUserEmail(request)) ?? senderEmail
+          }
+        }
+
+        // Send email notification via Resend
         const resendKey = process.env.RESEND_API_KEY
         if (resendKey) {
-          const email = await getAuthenticatedUserEmail(request)
-          fetch('https://api.resend.com/emails', {
+          await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1007,10 +1013,10 @@ Keep it simple and practical. Only return the JSON, nothing else.`
             body: JSON.stringify({
               from: 'Gato <feedback@resend.dev>',
               to: 'sebastian.giupana@gmail.com',
-              subject: `[From-Gato] Message from ${user.name ?? email ?? 'unknown'}`,
-              text: `Category: ${category}\nFrom: ${user.name ?? 'unknown'} <${email ?? 'unknown'}>\n\n${message.trim()}`,
+              subject: `[From-Gato] Message from ${senderName} <${senderEmail}>`,
+              text: `Category: ${category}\nFrom: ${senderName} <${senderEmail}>\n\n${message.trim()}`,
             }),
-          }).catch(console.error)
+          }).catch((err) => request.log.error(err, 'Failed to send feedback email'))
         }
 
         return reply.send({ message: 'Feedback submitted. Thank you!' })

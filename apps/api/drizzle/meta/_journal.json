@@ -106,6 +106,13 @@
       "when": 1775920496077,
       "tag": "0014_tiny_zombie",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1776161150412,
+      "tag": "0015_blue_king_bedlam",
+      "breakpoints": true
     }
   ]
 }

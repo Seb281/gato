@@ -150,16 +150,6 @@ export const reviewEventsTable = pgTable('review_events', {
 export type ReviewEvent = typeof reviewEventsTable.$inferSelect
 export type NewReviewEvent = typeof reviewEventsTable.$inferInsert
 
-export const feedbackTable = pgTable('feedback', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull().references(() => usersTable.id, { onDelete: 'cascade' }),
-  category: text('category').notNull(),
-  message: text('message').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-})
-
-export type Feedback = typeof feedbackTable.$inferSelect
-
 /**
  * One "word of the day" suggestion per user per calendar date. Stored so
  * the card shows a deterministic, stable suggestion for a given day — the
