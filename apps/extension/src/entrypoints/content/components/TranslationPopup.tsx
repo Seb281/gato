@@ -11,7 +11,7 @@ import {
   AlignLeft,
   BarChart2,
 } from 'lucide-react'
-import { parseRelatedWords } from '@gato/shared'
+import { parseRelatedWords, normalizeFrequency } from '@gato/shared'
 import catIcon from '@/assets/cat-icon'
 import { languageToBCP47 } from '@/utils/languageCodes'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -806,22 +806,31 @@ export default function TranslationPopup({
                           )
                         })()}
 
-                        {data.commonness && (
-                          <div className='space-y-1.5'>
-                            <div className='flex items-center gap-2'>
-                              <BarChart2 className='h-4 w-4 text-muted-foreground' />
-                              <span className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                                {t('ext.popup.frequency')}
-                              </span>
-                            </div>
-                            <Badge
-                              variant='outline'
-                              className='text-xs max-w-full ml-5'
-                            >
-                              {data.commonness}
-                            </Badge>
-                          </div>
-                        )}
+                        {data.commonness &&
+                          (() => {
+                            /**
+                             * Normalize enum/numeric/legacy values to a localized label;
+                             * fall back to raw text when the value cannot be mapped.
+                             */
+                            const key = normalizeFrequency(data.commonness)
+                            const display = key ? t(key) : data.commonness
+                            return (
+                              <div className='space-y-1.5'>
+                                <div className='flex items-center gap-2'>
+                                  <BarChart2 className='h-4 w-4 text-muted-foreground' />
+                                  <span className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
+                                    {t('ext.popup.frequency')}
+                                  </span>
+                                </div>
+                                <Badge
+                                  variant='outline'
+                                  className='text-xs max-w-full ml-5'
+                                >
+                                  {display}
+                                </Badge>
+                              </div>
+                            )
+                          })()}
                       </div>
                     )
                   }

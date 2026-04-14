@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { languageToBCP47 } from "./languageCodes";
-import { parseRelatedWords } from "@gato/shared";
+import { parseRelatedWords, normalizeFrequency } from "@gato/shared";
 import type { TranslationResponse, EnrichmentResponse } from "@gato/shared";
 
 const LANGUAGES = [
@@ -487,14 +487,20 @@ export default function TranslatePage() {
                         value={enrichment.grammarRules}
                       />
                     )}
-                    {enrichment.commonness && (
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                          {t("translate.frequency")}
-                        </p>
-                        <Badge variant="secondary">{enrichment.commonness}</Badge>
-                      </div>
-                    )}
+                    {enrichment.commonness &&
+                      (() => {
+                        /** Localize enum/numeric values; fall back to raw for unmappable legacy rows. */
+                        const key = normalizeFrequency(enrichment.commonness);
+                        const display = key ? t(key) : enrichment.commonness;
+                        return (
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                              {t("translate.frequency")}
+                            </p>
+                            <Badge variant="secondary">{display}</Badge>
+                          </div>
+                        );
+                      })()}
                     {parsedRelated.length > 0 && (
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">

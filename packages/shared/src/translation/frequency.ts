@@ -53,13 +53,15 @@ export function normalizeFrequency(
   if (!s) return null
 
   // 1. Exact enum match.
-  if (s in ENUM_TO_KEY) return ENUM_TO_KEY[s]
+  const enumHit = ENUM_TO_KEY[s]
+  if (enumHit) return enumHit
 
   // 2. Numeric forms — "3", "4/5", "1 / 5".
   const numericMatch = s.match(/^(\d+)\s*(?:\/\s*5)?$/)
   if (numericMatch) {
     const n = Number(numericMatch[1])
-    if (n in NUMERIC_TO_KEY) return NUMERIC_TO_KEY[n]
+    const numericHit = NUMERIC_TO_KEY[n]
+    if (numericHit) return numericHit
   }
 
   // 3. Keyword search — order matters: "very"/"extremely" modifiers first,

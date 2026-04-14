@@ -13,7 +13,7 @@ import {
   BarChart2,
   X,
 } from 'lucide-react'
-import { parseRelatedWords } from '@gato/shared'
+import { parseRelatedWords, normalizeFrequency } from '@gato/shared'
 import { languageToBCP47 } from '@/utils/languageCodes'
 import { LANGUAGE_NAMES } from '@/entrypoints/content/helpers/detectLanguage'
 import { useTranslation } from '@/lib/i18n/useTranslation'
@@ -46,6 +46,8 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
   const [sourceUrl, setSourceUrl] = useState('')
   const [contextBefore, setContextBefore] = useState('')
   const [contextAfter, setContextAfter] = useState('')
+  /** Whether the current `result` came from the translation cache (existing saved concept). */
+  const [fromCache, setFromCache] = useState(false)
   const requestIdRef = useRef(0)
 
   // Load settings from storage + active tab URL
@@ -89,6 +91,7 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
       setSourceUrl(signal.sourceUrl)
       setContextBefore(signal.contextBefore)
       setContextAfter(signal.contextAfter)
+      setFromCache(signal.fromCache)
       chrome.storage.session.remove('sidepanelTranslation')
     }
 
@@ -124,6 +127,7 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
     setSaveState('idle')
     setContextBefore('')
     setContextAfter('')
+    setFromCache(false)
 
     chrome.runtime.sendMessage(
       { action: 'translate', selection: text },
@@ -139,10 +143,53 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
           setError(true)
         } else {
           setResult(response.translateObject)
+          setFromCache(!!response.fromCache)
         }
       },
     )
   }, [])
+
+  /**
+   * Force a fresh translation, bypassing the cache. Used when the sidepanel
+   * shows a cached translation the user wants to refresh — mirrors the
+   * equivalent affordance in the in-page TranslationPopup.
+   */
+  function handleRetranslate() {
+    if (!inputText.trim()) return
+
+    const currentId = ++requestIdRef.current
+    setIsTranslating(true)
+    setError(false)
+    setEnrichment(null)
+    setShowMore(false)
+    setSaveState('idle')
+    setFromCache(false)
+
+    chrome.runtime.sendMessage(
+      {
+        action: 'translate',
+        selection: inputText,
+        contextBefore,
+        contextAfter,
+        forceRefresh: true,
+      },
+      (response) => {
+        if (currentId !== requestIdRef.current) return
+
+        setIsTranslating(false)
+        if (
+          chrome.runtime.lastError ||
+          !response?.success ||
+          !response.translateObject
+        ) {
+          setError(true)
+        } else {
+          setResult(response.translateObject)
+          setFromCache(false)
+        }
+      },
+    )
+  }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -329,6 +376,7 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
               setInputText('')
               setContextBefore('')
               setContextAfter('')
+              setFromCache(false)
             }}
           >
             <X className='h-3.5 w-3.5 mr-1' />
@@ -373,6 +421,19 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
             </p>
           )}
 
+          {/* Re-translate — only offered when the current result was served from cache. */}
+          {fromCache && (
+            <Button
+              size='sm'
+              variant='ghost'
+              onClick={handleRetranslate}
+              disabled={isTranslating}
+              className='w-full text-sm'
+            >
+              {t('ext.popup.retranslate')}
+            </Button>
+          )}
+
           {/* More details - on demand */}
           <div>
             <button
@@ -388,7 +449,7 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
               ) : (
                 <ChevronDown className='h-3 w-3' />
               )}
-              {t('ext.popup.context')}
+              {t('ext.popup.moreDetails')}
             </button>
 
             {showMore && (
@@ -462,22 +523,32 @@ export default function TranslateTab({ session, onSwitchToSettings }: Props) {
                         </div>
                       </div>
                     )}
-                    {enrichment.commonness && (
-                      <div className='space-y-1'>
-                        <div className='flex items-center gap-2'>
-                          <BarChart2 className='h-4 w-4 text-muted-foreground' />
-                          <p className='text-sm font-semibold uppercase tracking-wide text-muted-foreground'>
-                            {t('ext.popup.frequency')}
-                          </p>
-                        </div>
-                        <Badge
-                          variant='outline'
-                          className='text-sm ml-6 font-light'
-                        >
-                          {enrichment.commonness}
-                        </Badge>
-                      </div>
-                    )}
+                    {enrichment.commonness &&
+                      (() => {
+                        /**
+                         * Normalize legacy/free-text values into a localized label.
+                         * Falls back to the raw string when the value is not recognizable,
+                         * so old rows never disappear from the UI.
+                         */
+                        const key = normalizeFrequency(enrichment.commonness)
+                        const display = key ? t(key) : enrichment.commonness
+                        return (
+                          <div className='space-y-1'>
+                            <div className='flex items-center gap-2'>
+                              <BarChart2 className='h-4 w-4 text-muted-foreground' />
+                              <p className='text-sm font-semibold uppercase tracking-wide text-muted-foreground'>
+                                {t('ext.popup.frequency')}
+                              </p>
+                            </div>
+                            <Badge
+                              variant='outline'
+                              className='text-sm ml-6 font-light'
+                            >
+                              {display}
+                            </Badge>
+                          </div>
+                        )
+                      })()}
                   </>
                 )}
               </div>
