@@ -27,7 +27,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useSyncExternalStore } from "react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const NAV_ITEMS = [
@@ -47,6 +47,29 @@ const SETTINGS_CHILDREN = [
 /** Paths that count as "inside settings" and auto-expand the group. */
 const SETTINGS_PATHS = ["/dashboard/settings", "/dashboard/import-export"];
 
+/** Custom event fired when `toggleCollapse` mutates localStorage in the same tab. */
+const COLLAPSED_EVENT = "sidebar-collapsed-change";
+
+/** Subscribe both to same-tab changes (via custom event) and cross-tab changes (storage event). */
+function subscribeCollapsed(callback: () => void): () => void {
+  window.addEventListener("storage", callback);
+  window.addEventListener(COLLAPSED_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(COLLAPSED_EVENT, callback);
+  };
+}
+
+/** Client snapshot — reads the persisted preference. */
+function getCollapsedClient(): boolean {
+  return localStorage.getItem("sidebar-collapsed") === "true";
+}
+
+/** Server snapshot — must be stable and match the first client render. */
+function getCollapsedServer(): boolean {
+  return false;
+}
+
 export default function Sidebar({
   userEmail,
   signOutAction,
@@ -56,10 +79,15 @@ export default function Sidebar({
 }) {
   const pathname = usePathname();
   const { t } = useTranslation();
-  const [collapsed, setCollapsed] = useState(() =>
-    typeof window !== "undefined"
-      ? localStorage.getItem("sidebar-collapsed") === "true"
-      : false
+  // Source-of-truth for collapse lives in localStorage. `useSyncExternalStore`
+  // returns the server snapshot (false) during SSR and the first client
+  // render — matching HTML on both sides — then switches to the real value
+  // after hydration. Reading localStorage directly in useState caused
+  // hydration mismatches on users who had the sidebar collapsed.
+  const collapsed = useSyncExternalStore(
+    subscribeCollapsed,
+    getCollapsedClient,
+    getCollapsedServer,
   );
   const [settingsToggled, setSettingsToggled] = useState(false);
 
@@ -72,8 +100,9 @@ export default function Sidebar({
 
   function toggleCollapse() {
     const next = !collapsed;
-    setCollapsed(next);
     localStorage.setItem("sidebar-collapsed", String(next));
+    // Manually notify subscribers — the "storage" event only fires cross-tab.
+    window.dispatchEvent(new Event(COLLAPSED_EVENT));
   }
 
   function isActive(href: string) {

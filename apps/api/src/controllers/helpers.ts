@@ -51,7 +51,7 @@ export function promptBuilder(
   const instructionGrammar: string =
     '"grammarRules": Relevant grammar (part of speech, agreement, irregularities).'
   const instructionCommonness: string =
-    '"commonness": Frequency in everyday speech (RULE: ≤5 words).'
+    '"commonness": Exactly one of these values: "very rare" | "rare" | "uncommon" | "common" | "very common". Return the string only, no other text.'
   const instructionRelatedWords: string =
     '"relatedWords": Array of up to 5 related words as JSON: [{"word": "...", "translation": "...", "relation": "synonym|antonym|family"}]. Words in source language, translations in target language. "family" means same word family (e.g. noun/verb/adjective forms). Return empty array [] if none.'
 
@@ -166,7 +166,7 @@ export function enrichmentPromptBuilder(
       `"grammarRules": Relevant grammar (part of speech, agreement, irregularities).`
     )
     fields.push(
-      `"commonness": Frequency in everyday speech (RULE: ≤5 words).`
+      `"commonness": Exactly one of these values: "very rare" | "rare" | "uncommon" | "common" | "very common". Return the string only, no other text.`
     )
     fields.push(
       `"relatedWords": Array of up to 5 related words as JSON: [{"word": "...", "translation": "...", "relation": "synonym|antonym|family"}]. Words in ${resolvedSource}, translations in ${resolvedTarget}. "family" means same word family (e.g. noun/verb/adjective forms). Return empty array [] if none.`

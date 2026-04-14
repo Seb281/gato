@@ -433,6 +433,14 @@ export const UI_STRINGS: Record<string, string> = {
   "ext.popup.frequency": "Frequency",
   "ext.popup.related": "Related",
   "ext.popup.translate": "Translate",
+  "ext.popup.moreDetails": "More details",
+
+  // Frequency levels (commonness enum) — shared across apps
+  "frequency.veryRare": "Very rare",
+  "frequency.rare": "Rare",
+  "frequency.uncommon": "Uncommon",
+  "frequency.common": "Common",
+  "frequency.veryCommon": "Very common",
 
   // Keyboard shortcuts help modal
   "shortcuts.title": "Keyboard shortcuts",
@@ -463,4 +471,4 @@ export const UI_STRINGS: Record<string, string> = {
 }
 
 export type StringKey = keyof typeof UI_STRINGS
-export const STRINGS_VERSION = '10'
+export const STRINGS_VERSION = '11'

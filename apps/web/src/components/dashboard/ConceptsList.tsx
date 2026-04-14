@@ -55,6 +55,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { normalizeFrequency } from "@gato/shared";
 import ConceptNotes from "./ConceptNotes";
 import MasteryBadge from "./MasteryBadge";
 import TagBadge from "./TagBadge";
@@ -822,12 +823,18 @@ export default function ConceptsList() {
                       </div>
                     )}
 
-                    {concept.commonness && (
-                      <div className="space-y-1">
-                        <p className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground">{t("vocabulary.commonness")}</p>
-                        <p className="text-sm">{concept.commonness}</p>
-                      </div>
-                    )}
+                    {concept.commonness &&
+                      (() => {
+                        /** Localize enum/numeric values; fall back to raw for unmappable legacy rows. */
+                        const key = normalizeFrequency(concept.commonness);
+                        const display = key ? t(key) : concept.commonness;
+                        return (
+                          <div className="space-y-1">
+                            <p className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground">{t("vocabulary.commonness")}</p>
+                            <p className="text-sm">{display}</p>
+                          </div>
+                        );
+                      })()}
 
                     {concept.fixedExpression && (
                       <div className="space-y-1">
