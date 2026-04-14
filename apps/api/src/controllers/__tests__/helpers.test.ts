@@ -113,6 +113,12 @@ describe('enrichmentPromptBuilder', () => {
     expect(result).toContain('relatedWords')
   })
 
+  it('constrains commonness to the 5-level enum', () => {
+    const result = enrichmentPromptBuilder('chat', 'cat', 'English', 'French', '')
+    expect(result).toContain('"very rare"')
+    expect(result).toContain('"very common"')
+  })
+
   it('only includes phonetics for long text (>5 words)', () => {
     const longText = 'one two three four five six seven'
     const result = enrichmentPromptBuilder(longText, 'translation', 'English', 'French', '')
