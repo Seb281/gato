@@ -51,22 +51,23 @@ export const llmHandlers = [
     }
   ),
 
-  // OpenAI Chat Completions
-  http.post('https://api.openai.com/v1/chat/completions', () => {
+  // OpenAI Responses API (ai-sdk/openai v3+ uses /v1/responses, not /v1/chat/completions).
+  // Schema requires: output[].type='message', content[].type='output_text', content[].annotations=[].
+  http.post('https://api.openai.com/v1/responses', () => {
     providerCallLog.push('openai')
     return HttpResponse.json({
-      id: 'chatcmpl-test',
-      object: 'chat.completion',
-      created: Math.floor(Date.now() / 1000),
+      id: 'resp-test',
+      created_at: Math.floor(Date.now() / 1000),
       model: 'gpt-test',
-      choices: [
+      output: [
         {
-          index: 0,
-          message: { role: 'assistant', content: CANNED_TEXT },
-          finish_reason: 'stop',
+          type: 'message',
+          role: 'assistant',
+          id: 'msg-test',
+          content: [{ type: 'output_text', text: CANNED_TEXT, annotations: [] }],
         },
       ],
-      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      usage: { input_tokens: 1, output_tokens: 1 },
     })
   }),
 
