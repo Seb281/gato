@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import swagger from '@fastify/swagger'
 import swaggerUi from '@fastify/swagger-ui'
-import { jsonSchemaTransform } from 'fastify-type-provider-zod'
+import { jsonSchemaTransform, jsonSchemaTransformObject } from 'fastify-type-provider-zod'
 
 /**
  * Registers @fastify/swagger (spec emission) and @fastify/swagger-ui (docs UI).
@@ -45,6 +45,7 @@ export async function registerSwagger(app: FastifyInstance): Promise<void> {
       ],
     },
     transform: jsonSchemaTransform,
+    transformObject: jsonSchemaTransformObject,
   })
 
   const isProd = process.env.NODE_ENV === 'production'
