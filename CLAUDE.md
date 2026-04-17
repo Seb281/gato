@@ -10,14 +10,18 @@ Turborepo monorepo with three apps and one shared package:
 | ------------- | ------------------ | ------------------------------------------------------------------------------------------ | ------------------------------ |
 | **API**       | `apps/api/`        | Fastify, Drizzle ORM, Supabase (Postgres), DeepL, AI SDK (Gemini/OpenAI/Anthropic/Mistral) | `pnpm dev:api`                 |
 | **Extension** | `apps/extension/`  | WXT, Chrome MV3, React, TypeScript, Tailwind v4                                            | `pnpm dev:extension`           |
-| **Web**       | `apps/web/`        | Next.js (App Router), React, Supabase Auth, shadcn/ui, Tailwind, Sonner toasts             | `pnpm dev:web` (not yet wired) |
+| **Web**       | `apps/web/`        | Next.js (App Router), React, Supabase Auth, shadcn/ui, Tailwind, Sonner toasts             | `pnpm dev:web`                 |
 | **Shared**    | `packages/shared/` | TypeScript (no build step — raw TS consumed by all apps)                                   | —                              |
 
 ```bash
 pnpm dev              # Start all apps via turbo
 pnpm dev:api          # API only
 pnpm dev:extension    # Extension only
+pnpm dev:web          # Web dashboard only
 pnpm build            # Build all apps
+pnpm build:api        # API only
+pnpm build:extension  # Extension only
+pnpm build:web        # Web dashboard only
 
 # DB (run from apps/api or with --filter api)
 pnpm --filter api db:generate   # Drizzle migration from schema diff
@@ -102,6 +106,18 @@ Workflow: edit `schema.ts` → `pnpm --filter api db:generate` → review SQL in
 ## Web App (`apps/web/`)
 
 Next.js App Router. Dashboard is grouped under `src/app/dashboard/` with nested routes (`translate`, `vocabulary`, `review`, `progress`, `tags`, `settings`, `import-export`, `feedback`). Auth is Supabase via `@supabase/ssr`. Top-level `proxy.ts` forwards API calls so the browser talks to the Next.js origin (avoids third-party cookie issues with the extension auth bridge).
+
+## Deployment
+
+Production environments (live):
+
+- **Web dashboard:** Vercel — <https://gato.giupana.com>
+- **API:** Railway
+- **DB + Auth:** Supabase (Postgres)
+- **Error tracking:** Sentry (extension)
+- **Extension:** Chrome Web Store — <https://chromewebstore.google.com/detail/gato-%E2%80%94-translate-learn-in/nbljhkoabjlchochcncpnjjbpfakdndd>
+
+Deployment configs are managed in the respective platform dashboards (no `vercel.json` / `railway.toml` checked in). When adding a new origin, remember to update `ALLOWED_ORIGINS` on Railway so CORS lets it through.
 
 ## Error Handling Patterns
 

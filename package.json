@@ -1,26 +1,21 @@
 {
-  "name": "context-aware-translator",
+  "name": "gato",
   "version": "2.0.0",
-  "description": "Context-aware translation Chrome extension with API backend",
+  "description": "Gato — Chrome extension + API + web dashboard for context-aware translation and spaced-repetition language learning.",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
     "dev:extension": "turbo dev --filter=./apps/extension",
     "dev:api": "turbo dev --filter=api",
+    "dev:web": "turbo dev --filter=web",
     "build:extension": "turbo build --filter=./apps/extension",
-    "build:api": "turbo build --filter=api"
+    "build:api": "turbo build --filter=api",
+    "build:web": "turbo build --filter=web"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "packageManager": "pnpm@10.21.0",
   "devDependencies": {
     "turbo": "^2.7.2"
-  },
-  "pnpm": {
-    "overrides": {
-      "@fastify/static": "9.1.0"
-    }
   }
 }

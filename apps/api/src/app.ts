@@ -15,7 +15,10 @@ import { registerResponseValidation } from './plugins/responseValidation.ts'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(__dirname, '../.env') })
 
-import { extensionRoutes } from './routes/extension.ts'
+import { translationRoutes } from './routes/translation.ts'
+import { conceptRoutes } from './routes/concepts.ts'
+import { userSettingsRoutes } from './routes/userSettings.ts'
+import { feedbackRoutes } from './routes/feedback.ts'
 import { tagRoutes } from './routes/tags.ts'
 import { reviewRoutes } from './routes/review.ts'
 import { statsRoutes } from './routes/stats.ts'
@@ -74,7 +77,10 @@ export async function buildApp(opts?: { logger?: boolean }): Promise<FastifyInst
     reply.code(404).send({ error: 'Route not found' })
   })
 
-  await app.register(extensionRoutes)
+  await app.register(translationRoutes)
+  await app.register(conceptRoutes)
+  await app.register(userSettingsRoutes)
+  await app.register(feedbackRoutes)
   await app.register(tagRoutes)
   await app.register(reviewRoutes)
   await app.register(sentenceBuilderRoutes)
