@@ -10,19 +10,21 @@
 import { writeFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { buildApp } from '../src/app.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const OUTPUT_PATH = path.resolve(__dirname, '../openapi.json')
 
 async function main() {
-  // Minimal env so supabaseAuth.ts module-init doesn't throw.
-  process.env.SUPABASE_URL ??= 'http://unused.local/supabase'
-  process.env.SUPABASE_SECRET_KEY ??= 'unused-during-spec-generation'
+  // Set env BEFORE importing app.ts — supabaseAuth.ts validates these at
+  // module-init and throws if missing. Static `import { buildApp }` would be
+  // hoisted above these assignments, so we use a dynamic import instead.
+  if (!process.env.SUPABASE_URL) process.env.SUPABASE_URL = 'http://unused.local/supabase'
+  if (!process.env.SUPABASE_SECRET_KEY) process.env.SUPABASE_SECRET_KEY = 'unused-during-spec-generation'
   // Force prod-shaped spec: servers list advertises only api.gato.app,
   // matching what consumers of the committed openapi.json expect.
   process.env.NODE_ENV = 'production'
 
+  const { buildApp } = await import('../src/app.ts')
   const app = await buildApp({ logger: false })
   await app.ready()
 
