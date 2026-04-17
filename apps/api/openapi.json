@@ -86,14 +86,7 @@
             "type": "string"
           },
           "color": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string"
           },
           "createdAt": {
             "anyOf": [
@@ -1321,14 +1314,7 @@
             "type": "string"
           },
           "color": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string"
           },
           "createdAt": {
             "anyOf": [

@@ -6,7 +6,7 @@ export const TagSchema = z.object({
   id: z.number().int(),
   userId: z.number().int(),
   name: z.string(),
-  color: z.string().nullable(),
+  color: z.string(),
   createdAt: DateTimeSchema,
 }).meta({ id: 'Tag' })
 
