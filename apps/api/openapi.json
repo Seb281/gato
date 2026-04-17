@@ -1110,6 +1110,66 @@
           "conceptsAdded"
         ]
       },
+      "SentenceBuilderGenerateBodyInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/SentenceBuilderGenerateBodyInput",
+        "type": "object",
+        "properties": {
+          "conceptId": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "conceptId"
+        ]
+      },
+      "SentenceBuilderChallengeInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/SentenceBuilderChallengeInput",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nativeSentence": {
+            "type": "string"
+          },
+          "tiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "nativeSentence",
+          "tiles"
+        ]
+      },
+      "SentenceBuilderValidateBodyInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/SentenceBuilderValidateBodyInput",
+        "type": "object",
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ordering": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "challengeId",
+          "ordering"
+        ]
+      },
       "WordOfTheDayInput": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "#/components/schemas/WordOfTheDayInput",
@@ -2340,6 +2400,69 @@
           "reviewsCompleted",
           "correctReviews",
           "conceptsAdded"
+        ],
+        "additionalProperties": false
+      },
+      "SentenceBuilderGenerateBody": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/SentenceBuilderGenerateBody",
+        "type": "object",
+        "properties": {
+          "conceptId": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "conceptId"
+        ],
+        "additionalProperties": false
+      },
+      "SentenceBuilderChallenge": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/SentenceBuilderChallenge",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nativeSentence": {
+            "type": "string"
+          },
+          "tiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "nativeSentence",
+          "tiles"
+        ],
+        "additionalProperties": false
+      },
+      "SentenceBuilderValidateBody": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/SentenceBuilderValidateBody",
+        "type": "object",
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ordering": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "challengeId",
+          "ordering"
         ],
         "additionalProperties": false
       },
@@ -3624,18 +3747,151 @@
     },
     "/review/sentence-builder/generate": {
       "post": {
+        "summary": "Generate a sentence-reconstruction challenge for a concept",
+        "tags": [
+          "sentence-builder"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SentenceBuilderGenerateBodyInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Default Response"
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "challenge": {
+                      "$ref": "#/components/schemas/SentenceBuilderChallenge"
+                    }
+                  },
+                  "required": [
+                    "challenge"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
     },
     "/review/sentence-builder/validate": {
       "post": {
+        "summary": "Validate a user's sentence tile ordering",
+        "tags": [
+          "sentence-builder"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SentenceBuilderValidateBodyInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Default Response"
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "correct": {
+                      "type": "boolean"
+                    },
+                    "correctOrdering": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "conceptId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "correct",
+                    "correctOrdering",
+                    "conceptId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
