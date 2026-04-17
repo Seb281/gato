@@ -14,6 +14,208 @@
       }
     },
     "schemas": {
+      "TranslationRequestInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/TranslationRequestInput",
+        "type": "object",
+        "properties": {
+          "selection": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "personalContext": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "type": "string"
+          },
+          "contextAfter": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetLanguage"
+        ]
+      },
+      "RelatedWordInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/RelatedWordInput",
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "relation": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "word",
+          "translation",
+          "relation"
+        ]
+      },
+      "TranslationResponseInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/TranslationResponseInput",
+        "type": "object",
+        "properties": {
+          "contextualTranslation": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "deepl",
+              "llm"
+            ]
+          },
+          "phoneticApproximation": {
+            "type": "string"
+          },
+          "fixedExpression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "type": "string"
+          },
+          "grammarRules": {
+            "type": "string"
+          },
+          "commonness": {
+            "type": "string"
+          },
+          "relatedWords": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelatedWordInput"
+            }
+          }
+        },
+        "required": [
+          "contextualTranslation",
+          "language",
+          "provider"
+        ]
+      },
+      "EnrichmentRequestInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/EnrichmentRequestInput",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "translation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "personalContext": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "type": "string"
+          },
+          "contextAfter": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "translation",
+          "targetLanguage"
+        ]
+      },
+      "EnrichmentResponseInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/EnrichmentResponseInput",
+        "type": "object",
+        "properties": {
+          "phoneticApproximation": {
+            "type": "string"
+          },
+          "fixedExpression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "type": "string"
+          },
+          "grammarRules": {
+            "type": "string"
+          },
+          "commonness": {
+            "type": "string"
+          },
+          "relatedWords": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelatedWordInput"
+            }
+          }
+        }
+      },
+      "FeedbackBodyInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/FeedbackBodyInput",
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "website": {
+            "type": "string"
+          }
+        }
+      },
       "ErrorResponseInput": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "#/components/schemas/ErrorResponseInput",
@@ -1238,6 +1440,214 @@
           "rationale",
           "exampleSentence"
         ]
+      },
+      "TranslationRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/TranslationRequest",
+        "type": "object",
+        "properties": {
+          "selection": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "personalContext": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "type": "string"
+          },
+          "contextAfter": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetLanguage"
+        ],
+        "additionalProperties": false
+      },
+      "RelatedWord": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/RelatedWord",
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "relation": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "word",
+          "translation",
+          "relation"
+        ],
+        "additionalProperties": false
+      },
+      "TranslationResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/TranslationResponse",
+        "type": "object",
+        "properties": {
+          "contextualTranslation": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "deepl",
+              "llm"
+            ]
+          },
+          "phoneticApproximation": {
+            "type": "string"
+          },
+          "fixedExpression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "type": "string"
+          },
+          "grammarRules": {
+            "type": "string"
+          },
+          "commonness": {
+            "type": "string"
+          },
+          "relatedWords": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelatedWord"
+            }
+          }
+        },
+        "required": [
+          "contextualTranslation",
+          "language",
+          "provider"
+        ],
+        "additionalProperties": false
+      },
+      "EnrichmentRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/EnrichmentRequest",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "translation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "personalContext": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "type": "string"
+          },
+          "contextAfter": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "translation",
+          "targetLanguage"
+        ],
+        "additionalProperties": false
+      },
+      "EnrichmentResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/EnrichmentResponse",
+        "type": "object",
+        "properties": {
+          "phoneticApproximation": {
+            "type": "string"
+          },
+          "fixedExpression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "type": "string"
+          },
+          "grammarRules": {
+            "type": "string"
+          },
+          "commonness": {
+            "type": "string"
+          },
+          "relatedWords": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelatedWord"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "FeedbackBody": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/FeedbackBody",
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "website": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
       },
       "ErrorResponse": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2535,18 +2945,110 @@
   "paths": {
     "/translation": {
       "post": {
+        "summary": "Translate a word or phrase (DeepL-first, LLM-fallback)",
+        "tags": [
+          "translation"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranslationRequestInput"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Default Response"
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranslationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
     },
     "/translation/enrich": {
       "post": {
+        "summary": "Enrich an already-translated word with linguistic metadata",
+        "tags": [
+          "translation"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrichmentRequestInput"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Default Response"
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrichmentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2709,9 +3211,59 @@
     },
     "/feedback": {
       "post": {
+        "summary": "Submit feedback (unauthenticated OK)",
+        "tags": [
+          "user"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackBodyInput"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Default Response"
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }

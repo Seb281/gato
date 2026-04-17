@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyPluginOptions, FastifyRequest, FastifyReply } from 'fastify'
+import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { generateText } from 'ai'
 import { translate, enrich, enrichConceptInBackground, resolveModel } from '../controllers/translationController.ts'
 import {
@@ -12,6 +13,17 @@ import tagsData from '../data/tagsData.ts'
 import reviewData from '../data/reviewData.ts'
 import { usersData, userContextData } from '../data/usersData.ts'
 import statsData from '../data/statsData.ts'
+import {
+  TranslationRequestSchema,
+  TranslationResponseSchema,
+  EnrichmentRequestSchema,
+  EnrichmentResponseSchema,
+} from '../schemas/translation.ts'
+import {
+  FeedbackBodySchema,
+  FeedbackResponseSchema,
+} from '../schemas/feedback.ts'
+import { ErrorResponseSchema } from '../schemas/common.ts'
 
 import type { SaveConceptRequest } from '@gato/shared'
 
@@ -83,12 +95,38 @@ type UserSettingsBody = {
 }
 
 export async function extensionRoutes(
-  fastify: FastifyInstance,
-  _options: FastifyPluginOptions
+  baseApp: FastifyInstance,
+  _options: FastifyPluginOptions,
 ) {
+  const fastify = baseApp.withTypeProvider<ZodTypeProvider>()
+
   // Public endpoints - no auth required (but use auth if present)
-  fastify.post('/translation', translate)
-  fastify.post('/translation/enrich', enrich)
+  fastify.post('/translation', {
+    schema: {
+      tags: ['translation'],
+      summary: 'Translate a word or phrase (DeepL-first, LLM-fallback)',
+      body: TranslationRequestSchema,
+      response: {
+        200: TranslationResponseSchema,
+        400: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+  }, translate)
+
+  fastify.post('/translation/enrich', {
+    schema: {
+      tags: ['translation'],
+      summary: 'Enrich an already-translated word with linguistic metadata',
+      body: EnrichmentRequestSchema,
+      response: {
+        200: EnrichmentResponseSchema,
+        400: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+        503: ErrorResponseSchema,
+      },
+    },
+  }, enrich)
 
   // Protected endpoint - save a concept
   fastify.post<{ Body: SaveConceptBody }>(
@@ -968,10 +1006,19 @@ Keep it simple and practical. Only return the JSON, nothing else.`
   )
 
   // POST /feedback — submit feedback (authenticated or anonymous)
-  fastify.post<{ Body: { category: string; message: string; email?: string; website?: string } }>(
-    '/feedback',
-    { preHandler: [optionalAuth] },
-    async (request: FastifyRequest<{ Body: { category: string; message: string; email?: string; website?: string } }>, reply: FastifyReply) => {
+  fastify.post('/feedback', {
+    schema: {
+      tags: ['user'],
+      summary: 'Submit feedback (unauthenticated OK)',
+      body: FeedbackBodySchema,
+      response: {
+        200: FeedbackResponseSchema,
+        400: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+    preHandler: [optionalAuth],
+  }, async (request, reply) => {
       const { category, message, email: bodyEmail, website } = request.body
 
       // Honeypot — bots fill hidden fields, humans don't
@@ -983,6 +1030,8 @@ Keep it simple and practical. Only return the JSON, nothing else.`
         return reply.code(400).send({ error: 'category and message are required' })
       }
 
+      // Length cap (zod already enforces max(2000), but handler keeps its
+      // own check for defensive clarity — same 400 response code.)
       if (message.trim().length > 2000) {
         return reply.code(400).send({ error: 'message must be 2000 characters or less' })
       }
