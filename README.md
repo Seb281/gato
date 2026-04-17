@@ -2,6 +2,11 @@
 
 A Chrome extension for learning languages in context. Translate text on any webpage with LLM-powered, context-aware translations — then build lasting vocabulary through enrichment data, saved concepts, and spaced repetition review.
 
+## Try It
+
+- **Chrome Web Store** — install the live extension: <https://chromewebstore.google.com/detail/gato-%E2%80%94-translate-learn-in/nbljhkoabjlchochcncpnjjbpfakdndd>
+- **Web dashboard** — review vocabulary, track progress, manage settings: <https://gato.giupana.com>
+
 ## Architecture
 
 ```mermaid

@@ -1,3 +1,10 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# Pin @fastify/static to 9.1.0 — 9.1.1 introduced a wildcard-handler
+# regression that 404s static assets when the plugin is mounted under
+# a parent prefix (e.g. /docs/static/* via @fastify/swagger-ui).
+# Track upstream fix: https://github.com/fastify/fastify-static/issues/573
+overrides:
+  '@fastify/static': 9.1.0
