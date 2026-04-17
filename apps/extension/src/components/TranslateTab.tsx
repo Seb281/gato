@@ -26,10 +26,9 @@ import type { Session } from '@supabase/supabase-js'
 
 type Props = {
   session: Session | null
-  onSwitchToSettings: () => void
 }
 
-export default function TranslateTab({ session, onSwitchToSettings }: Props) {
+export default function TranslateTab({ session }: Props) {
   const { t } = useTranslation()
   const [inputText, setInputText] = useState('')
   const [isTranslating, setIsTranslating] = useState(false)

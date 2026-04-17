@@ -42,6 +42,12 @@ export default function App() {
   const [sidepanelOpen, setSidepanelOpen] = useState(false)
   const { t } = useTranslation()
 
+  const fetchDueCount = () => {
+    chrome.runtime.sendMessage({ action: 'getDueCount' }, (response) => {
+      setDueCount(response?.dueCount ?? 0)
+    })
+  }
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
@@ -88,12 +94,6 @@ export default function App() {
       chrome.storage.onChanged.removeListener(handleSessionChange)
     }
   }, [])
-
-  const fetchDueCount = () => {
-    chrome.runtime.sendMessage({ action: 'getDueCount' }, (response) => {
-      setDueCount(response?.dueCount ?? 0)
-    })
-  }
 
   // Load allowed sites and derive current site pattern
   useEffect(() => {

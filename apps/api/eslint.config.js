@@ -1,33 +1,42 @@
-import js from "@eslint/js"
-import typescript from "@typescript-eslint/eslint-plugin"
-import typescriptParser from "@typescript-eslint/parser"
-import prettier from "eslint-plugin-prettier"
-import prettierConfig from "eslint-config-prettier"
+import js from '@eslint/js'
+import tseslint from 'typescript-eslint'
+import globals from 'globals'
 
-export default [
-  js.configs.recommended,
+/**
+ * Flat-config ESLint setup for the Fastify API.
+ *
+ * Scope is deliberately minimal: recommended JS + TS rules only. The CI
+ * quality gate uses this to catch obvious correctness issues (unused vars,
+ * unreachable code, misused `any`) without enforcing stylistic preferences —
+ * Prettier would own that if/when added.
+ */
+export default tseslint.config(
   {
-    files: ["**/*.{js,mjs,cjs,ts}"],
+    ignores: [
+      'dist/**',
+      'drizzle/**',
+      'node_modules/**',
+      'openapi.json',
+      'coverage/**',
+    ],
+  },
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  {
     languageOptions: {
-      parser: typescriptParser,
-      parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
-      },
       globals: {
-        window: "readonly",
-        document: "readonly",
-        console: "readonly",
-        process: "readonly",
+        ...globals.node,
       },
-    },
-    plugins: {
-      "@typescript-eslint": typescript,
-      prettier: prettier,
     },
     rules: {
-      ...typescript.configs.recommended.rules,
-      ...prettierConfig.rules,
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      // `any` appears at external-SDK boundaries (Fastify request bodies, AI
+      // SDK responses). Keep it visible as a warning rather than an error so
+      // CI doesn't gate on what is effectively a typing TODO.
+      '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
-]
+)

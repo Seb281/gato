@@ -33,6 +33,12 @@ jobs:
       - name: Type-check web
         run: pnpm --filter web compile
 
+      - name: Lint API
+        run: pnpm --filter api lint
+
+      - name: Lint extension
+        run: pnpm --filter ./apps/extension lint
+
       - name: Lint web
         run: pnpm --filter web lint
 

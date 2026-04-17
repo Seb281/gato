@@ -3,7 +3,6 @@ import {
   X,
   Volume2,
   Info,
-  GripVertical,
   AlertCircle,
   Plus,
   Check,

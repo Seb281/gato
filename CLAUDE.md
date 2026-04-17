@@ -43,7 +43,7 @@ Package manager is **pnpm** — never `npm` or `yarn`. The extension loads from 
 
 ## CI
 
-GitHub Actions workflow at `.github/workflows/ci.yml` runs on push to `main` and on PRs. Steps: type-check all three apps → lint web → test API + extension → build extension. Mirrors quality gate commands below.
+GitHub Actions workflow at `.github/workflows/ci.yml` runs on push to `main` and on PRs. Steps: type-check all three apps → lint all three apps → test API + extension → build extension → verify OpenAPI spec is up to date → run web E2E (Playwright). Mirrors quality gate commands below.
 
 For extension internals (entry points, content script lifecycle, translation flows, storage keys, background message handler rules), see `apps/extension/CLAUDE.md` — treat it as authoritative for anything under `apps/extension/`.
 
@@ -185,7 +185,7 @@ When adding/removing/renaming i18n keys: edit the shared file. Bump `STRINGS_VER
 
 ### Verification
 
-- **Quality gate:** `pnpm --filter api build && pnpm --filter ./apps/extension compile && pnpm --filter web compile && pnpm --filter web lint && pnpm --filter api test && pnpm --filter ./apps/extension test`
+- **Quality gate:** `pnpm --filter api build && pnpm --filter ./apps/extension compile && pnpm --filter web compile && pnpm --filter api lint && pnpm --filter ./apps/extension lint && pnpm --filter web lint && pnpm --filter api test && pnpm --filter ./apps/extension test`
 - **Build:** `pnpm build`
 - **Extension zip:** `pnpm --filter ./apps/extension zip` — verify output is self-contained (no external workspace refs in manifest or bundle)
 

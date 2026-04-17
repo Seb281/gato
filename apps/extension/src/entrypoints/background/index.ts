@@ -5,7 +5,7 @@ import handleEnrichment from "./helpers/handleEnrichment"
 import lookupConcept from "./helpers/handleLookupConcept"
 import updateConcept from "./helpers/handleUpdateConcept"
 import { getSupabaseToken, isAuthenticated, supabase } from "./helpers/supabaseAuth"
-import { fetchUserSettings, saveUserSettings, type UserSettings } from "./helpers/handleUserSettings"
+import { fetchUserSettings, saveUserSettings } from "./helpers/handleUserSettings"
 
 const BASE_URL = import.meta.env.VITE_BASE_URL
 const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD_URL
@@ -577,7 +577,7 @@ export default defineBackground(() => {
             access_token: message.access_token,
             refresh_token: message.refresh_token,
           })
-          .then(({ data: { session }, error }) => {
+          .then(({ error }) => {
             if (error) {
               sendResponse({ success: false, error: error.message })
             } else {
