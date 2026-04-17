@@ -45,6 +45,9 @@ jobs:
       - name: Test API
         run: pnpm --filter api test
 
+      - name: Test web
+        run: pnpm --filter web test
+
       - name: Verify OpenAPI spec is up to date
         run: |
           pnpm --filter api spec:generate

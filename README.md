@@ -1,6 +1,12 @@
 # Gato
 
+[![CI](https://github.com/Seb281/gato/actions/workflows/ci.yml/badge.svg)](https://github.com/Seb281/gato/actions/workflows/ci.yml)
+
 A Chrome extension for learning languages in context. Translate text on any webpage with LLM-powered, context-aware translations — then build lasting vocabulary through enrichment data, saved concepts, and spaced repetition review.
+
+## Why
+
+Built while improving my Spanish. I wanted to read El País and other target-language content without breaking flow for a dictionary lookup — and get explanations (grammar, related words, context-aware meaning) that a plain translator can't offer but LLMs are genuinely good at.
 
 ## Try It
 
@@ -58,6 +64,16 @@ graph LR
 ## Architecture Decisions
 
 Design rationale is documented in [`apps/api/adr/`](apps/api/adr/).
+
+## Engineering Practices
+
+- **Layered API** — routes → controllers → services → data → db. Dependencies flow inward; Drizzle only touched in `data/`.
+- **Typed API contract** — OpenAPI spec generated from Zod schemas, checked into the repo, CI verifies it stays in sync.
+- **CI gates every PR** — type-check, lint, unit tests (API + extension + web), Playwright E2E (web), extension build, OpenAPI drift check.
+- **ADRs** — decisions with real tradeoffs (DeepL-first vs LLM-first, adaptive enrichment, SM-2 state machine) are written down, not just committed.
+- **i18n with versioned cache** — UI strings live in `packages/shared`, translated via DeepL, cached in Postgres, versioned so updates propagate without redeploys.
+- **Spaced repetition as a state machine** — SM-2 with explicit `learning → familiar → mastered` transitions, tracked per-concept with review events.
+- **Automated dep updates** — Dependabot grouped minor/patch PRs, CI green-or-no-merge.
 
 ## Development
 
