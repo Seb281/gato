@@ -216,11 +216,10 @@ describe('POST /review/sessions', () => {
         mode: 'flashcard',
         totalItems: 10,
         correctItems: 8,
-        // accuracy missing
+        // accuracy missing — Zod validates this now, returns 400
       },
     })
 
     expect(res.statusCode).toBe(400)
-    expect(res.json().error).toMatch(/Missing required fields/i)
   })
 })

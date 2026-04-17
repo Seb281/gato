@@ -1,4 +1,5 @@
-import type { FastifyInstance, FastifyPluginOptions, FastifyRequest, FastifyReply } from 'fastify'
+import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
+import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { generateText } from 'ai'
 import { translate, enrich, enrichConceptInBackground, resolveModel } from '../controllers/translationController.ts'
 import {
@@ -12,166 +13,166 @@ import tagsData from '../data/tagsData.ts'
 import reviewData from '../data/reviewData.ts'
 import { usersData, userContextData } from '../data/usersData.ts'
 import statsData from '../data/statsData.ts'
-
-import type { SaveConceptRequest } from '@gato/shared'
-
-type ExportQuerystring = {
-  format?: 'csv' | 'json' | 'anki'
-}
-
-type ImportConceptItem = {
-  concept: string
-  translation: string
-  sourceLanguage: string
-  targetLanguage: string
-  state?: string
-  userNotes?: string | null
-}
-
-type ImportBody = {
-  concepts: ImportConceptItem[]
-}
-
-/** @see SaveConceptRequest from @gato/shared — reused as the route body type. */
-type SaveConceptBody = SaveConceptRequest
-
-type UpdateConceptBody = {
-  translation?: string
-  userNotes?: string | null
-  exampleSentence?: string | null
-  state?: string
-}
-
-type BulkDeleteBody = {
-  ids: number[]
-}
-
-type BulkUpdateBody = {
-  ids: number[]
-  state?: string
-  addTagId?: number
-  removeTagId?: number
-}
-
-type ConceptsQuerystring = {
-  search?: string
-  language?: string
-  state?: string
-  tags?: string
-  reviewStatus?: 'overdue' | 'due-today' | 'reviewed' | 'new'
-  sortBy?: 'date' | 'alpha'
-  sortOrder?: 'asc' | 'desc'
-  page?: string
-  limit?: string
-}
-
-type LookupQuerystring = {
-  concept: string
-  sourceLanguage: string
-  targetLanguage: string
-}
-
-type UserSettingsBody = {
-  targetLanguage: string | null
-  personalContext: string | null
-  customApiKey?: string | null
-  preferredProvider?: string | null
-  dailyGoal?: number
-  name?: string | null
-  theme?: string | null
-  displayLanguage?: string | null
-}
+import {
+  TranslationRequestSchema,
+  TranslationResponseSchema,
+  EnrichmentRequestSchema,
+  EnrichmentResponseSchema,
+} from '../schemas/translation.ts'
+import {
+  FeedbackBodySchema,
+  FeedbackResponseSchema,
+} from '../schemas/feedback.ts'
+import {
+  UserSettingsResponseSchema,
+  UpdateUserSettingsBodySchema,
+  UpdateUserSettingsResponseSchema,
+} from '../schemas/userSettings.ts'
+import { ErrorResponseSchema, NumericIdParamSchema } from '../schemas/common.ts'
+import {
+  SaveConceptBodySchema,
+  SaveConceptResponseSchema,
+  ConceptConflictResponseSchema,
+  ExportFormatQuerySchema,
+  ImportConceptsBodySchema,
+  ImportConceptsResponseSchema,
+  LookupQuerySchema,
+  LookupResponseSchema,
+  LanguagesResponseSchema,
+  BulkDeleteBodySchema,
+  BulkDeleteResponseSchema,
+  BulkUpdateBodySchema,
+  BulkUpdateResponseSchema,
+  ConceptsListQuerySchema,
+  ConceptsListResponseSchema,
+  ConceptDetailResponseSchema,
+  UpdateConceptBodySchema,
+  UpdateConceptResponseSchema,
+  SuggestExampleResponseSchema,
+  DeleteConceptResponseSchema,
+} from '../schemas/concept.ts'
 
 export async function extensionRoutes(
-  fastify: FastifyInstance,
-  _options: FastifyPluginOptions
+  baseApp: FastifyInstance,
+  _options: FastifyPluginOptions,
 ) {
+  const fastify = baseApp.withTypeProvider<ZodTypeProvider>()
+
   // Public endpoints - no auth required (but use auth if present)
-  fastify.post('/translation', translate)
-  fastify.post('/translation/enrich', enrich)
+  fastify.post('/translation', {
+    schema: {
+      tags: ['translation'],
+      summary: 'Translate a word or phrase (DeepL-first, LLM-fallback)',
+      body: TranslationRequestSchema,
+      response: {
+        200: TranslationResponseSchema,
+        400: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+  }, translate)
+
+  fastify.post('/translation/enrich', {
+    schema: {
+      tags: ['translation'],
+      summary: 'Enrich an already-translated word with linguistic metadata',
+      body: EnrichmentRequestSchema,
+      response: {
+        200: EnrichmentResponseSchema,
+        400: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+        503: ErrorResponseSchema,
+      },
+    },
+  }, enrich)
 
   // Protected endpoint - save a concept
-  fastify.post<{ Body: SaveConceptBody }>(
-    '/saved-concepts',
-    { preHandler: [requireAuth] },
-    async (request: FastifyRequest<{ Body: SaveConceptBody }>, reply: FastifyReply) => {
-      const userId = getAuthenticatedUserId(request)
-      if (!userId) {
-        return reply.code(401).send({ error: 'Unauthorized' })
-      }
-
-      const email = await getAuthenticatedUserEmail(request)
-      if (!email) {
-        return reply.code(401).send({ error: 'Could not get user email' })
-      }
-
-      try {
-        // Find or create user in database
-        // With Supabase, we already have the user object in the request from middleware
-        const userFromAuth = (request as any).user
-        const name = userFromAuth.user_metadata?.full_name ?? userFromAuth.user_metadata?.name
-
-        const user = await usersData.findOrCreateUser({
-          supabaseId: userId,
-          email,
-          ...(name && { name }),
-        })
-
-        const { concept, translation, sourceLanguage, targetLanguage, contextBefore, contextAfter, sourceUrl } = request.body
-
-        if (!concept || !translation || !sourceLanguage || !targetLanguage) {
-          return reply.code(400).send({
-            error: 'Missing required fields: concept, translation, sourceLanguage, targetLanguage',
-          })
-        }
-
-        const existing = await conceptsData.findExistingConcept(
-          user.id,
-          concept,
-          translation,
-          sourceLanguage,
-          targetLanguage
-        )
-
-        if (existing) {
-          return reply.code(409).send({ error: 'Concept already exists', concept: existing })
-        }
-
-        const savedConcept = await conceptsData.saveNewConcept({
-          userId: user.id,
-          concept,
-          translation,
-          sourceLanguage,
-          targetLanguage,
-          ...(contextBefore && { contextBefore }),
-          ...(contextAfter && { contextAfter }),
-          ...(sourceUrl && { sourceUrl }),
-        })
-
-        // Enrich with rich translation data in background (non-blocking)
-        const saved = savedConcept[0]
-        if (saved) {
-          enrichConceptInBackground(saved.id, concept, sourceLanguage, targetLanguage, email)
-          // Track daily activity (non-blocking)
-          statsData.updateDailyActivity(user.id, 'conceptsAdded').catch(console.error)
-        }
-
-        return reply.code(201).send({
-          message: 'Concept saved',
-          concept: saved,
-        })
-      } catch (error) {
-        request.log.error(error, 'Failed to save concept')
-        return reply.code(500).send({ error: 'Failed to save concept' })
-      }
+  fastify.post('/saved-concepts', {
+    schema: {
+      tags: ['concepts'],
+      summary: 'Save a new concept for the authenticated user',
+      security: [{ bearerAuth: [] }],
+      body: SaveConceptBodySchema,
+      response: {
+        201: SaveConceptResponseSchema,
+        401: ErrorResponseSchema,
+        409: ConceptConflictResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+    preHandler: [requireAuth],
+  }, async (request, reply) => {
+    const userId = getAuthenticatedUserId(request)
+    if (!userId) {
+      return reply.code(401).send({ error: 'Unauthorized' })
     }
-  )
 
-  // Protected endpoint - export all concepts
-  fastify.get<{ Querystring: ExportQuerystring }>(
-    '/saved-concepts/export',
-    { preHandler: [requireAuth] },
-    async (request: FastifyRequest<{ Querystring: ExportQuerystring }>, reply: FastifyReply) => {
+    const email = await getAuthenticatedUserEmail(request)
+    if (!email) {
+      return reply.code(401).send({ error: 'Could not get user email' })
+    }
+
+    try {
+      const userFromAuth = (request as any).user
+      const name = userFromAuth.user_metadata?.full_name ?? userFromAuth.user_metadata?.name
+
+      const user = await usersData.findOrCreateUser({
+        supabaseId: userId,
+        email,
+        ...(name && { name }),
+      })
+
+      const { concept, translation, sourceLanguage, targetLanguage, contextBefore, contextAfter, sourceUrl } = request.body
+
+      const existing = await conceptsData.findExistingConcept(
+        user.id,
+        concept,
+        translation,
+        sourceLanguage,
+        targetLanguage
+      )
+
+      if (existing) {
+        return reply.code(409).send({ error: 'Concept already exists', concept: existing })
+      }
+
+      const savedConcept = await conceptsData.saveNewConcept({
+        userId: user.id,
+        concept,
+        translation,
+        sourceLanguage,
+        targetLanguage,
+        ...(contextBefore && { contextBefore }),
+        ...(contextAfter && { contextAfter }),
+        ...(sourceUrl && { sourceUrl }),
+      })
+
+      const saved = savedConcept[0]
+      if (saved) {
+        enrichConceptInBackground(saved.id, concept, sourceLanguage, targetLanguage, email)
+        statsData.updateDailyActivity(user.id, 'conceptsAdded').catch(console.error)
+      }
+
+      return reply.code(201).send({
+        message: 'Concept saved',
+        concept: saved,
+      })
+    } catch (error) {
+      request.log.error(error, 'Failed to save concept')
+      return reply.code(500).send({ error: 'Failed to save concept' })
+    }
+  })
+
+  // Protected endpoint - export all concepts (csv/anki/json variants — non-JSON response bodies so no response schema)
+  fastify.get('/saved-concepts/export', {
+    schema: {
+      tags: ['concepts'],
+      summary: 'Export all concepts as csv, anki TSV, or json',
+      security: [{ bearerAuth: [] }],
+      querystring: ExportFormatQuerySchema,
+    },
+    preHandler: [requireAuth],
+  }, async (request, reply) => {
       const supabaseId = getAuthenticatedUserId(request)
       if (!supabaseId) {
         return reply.code(401).send({ error: 'Unauthorized' })
@@ -260,145 +261,161 @@ export async function extensionRoutes(
   )
 
   // Protected endpoint - import concepts
-  fastify.post<{ Body: ImportBody }>(
-    '/saved-concepts/import',
-    { preHandler: [requireAuth] },
-    async (request: FastifyRequest<{ Body: ImportBody }>, reply: FastifyReply) => {
-      const supabaseId = getAuthenticatedUserId(request)
-      if (!supabaseId) {
-        return reply.code(401).send({ error: 'Unauthorized' })
-      }
-
-      const email = await getAuthenticatedUserEmail(request)
-      if (!email) {
-        return reply.code(401).send({ error: 'Could not get user email' })
-      }
-
-      try {
-        const userFromAuth = (request as any).user
-        const name = userFromAuth.user_metadata?.full_name ?? userFromAuth.user_metadata?.name
-        const user = await usersData.findOrCreateUser({
-          supabaseId,
-          email,
-          ...(name && { name }),
-        })
-
-        const { concepts } = request.body
-        if (!Array.isArray(concepts) || concepts.length === 0) {
-          return reply.code(400).send({ error: 'No concepts provided' })
-        }
-
-        const validStates = ['new', 'learning', 'familiar', 'mastered']
-        const errors: string[] = []
-        const validConcepts: ImportConceptItem[] = []
-
-        for (let i = 0; i < concepts.length; i++) {
-          const c = concepts[i]!
-          if (!c.concept || !c.translation || !c.sourceLanguage || !c.targetLanguage) {
-            errors.push(`Row ${i + 1}: missing required fields (concept, translation, sourceLanguage, targetLanguage)`)
-            continue
-          }
-          if (c.state && !validStates.includes(c.state)) {
-            errors.push(`Row ${i + 1}: invalid state "${c.state}"`)
-            continue
-          }
-          validConcepts.push(c)
-        }
-
-        // Deduplicate against existing concepts
-        let imported = 0
-        let skipped = 0
-        const toInsert: Array<{
-          userId: number
-          concept: string
-          translation: string
-          sourceLanguage: string
-          targetLanguage: string
-          state: string
-          userNotes: string | null
-        }> = []
-
-        for (const c of validConcepts) {
-          const existing = await conceptsData.findExistingConcept(
-            user.id,
-            c.concept,
-            c.translation,
-            c.sourceLanguage,
-            c.targetLanguage
-          )
-          if (existing) {
-            skipped++
-            continue
-          }
-          toInsert.push({
-            userId: user.id,
-            concept: c.concept,
-            translation: c.translation,
-            sourceLanguage: c.sourceLanguage,
-            targetLanguage: c.targetLanguage,
-            state: c.state ?? 'new',
-            userNotes: c.userNotes ?? null,
-          })
-        }
-
-        if (toInsert.length > 0) {
-          await conceptsData.bulkInsertConcepts(toInsert)
-          imported = toInsert.length
-        }
-
-        return reply.send({
-          message: 'Import complete',
-          imported,
-          skipped,
-          errors,
-          total: concepts.length,
-        })
-      } catch (error) {
-        request.log.error(error, 'Failed to import concepts')
-        return reply.code(500).send({ error: 'Failed to import concepts' })
-      }
+  fastify.post('/saved-concepts/import', {
+    schema: {
+      tags: ['concepts'],
+      summary: 'Bulk import concepts; invalid rows surface in errors[] rather than 400',
+      security: [{ bearerAuth: [] }],
+      body: ImportConceptsBodySchema,
+      response: {
+        200: ImportConceptsResponseSchema,
+        401: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+    preHandler: [requireAuth],
+  }, async (request, reply) => {
+    const supabaseId = getAuthenticatedUserId(request)
+    if (!supabaseId) {
+      return reply.code(401).send({ error: 'Unauthorized' })
     }
-  )
+
+    const email = await getAuthenticatedUserEmail(request)
+    if (!email) {
+      return reply.code(401).send({ error: 'Could not get user email' })
+    }
+
+    try {
+      const userFromAuth = (request as any).user
+      const name = userFromAuth.user_metadata?.full_name ?? userFromAuth.user_metadata?.name
+      const user = await usersData.findOrCreateUser({
+        supabaseId,
+        email,
+        ...(name && { name }),
+      })
+
+      const { concepts } = request.body
+
+      const validStates = ['new', 'learning', 'familiar', 'mastered']
+      const errors: string[] = []
+      const validConcepts: typeof concepts = []
+
+      for (let i = 0; i < concepts.length; i++) {
+        const c = concepts[i]!
+        if (c.state && !validStates.includes(c.state)) {
+          errors.push(`Row ${i + 1}: invalid state "${c.state}"`)
+          continue
+        }
+        validConcepts.push(c)
+      }
+
+      let imported = 0
+      let skipped = 0
+      const toInsert: Array<{
+        userId: number
+        concept: string
+        translation: string
+        sourceLanguage: string
+        targetLanguage: string
+        state: string
+        userNotes: string | null
+      }> = []
+
+      for (const c of validConcepts) {
+        const existing = await conceptsData.findExistingConcept(
+          user.id,
+          c.concept,
+          c.translation,
+          c.sourceLanguage,
+          c.targetLanguage
+        )
+        if (existing) {
+          skipped++
+          continue
+        }
+        toInsert.push({
+          userId: user.id,
+          concept: c.concept,
+          translation: c.translation,
+          sourceLanguage: c.sourceLanguage,
+          targetLanguage: c.targetLanguage,
+          state: c.state ?? 'new',
+          userNotes: c.userNotes ?? null,
+        })
+      }
+
+      if (toInsert.length > 0) {
+        await conceptsData.bulkInsertConcepts(toInsert)
+        imported = toInsert.length
+      }
+
+      return reply.send({
+        message: 'Import complete',
+        imported,
+        skipped,
+        errors,
+        total: concepts.length,
+      })
+    } catch (error) {
+      request.log.error(error, 'Failed to import concepts')
+      return reply.code(500).send({ error: 'Failed to import concepts' })
+    }
+  })
 
   // Protected endpoint - lookup a concept by text (cache check)
-  fastify.get<{ Querystring: LookupQuerystring }>(
-    '/saved-concepts/lookup',
-    { preHandler: [requireAuth] },
-    async (request: FastifyRequest<{ Querystring: LookupQuerystring }>, reply: FastifyReply) => {
-      const supabaseId = getAuthenticatedUserId(request)
-      if (!supabaseId) {
-        return reply.code(401).send({ error: 'Unauthorized' })
-      }
-
-      const { concept, sourceLanguage, targetLanguage } = request.query
-      if (!concept || !sourceLanguage || !targetLanguage) {
-        return reply.code(400).send({ error: 'Missing required query params: concept, sourceLanguage, targetLanguage' })
-      }
-
-      try {
-        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-        if (!user) {
-          return reply.send({ found: false })
-        }
-
-        const found = await conceptsData.findConceptByText(user.id, concept, sourceLanguage, targetLanguage)
-
-        if (found) {
-          return reply.send({ found: true, concept: found })
-        }
-        return reply.send({ found: false })
-      } catch (error) {
-        request.log.error(error, 'Failed to look up concept')
-        return reply.code(500).send({ error: 'Failed to look up concept' })
-      }
+  fastify.get('/saved-concepts/lookup', {
+    schema: {
+      tags: ['concepts'],
+      summary: 'Check whether a concept already exists for this user (cache probe)',
+      security: [{ bearerAuth: [] }],
+      querystring: LookupQuerySchema,
+      response: {
+        200: LookupResponseSchema,
+        401: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+    preHandler: [requireAuth],
+  }, async (request, reply) => {
+    const supabaseId = getAuthenticatedUserId(request)
+    if (!supabaseId) {
+      return reply.code(401).send({ error: 'Unauthorized' })
     }
-  )
+
+    const { concept, sourceLanguage, targetLanguage } = request.query
+
+    try {
+      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+      if (!user) {
+        return reply.send({ found: false })
+      }
+
+      const found = await conceptsData.findConceptByText(user.id, concept, sourceLanguage, targetLanguage)
+
+      if (found) {
+        return reply.send({ found: true, concept: found })
+      }
+      return reply.send({ found: false })
+    } catch (error) {
+      request.log.error(error, 'Failed to look up concept')
+      return reply.code(500).send({ error: 'Failed to look up concept' })
+    }
+  })
 
   // Protected endpoint - get distinct language pairs for filter dropdown
-  fastify.get(
-    '/saved-concepts/languages',
-    { preHandler: [requireAuth] },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/saved-concepts/languages', {
+    schema: {
+      tags: ['concepts'],
+      summary: 'List distinct "src->tgt" language pairs present in the user\'s concepts',
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: LanguagesResponseSchema,
+        401: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+    preHandler: [requireAuth],
+  }, async (request, reply) => {
       const supabaseId = getAuthenticatedUserId(request)
       if (!supabaseId) {
         return reply.code(401).send({ error: 'Unauthorized' })
@@ -420,100 +437,122 @@ export async function extensionRoutes(
   )
 
   // Protected endpoint - bulk delete concepts
-  fastify.delete<{ Body: BulkDeleteBody }>(
-    '/saved-concepts/bulk',
-    { preHandler: [requireAuth] },
-    async (request: FastifyRequest<{ Body: BulkDeleteBody }>, reply: FastifyReply) => {
-      const supabaseId = getAuthenticatedUserId(request)
-      if (!supabaseId) {
-        return reply.code(401).send({ error: 'Unauthorized' })
-      }
-
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.code(401).send({ error: 'User not found' })
-      }
-
-      const { ids } = request.body
-      if (!Array.isArray(ids) || ids.length === 0) {
-        return reply.code(400).send({ error: 'ids array is required and must not be empty' })
-      }
-
-      try {
-        const deleted = await conceptsData.bulkDeleteConcepts(user.id, ids)
-        return reply.send({ message: 'Concepts deleted', deleted })
-      } catch (error) {
-        request.log.error(error, 'Failed to delete concepts')
-        return reply.code(500).send({ error: 'Failed to delete concepts' })
-      }
+  fastify.delete('/saved-concepts/bulk', {
+    schema: {
+      tags: ['concepts'],
+      summary: 'Delete multiple concepts by id',
+      security: [{ bearerAuth: [] }],
+      body: BulkDeleteBodySchema,
+      response: {
+        200: BulkDeleteResponseSchema,
+        401: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+    preHandler: [requireAuth],
+  }, async (request, reply) => {
+    const supabaseId = getAuthenticatedUserId(request)
+    if (!supabaseId) {
+      return reply.code(401).send({ error: 'Unauthorized' })
     }
-  )
+
+    const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+    if (!user) {
+      return reply.code(401).send({ error: 'User not found' })
+    }
+
+    const { ids } = request.body
+
+    try {
+      const deleted = await conceptsData.bulkDeleteConcepts(user.id, ids)
+      return reply.send({ message: 'Concepts deleted', deleted })
+    } catch (error) {
+      request.log.error(error, 'Failed to delete concepts')
+      return reply.code(500).send({ error: 'Failed to delete concepts' })
+    }
+  })
 
   // Protected endpoint - bulk update concepts (state or tags)
-  fastify.patch<{ Body: BulkUpdateBody }>(
-    '/saved-concepts/bulk',
-    { preHandler: [requireAuth] },
-    async (request: FastifyRequest<{ Body: BulkUpdateBody }>, reply: FastifyReply) => {
-      const supabaseId = getAuthenticatedUserId(request)
-      if (!supabaseId) {
-        return reply.code(401).send({ error: 'Unauthorized' })
-      }
-
-      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-      if (!user) {
-        return reply.code(401).send({ error: 'User not found' })
-      }
-
-      const { ids, state, addTagId, removeTagId } = request.body
-      if (!Array.isArray(ids) || ids.length === 0) {
-        return reply.code(400).send({ error: 'ids array is required and must not be empty' })
-      }
-
-      if (state === undefined && addTagId === undefined && removeTagId === undefined) {
-        return reply.code(400).send({ error: 'At least one action (state, addTagId, removeTagId) must be provided' })
-      }
-
-      const validStates = ['new', 'learning', 'familiar', 'mastered']
-      if (state !== undefined && !validStates.includes(state)) {
-        return reply.code(400).send({ error: `Invalid state. Must be one of: ${validStates.join(', ')}` })
-      }
-
-      try {
-        let updated = 0
-
-        if (state !== undefined) {
-          updated = await conceptsData.bulkUpdateConceptState(user.id, ids, state)
-        }
-
-        if (addTagId !== undefined) {
-          const tag = await tagsData.findTagById(addTagId, user.id)
-          if (!tag) {
-            return reply.code(404).send({ error: 'Tag not found' })
-          }
-          await tagsData.bulkAddTag(ids, addTagId, user.id)
-        }
-
-        if (removeTagId !== undefined) {
-          const tag = await tagsData.findTagById(removeTagId, user.id)
-          if (!tag) {
-            return reply.code(404).send({ error: 'Tag not found' })
-          }
-          await tagsData.bulkRemoveTag(ids, removeTagId, user.id)
-        }
-
-        return reply.send({ message: 'Concepts updated', updated })
-      } catch (error) {
-        request.log.error(error, 'Failed to update concepts')
-        return reply.code(500).send({ error: 'Failed to update concepts' })
-      }
+  fastify.patch('/saved-concepts/bulk', {
+    schema: {
+      tags: ['concepts'],
+      summary: 'Bulk-update concept state and/or tag membership',
+      security: [{ bearerAuth: [] }],
+      body: BulkUpdateBodySchema,
+      response: {
+        200: BulkUpdateResponseSchema,
+        400: ErrorResponseSchema,
+        401: ErrorResponseSchema,
+        404: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+    preHandler: [requireAuth],
+  }, async (request, reply) => {
+    const supabaseId = getAuthenticatedUserId(request)
+    if (!supabaseId) {
+      return reply.code(401).send({ error: 'Unauthorized' })
     }
-  )
+
+    const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+    if (!user) {
+      return reply.code(401).send({ error: 'User not found' })
+    }
+
+    const { ids, state, addTagId, removeTagId } = request.body
+
+    // At-least-one-action check stays in the handler — the schema permits
+    // all three action fields to be undefined so the 400 message stays
+    // meaningful instead of arriving as a generic zod validation error.
+    if (state === undefined && addTagId === undefined && removeTagId === undefined) {
+      return reply.code(400).send({ error: 'At least one action (state, addTagId, removeTagId) must be provided' })
+    }
+
+    try {
+      let updated = 0
+
+      if (state !== undefined) {
+        updated = await conceptsData.bulkUpdateConceptState(user.id, ids, state)
+      }
+
+      if (addTagId !== undefined) {
+        const tag = await tagsData.findTagById(addTagId, user.id)
+        if (!tag) {
+          return reply.code(404).send({ error: 'Tag not found' })
+        }
+        await tagsData.bulkAddTag(ids, addTagId, user.id)
+      }
+
+      if (removeTagId !== undefined) {
+        const tag = await tagsData.findTagById(removeTagId, user.id)
+        if (!tag) {
+          return reply.code(404).send({ error: 'Tag not found' })
+        }
+        await tagsData.bulkRemoveTag(ids, removeTagId, user.id)
+      }
+
+      return reply.send({ message: 'Concepts updated', updated })
+    } catch (error) {
+      request.log.error(error, 'Failed to update concepts')
+      return reply.code(500).send({ error: 'Failed to update concepts' })
+    }
+  })
 
   // Protected endpoint - get saved concepts with search/filter/sort
-  fastify.get<{ Querystring: ConceptsQuerystring }>(
-    '/saved-concepts',
-    { preHandler: [requireAuth] },
-    async (request: FastifyRequest<{ Querystring: ConceptsQuerystring }>, reply: FastifyReply) => {
+  fastify.get('/saved-concepts', {
+    schema: {
+      tags: ['concepts'],
+      summary: 'List concepts with search/filter/sort and per-row tags + nextReviewAt',
+      security: [{ bearerAuth: [] }],
+      querystring: ConceptsListQuerySchema,
+      response: {
+        200: ConceptsListResponseSchema,
+        401: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+    preHandler: [requireAuth],
+  }, async (request, reply) => {
       const email = await getAuthenticatedUserEmail(request)
       if (!email) {
         return reply.code(401).send({ error: 'Could not get user email' })
@@ -601,18 +640,25 @@ export async function extensionRoutes(
         request.log.error(error, 'Failed to retrieve concepts')
         return reply.code(500).send({ error: 'Failed to retrieve concepts' })
       }
-    }
-  )
+  })
 
   // Protected endpoint - get a single concept with tags and review schedule
-  fastify.get<{ Params: { id: string } }>(
-    '/saved-concepts/:id',
-    { preHandler: [requireAuth] },
-    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-      const conceptId = parseInt(request.params.id, 10)
-      if (isNaN(conceptId)) {
-        return reply.code(400).send({ error: 'Invalid concept ID' })
-      }
+  fastify.get('/saved-concepts/:id', {
+    schema: {
+      tags: ['concepts'],
+      summary: 'Retrieve a single concept with tags and review schedule',
+      security: [{ bearerAuth: [] }],
+      params: NumericIdParamSchema,
+      response: {
+        200: ConceptDetailResponseSchema,
+        401: ErrorResponseSchema,
+        404: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+    preHandler: [requireAuth],
+  }, async (request, reply) => {
+      const conceptId = request.params.id
 
       const supabaseId = getAuthenticatedUserId(request)
       if (!supabaseId) {
@@ -658,207 +704,244 @@ export async function extensionRoutes(
         request.log.error(error, 'Failed to retrieve concept')
         return reply.code(500).send({ error: 'Failed to retrieve concept' })
       }
-    }
-  )
+  })
 
   // Protected endpoint - update a concept (translation, notes, state)
-  fastify.patch<{ Params: { id: string }; Body: UpdateConceptBody }>(
-    '/saved-concepts/:id',
-    { preHandler: [requireAuth] },
-    async (request: FastifyRequest<{ Params: { id: string }; Body: UpdateConceptBody }>, reply: FastifyReply) => {
-      const conceptId = parseInt(request.params.id, 10)
-      if (isNaN(conceptId)) {
-        return reply.code(400).send({ error: 'Invalid concept ID' })
+  fastify.patch('/saved-concepts/:id', {
+    schema: {
+      tags: ['concepts'],
+      summary: 'Patch translation / userNotes / exampleSentence / state on a concept',
+      security: [{ bearerAuth: [] }],
+      params: NumericIdParamSchema,
+      body: UpdateConceptBodySchema,
+      response: {
+        200: UpdateConceptResponseSchema,
+        400: ErrorResponseSchema,
+        401: ErrorResponseSchema,
+        404: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+    preHandler: [requireAuth],
+  }, async (request, reply) => {
+    const conceptId = request.params.id
+
+    const supabaseId = getAuthenticatedUserId(request)
+    if (!supabaseId) {
+      return reply.code(401).send({ error: 'Unauthorized' })
+    }
+
+    const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+    if (!user) {
+      return reply.code(401).send({ error: 'User not found' })
+    }
+
+    const { translation, userNotes, exampleSentence, state } = request.body
+
+    // Build fields object with only provided values
+    const fields: Record<string, string | null> = {}
+    if (translation !== undefined) fields.translation = translation
+    if (userNotes !== undefined) fields.userNotes = userNotes ?? null
+    if (exampleSentence !== undefined) fields.exampleSentence = exampleSentence ?? null
+    if (state !== undefined) fields.state = state
+
+    // At-least-one-field check stays in the handler so the message is stable
+    // regardless of which optional field ends up present.
+    if (Object.keys(fields).length === 0) {
+      return reply.code(400).send({ error: 'At least one field must be provided' })
+    }
+
+    try {
+      const updated = await conceptsData.updateConcept(conceptId, user.id, fields)
+      if (!updated) {
+        return reply.code(404).send({ error: 'Concept not found' })
       }
 
-      const supabaseId = getAuthenticatedUserId(request)
-      if (!supabaseId) {
-        return reply.code(401).send({ error: 'Unauthorized' })
-      }
+      return reply.send({ message: 'Concept updated', concept: updated })
+    } catch (error) {
+      request.log.error(error, 'Failed to update concept')
+      return reply.code(500).send({ error: 'Failed to update concept' })
+    }
+  })
 
+  // Protected endpoint - AI-generated example sentence for a concept
+  fastify.post('/saved-concepts/:id/suggest-example', {
+    schema: {
+      tags: ['concepts'],
+      summary: 'Generate an LLM-authored example sentence for a concept',
+      security: [{ bearerAuth: [] }],
+      params: NumericIdParamSchema,
+      response: {
+        200: SuggestExampleResponseSchema,
+        401: ErrorResponseSchema,
+        404: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+    preHandler: [requireAuth],
+  }, async (request, reply) => {
+    const conceptId = request.params.id
+
+    const supabaseId = getAuthenticatedUserId(request)
+    if (!supabaseId) {
+      return reply.code(401).send({ error: 'Unauthorized' })
+    }
+
+    const email = await getAuthenticatedUserEmail(request)
+    if (!email) {
+      return reply.code(401).send({ error: 'Could not get user email' })
+    }
+
+    try {
       const user = await usersData.retrieveUserBySupabaseId(supabaseId)
       if (!user) {
         return reply.code(401).send({ error: 'User not found' })
       }
 
-      const { translation, userNotes, exampleSentence, state } = request.body
-
-      const validStates = ['new', 'learning', 'familiar', 'mastered']
-      if (state !== undefined && !validStates.includes(state)) {
-        return reply.code(400).send({ error: `Invalid state. Must be one of: ${validStates.join(', ')}` })
+      const concept = await conceptsData.findConceptById(conceptId, user.id)
+      if (!concept) {
+        return reply.code(404).send({ error: 'Concept not found' })
       }
 
-      // Build fields object with only provided values
-      const fields: Record<string, string | null> = {}
-      if (translation !== undefined) fields.translation = translation
-      if (userNotes !== undefined) fields.userNotes = userNotes
-      if (exampleSentence !== undefined) fields.exampleSentence = exampleSentence
-      if (state !== undefined) fields.state = state
+      const settings = await userContextData.retrieveUserContext(email)
+      const model = resolveModel(settings)
 
-      if (Object.keys(fields).length === 0) {
-        return reply.code(400).send({ error: 'At least one field must be provided' })
-      }
-
-      try {
-        const updated = await conceptsData.updateConcept(conceptId, user.id, fields)
-        if (!updated) {
-          return reply.code(404).send({ error: 'Concept not found' })
-        }
-
-        return reply.send({ message: 'Concept updated', concept: updated })
-      } catch (error) {
-        request.log.error(error, 'Failed to update concept')
-        return reply.code(500).send({ error: 'Failed to update concept' })
-      }
-    }
-  )
-
-  // Protected endpoint - AI-generated example sentence for a concept
-  fastify.post<{ Params: { id: string } }>(
-    '/saved-concepts/:id/suggest-example',
-    { preHandler: [requireAuth] },
-    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-      const conceptId = parseInt(request.params.id, 10)
-      if (isNaN(conceptId)) {
-        return reply.code(400).send({ error: 'Invalid concept ID' })
-      }
-
-      const supabaseId = getAuthenticatedUserId(request)
-      if (!supabaseId) {
-        return reply.code(401).send({ error: 'Unauthorized' })
-      }
-
-      const email = await getAuthenticatedUserEmail(request)
-      if (!email) {
-        return reply.code(401).send({ error: 'Could not get user email' })
-      }
-
-      try {
-        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-        if (!user) {
-          return reply.code(401).send({ error: 'User not found' })
-        }
-
-        const concept = await conceptsData.findConceptById(conceptId, user.id)
-        if (!concept) {
-          return reply.code(404).send({ error: 'Concept not found' })
-        }
-
-        const settings = await userContextData.retrieveUserContext(email)
-        const model = resolveModel(settings)
-
-        const prompt = `Generate a natural, everyday example sentence using the word/phrase "${concept.concept}" (${concept.sourceLanguage}).
+      const prompt = `Generate a natural, everyday example sentence using the word/phrase "${concept.concept}" (${concept.sourceLanguage}).
 Include the translation in ${concept.targetLanguage}.
 Format your response as JSON: { "exampleSentence": "<sentence in ${concept.sourceLanguage}> — <translation in ${concept.targetLanguage}>" }
 Keep it simple and practical. Only return the JSON, nothing else.`
 
-        const { text } = await generateText({ model, prompt, temperature: 0.7 })
+      const { text } = await generateText({ model, prompt, temperature: 0.7 })
 
-        let exampleSentence: string
-        try {
-          const parsed = JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim())
-          exampleSentence = parsed.exampleSentence
-        } catch {
-          exampleSentence = text.trim()
-        }
-
-        return reply.send({ exampleSentence })
-      } catch (error) {
-        request.log.error(error, 'Failed to generate example sentence')
-        return reply.code(500).send({ error: 'Failed to generate example sentence' })
+      let exampleSentence: string
+      try {
+        const parsed = JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim())
+        exampleSentence = parsed.exampleSentence
+      } catch {
+        exampleSentence = text.trim()
       }
+
+      return reply.send({ exampleSentence })
+    } catch (error) {
+      request.log.error(error, 'Failed to generate example sentence')
+      return reply.code(500).send({ error: 'Failed to generate example sentence' })
     }
-  )
+  })
 
   // Protected endpoint - delete a concept
-  fastify.delete<{ Params: { id: string } }>(
-    '/saved-concepts/:id',
-    { preHandler: [requireAuth] },
-    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-      const conceptId = parseInt(request.params.id, 10)
+  fastify.delete('/saved-concepts/:id', {
+    schema: {
+      tags: ['concepts'],
+      summary: 'Delete a concept by id',
+      security: [{ bearerAuth: [] }],
+      params: NumericIdParamSchema,
+      response: {
+        200: DeleteConceptResponseSchema,
+        401: ErrorResponseSchema,
+        404: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+    preHandler: [requireAuth],
+  }, async (request, reply) => {
+    const conceptId = request.params.id
 
-      if (isNaN(conceptId)) {
-        return reply.code(400).send({ error: 'Invalid concept ID' })
-      }
-
-      const supabaseId = getAuthenticatedUserId(request)
-      if (!supabaseId) {
-        return reply.code(401).send({ error: 'Unauthorized' })
-      }
-
-      try {
-        const user = await usersData.retrieveUserBySupabaseId(supabaseId)
-        if (!user) {
-          return reply.code(401).send({ error: 'User not found' })
-        }
-
-        const deletedConcept = await conceptsData.deleteConcept(conceptId, user.id)
-
-        if (deletedConcept.length === 0) {
-          return reply.code(404).send({ error: 'Concept not found' })
-        }
-
-        return reply.send({
-          message: 'Concept deleted',
-          concept: deletedConcept[0],
-        })
-      } catch (error) {
-        request.log.error(error, 'Failed to delete concept')
-        return reply.code(500).send({ error: 'Failed to delete concept' })
-      }
+    const supabaseId = getAuthenticatedUserId(request)
+    if (!supabaseId) {
+      return reply.code(401).send({ error: 'Unauthorized' })
     }
-  )
+
+    try {
+      const user = await usersData.retrieveUserBySupabaseId(supabaseId)
+      if (!user) {
+        return reply.code(401).send({ error: 'User not found' })
+      }
+
+      const deletedConcept = await conceptsData.deleteConcept(conceptId, user.id)
+
+      if (deletedConcept.length === 0) {
+        return reply.code(404).send({ error: 'Concept not found' })
+      }
+
+      return reply.send({
+        message: 'Concept deleted',
+        concept: deletedConcept[0],
+      })
+    } catch (error) {
+      request.log.error(error, 'Failed to delete concept')
+      return reply.code(500).send({ error: 'Failed to delete concept' })
+    }
+  })
 
   // Protected endpoint - get user settings
-  fastify.get(
-    '/user/settings',
-    { preHandler: [requireAuth] },
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      const email = await getAuthenticatedUserEmail(request)
-      if (!email) {
-        return reply.code(401).send({ error: 'Could not get user email' })
-      }
-
-      try {
-        const supabaseId = getAuthenticatedUserId(request)
-        const user = supabaseId ? await usersData.retrieveUserBySupabaseId(supabaseId) : null
-        const settings = await userContextData.retrieveUserContext(email)
-
-        // Mask API key for security
-        let maskedKey = null
-        if (settings.customApiKey) {
-          const key = settings.customApiKey
-          if (key.length > 8) {
-            maskedKey = `${key.slice(0, 3)}...${key.slice(-4)}`
-          } else {
-            maskedKey = '***'
-          }
-        }
-
-        return reply.send({
-          name: user?.name ?? null,
-          targetLanguage: settings.targetLanguage,
-          personalContext: settings.context,
-          preferredProvider: settings.preferredProvider,
-          maskedApiKey: maskedKey,
-          hasCustomApiKey: !!settings.customApiKey,
-          dailyGoal: user?.dailyGoal ?? 10,
-          theme: user?.theme ?? 'system',
-          displayLanguage: user?.displayLanguage ?? 'English',
-          streakFreezes: user?.streakFreezes ?? 0,
-        })
-      } catch (error) {
-        request.log.error(error, 'Failed to retrieve settings')
-        return reply.code(500).send({ error: 'Failed to retrieve settings' })
-      }
+  fastify.get('/user/settings', {
+    schema: {
+      tags: ['user'],
+      summary: 'Get current user settings',
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: UserSettingsResponseSchema,
+        401: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+    preHandler: [requireAuth],
+  }, async (request, reply) => {
+    const email = await getAuthenticatedUserEmail(request)
+    if (!email) {
+      return reply.code(401).send({ error: 'Could not get user email' })
     }
-  )
+
+    try {
+      const supabaseId = getAuthenticatedUserId(request)
+      const user = supabaseId ? await usersData.retrieveUserBySupabaseId(supabaseId) : null
+      const settings = await userContextData.retrieveUserContext(email)
+
+      // Mask API key for security
+      let maskedKey = null
+      if (settings.customApiKey) {
+        const key = settings.customApiKey
+        if (key.length > 8) {
+          maskedKey = `${key.slice(0, 3)}...${key.slice(-4)}`
+        } else {
+          maskedKey = '***'
+        }
+      }
+
+      return reply.send({
+        name: user?.name ?? null,
+        targetLanguage: settings.targetLanguage,
+        personalContext: settings.context,
+        preferredProvider: settings.preferredProvider,
+        maskedApiKey: maskedKey,
+        hasCustomApiKey: !!settings.customApiKey,
+        dailyGoal: user?.dailyGoal ?? 10,
+        theme: user?.theme ?? 'system',
+        displayLanguage: user?.displayLanguage ?? 'English',
+        streakFreezes: user?.streakFreezes ?? 0,
+      })
+    } catch (error) {
+      request.log.error(error, 'Failed to retrieve settings')
+      return reply.code(500).send({ error: 'Failed to retrieve settings' })
+    }
+  })
 
   // Protected endpoint - update user settings
-  fastify.put<{ Body: UserSettingsBody }>(
-    '/user/settings',
-    { preHandler: [requireAuth] },
-    async (request: FastifyRequest<{ Body: UserSettingsBody }>, reply: FastifyReply) => {
+  fastify.put('/user/settings', {
+    schema: {
+      tags: ['user'],
+      summary: 'Update user settings (including optional BYOK)',
+      security: [{ bearerAuth: [] }],
+      body: UpdateUserSettingsBodySchema,
+      response: {
+        200: UpdateUserSettingsResponseSchema,
+        400: ErrorResponseSchema,
+        401: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+    preHandler: [requireAuth],
+  }, async (request, reply) => {
       const userId = getAuthenticatedUserId(request)
       if (!userId) {
         return reply.code(401).send({ error: 'Unauthorized' })
@@ -879,13 +962,6 @@ Keep it simple and practical. Only return the JSON, nothing else.`
       })
 
       const { targetLanguage, personalContext, customApiKey, preferredProvider, dailyGoal, name: newName, theme: newTheme, displayLanguage: newDisplayLanguage } = request.body
-
-      // Validate dailyGoal if provided
-      if (dailyGoal !== undefined) {
-        if (!Number.isInteger(dailyGoal) || dailyGoal < 1 || dailyGoal > 100) {
-          return reply.code(400).send({ error: 'dailyGoal must be an integer between 1 and 100' })
-        }
-      }
 
       try {
         const currentSettings = await userContextData.retrieveUserContext(email)
@@ -968,10 +1044,19 @@ Keep it simple and practical. Only return the JSON, nothing else.`
   )
 
   // POST /feedback — submit feedback (authenticated or anonymous)
-  fastify.post<{ Body: { category: string; message: string; email?: string; website?: string } }>(
-    '/feedback',
-    { preHandler: [optionalAuth] },
-    async (request: FastifyRequest<{ Body: { category: string; message: string; email?: string; website?: string } }>, reply: FastifyReply) => {
+  fastify.post('/feedback', {
+    schema: {
+      tags: ['user'],
+      summary: 'Submit feedback (unauthenticated OK)',
+      body: FeedbackBodySchema,
+      response: {
+        200: FeedbackResponseSchema,
+        400: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+    preHandler: [optionalAuth],
+  }, async (request, reply) => {
       const { category, message, email: bodyEmail, website } = request.body
 
       // Honeypot — bots fill hidden fields, humans don't
@@ -983,6 +1068,8 @@ Keep it simple and practical. Only return the JSON, nothing else.`
         return reply.code(400).send({ error: 'category and message are required' })
       }
 
+      // Length cap (zod already enforces max(2000), but handler keeps its
+      // own check for defensive clarity — same 400 response code.)
       if (message.trim().length > 2000) {
         return reply.code(400).send({ error: 'message must be 2000 characters or less' })
       }

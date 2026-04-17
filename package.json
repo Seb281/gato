@@ -17,5 +17,10 @@
   "packageManager": "pnpm@10.21.0",
   "devDependencies": {
     "turbo": "^2.7.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "@fastify/static": "9.1.0"
+    }
   }
 }

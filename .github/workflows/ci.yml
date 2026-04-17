@@ -39,6 +39,15 @@ jobs:
       - name: Test API
         run: pnpm --filter api test
 
+      - name: Verify OpenAPI spec is up to date
+        run: |
+          pnpm --filter api spec:generate
+          if ! git diff --exit-code apps/api/openapi.json; then
+            echo "::error::openapi.json is out of date."
+            echo "Run 'pnpm --filter api spec:generate' and commit the result."
+            exit 1
+          fi
+
       - name: Test extension
         run: pnpm --filter ./apps/extension test
 

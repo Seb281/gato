@@ -4,6 +4,13 @@ import rateLimit from '@fastify/rate-limit'
 import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import {
+  serializerCompiler,
+  validatorCompiler,
+  type ZodTypeProvider,
+} from 'fastify-type-provider-zod'
+import { registerSwagger } from './plugins/swagger.ts'
+import { registerResponseValidation } from './plugins/responseValidation.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(__dirname, '../.env') })
@@ -18,16 +25,20 @@ import { suggestionsRoutes } from './routes/suggestions.ts'
 
 const PORT = parseInt(process.env.PORT || '3001', 10)
 
-/**
- * Builds a fully-configured Fastify instance without calling `listen`.
- *
- * Used both by `startServer()` for production and by integration tests that
- * invoke routes via `app.inject()`. Keep this pure — no network side effects.
- *
- * Pass `{ logger: false }` (via `opts`) from tests to keep output quiet.
- */
 export async function buildApp(opts?: { logger?: boolean }): Promise<FastifyInstance> {
-  const app = Fastify({ logger: opts?.logger ?? true })
+  const app = Fastify({ logger: opts?.logger ?? true }).withTypeProvider<ZodTypeProvider>()
+
+  // Request-body/query/params validation via zod schemas on route options.
+  app.setValidatorCompiler(validatorCompiler)
+
+  // Pass-through serializer — DO NOT use fastify-type-provider-zod's serializerCompiler here.
+  // We intentionally skip response validation via the serializer so response-shape drift
+  // never 500s a live request. Response validation is performed warn-only by the onSend
+  // hook registered in plugins/responseValidation.ts.
+  app.setSerializerCompiler(() => (data) => JSON.stringify(data))
+
+  await registerSwagger(app)
+  registerResponseValidation(app)
 
   const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
     .split(',')

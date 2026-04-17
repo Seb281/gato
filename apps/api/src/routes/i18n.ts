@@ -1,4 +1,5 @@
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
+import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { generateText } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { eq, and } from 'drizzle-orm'
@@ -8,22 +9,36 @@ import { UI_STRINGS } from '@gato/shared'
 import { MODELS } from '../config/models.ts'
 import { batchTranslateWithDeepL, isDeepLConfigured } from '../services/deeplService.ts'
 import { resolveDeepLTarget } from '../utils/languageCodes.ts'
+import {
+  TranslationsQuerySchema,
+  TranslationsResponseSchema,
+} from '../schemas/i18n.ts'
+import { ErrorResponseSchema } from '../schemas/common.ts'
 
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY!,
 })
 
-export async function i18nRoutes(app: FastifyInstance) {
-  app.get<{
-    Querystring: { language: string; version: string }
-  }>('/i18n/translations', async (request, reply) => {
+export async function i18nRoutes(
+  baseApp: FastifyInstance,
+  _options: FastifyPluginOptions,
+) {
+  const fastify = baseApp.withTypeProvider<ZodTypeProvider>()
+
+  fastify.get('/i18n/translations', {
+    schema: {
+      tags: ['i18n'],
+      summary: 'Retrieve cached UI string translations for a language',
+      querystring: TranslationsQuerySchema,
+      response: {
+        200: TranslationsResponseSchema,
+        400: ErrorResponseSchema,
+        500: ErrorResponseSchema,
+      },
+    },
+  }, async (request, reply) => {
     const { language, version } = request.query
 
-    if (!language || !version) {
-      return reply.status(400).send({ error: 'Missing language or version' })
-    }
-
-    // Validate language against known set
     const SUPPORTED_LANGUAGES = [
       'English', 'Spanish', 'French', 'German', 'Italian', 'Portuguese',
       'Russian', 'Japanese', 'Chinese', 'Korean', 'Arabic', 'Hindi',
@@ -47,8 +62,8 @@ export async function i18nRoutes(app: FastifyInstance) {
       .where(
         and(
           eq(uiTranslationsTable.language, language),
-          eq(uiTranslationsTable.version, version)
-        )
+          eq(uiTranslationsTable.version, version),
+        ),
       )
       .limit(1)
 
@@ -77,7 +92,6 @@ export async function i18nRoutes(app: FastifyInstance) {
         )
         translations = Object.fromEntries(keys.map((k, i) => [k, restored[i] ?? '']))
       } else {
-        // Fallback to LLM
         const prompt = `You are a professional translator. Translate the following JSON object of UI strings from English to ${language}.
 
 Rules:

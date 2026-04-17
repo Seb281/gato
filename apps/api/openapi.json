@@ -1,0 +1,7270 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Gato API",
+    "version": "1.0.0",
+    "description": "Translation, vocabulary, and spaced-repetition API powering the Gato Chrome extension and web dashboard."
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "TranslationRequestInput": {
+        "type": "object",
+        "properties": {
+          "selection": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "personalContext": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "type": "string"
+          },
+          "contextAfter": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetLanguage"
+        ]
+      },
+      "RelatedWordInput": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "relation": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "word",
+          "translation",
+          "relation"
+        ]
+      },
+      "TranslationResponseInput": {
+        "type": "object",
+        "properties": {
+          "contextualTranslation": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "deepl",
+              "llm"
+            ]
+          },
+          "phoneticApproximation": {
+            "type": "string"
+          },
+          "fixedExpression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "type": "string"
+          },
+          "grammarRules": {
+            "type": "string"
+          },
+          "commonness": {
+            "type": "string"
+          },
+          "relatedWords": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelatedWordInput"
+            }
+          }
+        },
+        "required": [
+          "contextualTranslation",
+          "language",
+          "provider"
+        ]
+      },
+      "EnrichmentRequestInput": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "translation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "personalContext": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "type": "string"
+          },
+          "contextAfter": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "translation",
+          "targetLanguage"
+        ]
+      },
+      "EnrichmentResponseInput": {
+        "type": "object",
+        "properties": {
+          "phoneticApproximation": {
+            "type": "string"
+          },
+          "fixedExpression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "type": "string"
+          },
+          "grammarRules": {
+            "type": "string"
+          },
+          "commonness": {
+            "type": "string"
+          },
+          "relatedWords": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelatedWordInput"
+            }
+          }
+        }
+      },
+      "FeedbackBodyInput": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "website": {
+            "type": "string"
+          }
+        }
+      },
+      "UserSettingsInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "targetLanguage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "personalContext": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "preferredProvider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maskedApiKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hasCustomApiKey": {
+            "type": "boolean"
+          },
+          "dailyGoal": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "displayLanguage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "streakFreezes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "name",
+          "targetLanguage",
+          "personalContext",
+          "preferredProvider",
+          "maskedApiKey",
+          "hasCustomApiKey",
+          "dailyGoal",
+          "theme",
+          "displayLanguage",
+          "streakFreezes"
+        ]
+      },
+      "UpdateUserSettingsBodyInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "targetLanguage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "personalContext": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "customApiKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "preferredProvider": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "google",
+                  "openai",
+                  "anthropic",
+                  "mistral"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dailyGoal": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "displayLanguage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "ErrorResponseInput": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "PositiveIntQueryInput": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 500
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "page": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "TagInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "userId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "name",
+          "color",
+          "createdAt"
+        ]
+      },
+      "CreateTagBodyInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateTagBodyInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "AssignTagBodyInput": {
+        "type": "object",
+        "properties": {
+          "tagId": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "tagId"
+        ]
+      },
+      "ReviewScheduleInput": {
+        "type": "object",
+        "properties": {
+          "easeFactor": {
+            "type": "number"
+          },
+          "interval": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "repetitions": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "nextReviewAt": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastReviewedAt": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "totalReviews": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "correctReviews": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "easeFactor",
+          "interval",
+          "repetitions",
+          "nextReviewAt",
+          "lastReviewedAt",
+          "totalReviews",
+          "correctReviews"
+        ]
+      },
+      "ConceptInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "userId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "concept": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "targetLanguage": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contextAfter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "userNotes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exampleSentence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phoneticApproximation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grammarRules": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonness": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fixedExpression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relatedWords": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            ]
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "concept",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage",
+          "state",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ConceptWithScheduleInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "userId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "concept": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "targetLanguage": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contextAfter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "userNotes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exampleSentence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phoneticApproximation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grammarRules": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonness": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fixedExpression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relatedWords": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            ]
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            ]
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/ReviewScheduleInput"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "concept",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage",
+          "state",
+          "createdAt",
+          "updatedAt",
+          "schedule"
+        ]
+      },
+      "SaveConceptBodyInput": {
+        "type": "object",
+        "properties": {
+          "concept": {
+            "type": "string",
+            "minLength": 1
+          },
+          "translation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contextBefore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contextAfter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "concept",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage"
+        ]
+      },
+      "ImportConceptItemInput": {
+        "type": "object",
+        "properties": {
+          "concept": {
+            "type": "string",
+            "minLength": 1
+          },
+          "translation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "state": {
+            "type": "string"
+          },
+          "userNotes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "concept",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage"
+        ]
+      },
+      "ImportConceptsBodyInput": {
+        "type": "object",
+        "properties": {
+          "concepts": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportConceptItemInput"
+            }
+          }
+        },
+        "required": [
+          "concepts"
+        ]
+      },
+      "BulkDeleteBodyInput": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      },
+      "BulkUpdateBodyInput": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "new",
+              "learning",
+              "familiar",
+              "mastered"
+            ]
+          },
+          "addTagId": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "removeTagId": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      },
+      "ConceptWithTagsInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "userId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "concept": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "targetLanguage": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contextAfter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "userNotes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exampleSentence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phoneticApproximation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grammarRules": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonness": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fixedExpression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relatedWords": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            ]
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagInput"
+            }
+          },
+          "nextReviewAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "concept",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage",
+          "state",
+          "createdAt",
+          "updatedAt",
+          "tags",
+          "nextReviewAt"
+        ]
+      },
+      "ConceptDetailInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "userId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "concept": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "targetLanguage": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contextAfter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "userNotes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exampleSentence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phoneticApproximation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grammarRules": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonness": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fixedExpression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relatedWords": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            ]
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagInput"
+            }
+          },
+          "schedule": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewScheduleInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "concept",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage",
+          "state",
+          "createdAt",
+          "updatedAt",
+          "tags",
+          "schedule"
+        ]
+      },
+      "UpdateConceptBodyInput": {
+        "type": "object",
+        "properties": {
+          "translation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "userNotes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exampleSentence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "new",
+              "learning",
+              "familiar",
+              "mastered"
+            ]
+          }
+        }
+      },
+      "ReviewRatingInput": {
+        "type": "string",
+        "enum": [
+          "again",
+          "hard",
+          "good",
+          "easy"
+        ]
+      },
+      "ReviewResultBodyInput": {
+        "type": "object",
+        "properties": {
+          "quality": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 5
+              },
+              {
+                "$ref": "#/components/schemas/ReviewRatingInput"
+              }
+            ]
+          }
+        },
+        "required": [
+          "quality"
+        ]
+      },
+      "ReviewResultResponseInput": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "nextReviewAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            ]
+          },
+          "interval": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "conceptState": {
+            "type": "string",
+            "enum": [
+              "new",
+              "learning",
+              "familiar",
+              "mastered"
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "nextReviewAt",
+          "interval",
+          "conceptState"
+        ]
+      },
+      "ReviewHistoryEntryInput": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            ]
+          },
+          "rating": {
+            "$ref": "#/components/schemas/ReviewRatingInput"
+          },
+          "correct": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "date",
+          "rating",
+          "correct"
+        ]
+      },
+      "ReviewStatsInput": {
+        "type": "object",
+        "properties": {
+          "totalReviewed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "dueNow": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "avgAccuracy": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "totalReviewed",
+          "dueNow",
+          "avgAccuracy"
+        ]
+      },
+      "FlashcardQuestionInput": {
+        "type": "object",
+        "properties": {
+          "conceptId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "concept": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "targetLanguage": {
+            "type": "string"
+          },
+          "phoneticApproximation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/ReviewScheduleInput"
+          }
+        },
+        "required": [
+          "conceptId",
+          "concept",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage",
+          "schedule"
+        ]
+      },
+      "MultipleChoiceQuestionInput": {
+        "type": "object",
+        "properties": {
+          "conceptId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "concept": {
+            "type": "string"
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "targetLanguage": {
+            "type": "string"
+          },
+          "phoneticApproximation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "correctAnswer": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/ReviewScheduleInput"
+          }
+        },
+        "required": [
+          "conceptId",
+          "concept",
+          "sourceLanguage",
+          "targetLanguage",
+          "correctAnswer",
+          "options",
+          "schedule"
+        ]
+      },
+      "ContextualRecallQuestionInput": {
+        "type": "object",
+        "properties": {
+          "conceptId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "concept": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contextAfter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "targetLanguage": {
+            "type": "string"
+          },
+          "phoneticApproximation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/ReviewScheduleInput"
+          }
+        },
+        "required": [
+          "conceptId",
+          "concept",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage",
+          "schedule"
+        ]
+      },
+      "ReviewSessionBodyInput": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "minLength": 1
+          },
+          "totalItems": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "correctItems": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "accuracy": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "durationSeconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "mode",
+          "totalItems",
+          "correctItems",
+          "accuracy"
+        ]
+      },
+      "ReviewSessionInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "userId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "mode": {
+            "type": "string"
+          },
+          "totalItems": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "correctItems": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "accuracy": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "durationSeconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "completedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "mode",
+          "totalItems",
+          "correctItems",
+          "accuracy",
+          "durationSeconds",
+          "completedAt"
+        ]
+      },
+      "OverviewStatsInput": {
+        "type": "object",
+        "properties": {
+          "totalConcepts": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "currentStreak": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "longestStreak": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "avgAccuracy": {
+            "type": "number"
+          },
+          "conceptsByState": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          "streakFreezes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "freezesUsed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "dailyGoal": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "todayReviews": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "todayGoalMet": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "totalConcepts",
+          "currentStreak",
+          "longestStreak",
+          "avgAccuracy",
+          "conceptsByState",
+          "streakFreezes",
+          "freezesUsed",
+          "dailyGoal",
+          "todayReviews",
+          "todayGoalMet"
+        ]
+      },
+      "DailyActivityInput": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "reviewsCompleted": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "correctReviews": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "conceptsAdded": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "date",
+          "reviewsCompleted",
+          "correctReviews",
+          "conceptsAdded"
+        ]
+      },
+      "SentenceBuilderGenerateBodyInput": {
+        "type": "object",
+        "properties": {
+          "conceptId": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "conceptId"
+        ]
+      },
+      "SentenceBuilderChallengeInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nativeSentence": {
+            "type": "string"
+          },
+          "tiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "nativeSentence",
+          "tiles"
+        ]
+      },
+      "SentenceBuilderValidateBodyInput": {
+        "type": "object",
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ordering": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "challengeId",
+          "ordering"
+        ]
+      },
+      "WordOfTheDayInput": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "targetLanguage": {
+            "type": "string"
+          },
+          "rationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exampleSentence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "date": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "word",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage",
+          "rationale",
+          "exampleSentence",
+          "date"
+        ]
+      },
+      "RelatedSuggestionInput": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "exampleSentence": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "word",
+          "translation",
+          "rationale",
+          "exampleSentence"
+        ]
+      },
+      "TranslationRequest": {
+        "type": "object",
+        "properties": {
+          "selection": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "personalContext": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "type": "string"
+          },
+          "contextAfter": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetLanguage"
+        ],
+        "additionalProperties": false
+      },
+      "RelatedWord": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "relation": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "word",
+          "translation",
+          "relation"
+        ],
+        "additionalProperties": false
+      },
+      "TranslationResponse": {
+        "type": "object",
+        "properties": {
+          "contextualTranslation": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "deepl",
+              "llm"
+            ]
+          },
+          "phoneticApproximation": {
+            "type": "string"
+          },
+          "fixedExpression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "type": "string"
+          },
+          "grammarRules": {
+            "type": "string"
+          },
+          "commonness": {
+            "type": "string"
+          },
+          "relatedWords": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelatedWord"
+            }
+          }
+        },
+        "required": [
+          "contextualTranslation",
+          "language",
+          "provider"
+        ],
+        "additionalProperties": false
+      },
+      "EnrichmentRequest": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "translation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "personalContext": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "type": "string"
+          },
+          "contextAfter": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "translation",
+          "targetLanguage"
+        ],
+        "additionalProperties": false
+      },
+      "EnrichmentResponse": {
+        "type": "object",
+        "properties": {
+          "phoneticApproximation": {
+            "type": "string"
+          },
+          "fixedExpression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "type": "string"
+          },
+          "grammarRules": {
+            "type": "string"
+          },
+          "commonness": {
+            "type": "string"
+          },
+          "relatedWords": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelatedWord"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "FeedbackBody": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "website": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UserSettings": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "targetLanguage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "personalContext": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "preferredProvider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maskedApiKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hasCustomApiKey": {
+            "type": "boolean"
+          },
+          "dailyGoal": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "displayLanguage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "streakFreezes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "name",
+          "targetLanguage",
+          "personalContext",
+          "preferredProvider",
+          "maskedApiKey",
+          "hasCustomApiKey",
+          "dailyGoal",
+          "theme",
+          "displayLanguage",
+          "streakFreezes"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateUserSettingsBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "targetLanguage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "personalContext": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "customApiKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "preferredProvider": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "google",
+                  "openai",
+                  "anthropic",
+                  "mistral"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dailyGoal": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "displayLanguage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "PositiveIntQuery": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 500
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "page": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "additionalProperties": false
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "userId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "string",
+                "format": "date-time"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "name",
+          "color",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "CreateTagBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateTagBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssignTagBody": {
+        "type": "object",
+        "properties": {
+          "tagId": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "tagId"
+        ],
+        "additionalProperties": false
+      },
+      "ReviewSchedule": {
+        "type": "object",
+        "properties": {
+          "easeFactor": {
+            "type": "number"
+          },
+          "interval": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "repetitions": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "nextReviewAt": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                  },
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastReviewedAt": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                  },
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "totalReviews": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "correctReviews": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "easeFactor",
+          "interval",
+          "repetitions",
+          "nextReviewAt",
+          "lastReviewedAt",
+          "totalReviews",
+          "correctReviews"
+        ],
+        "additionalProperties": false
+      },
+      "Concept": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "userId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "concept": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "targetLanguage": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contextAfter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "userNotes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exampleSentence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phoneticApproximation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grammarRules": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonness": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fixedExpression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relatedWords": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "string",
+                "format": "date-time"
+              }
+            ]
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "string",
+                "format": "date-time"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "concept",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage",
+          "state",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "ConceptWithSchedule": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "userId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "concept": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "targetLanguage": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contextAfter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "userNotes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exampleSentence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phoneticApproximation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grammarRules": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonness": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fixedExpression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relatedWords": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "string",
+                "format": "date-time"
+              }
+            ]
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "string",
+                "format": "date-time"
+              }
+            ]
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/ReviewSchedule"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "concept",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage",
+          "state",
+          "createdAt",
+          "updatedAt",
+          "schedule"
+        ],
+        "additionalProperties": false
+      },
+      "SaveConceptBody": {
+        "type": "object",
+        "properties": {
+          "concept": {
+            "type": "string",
+            "minLength": 1
+          },
+          "translation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contextBefore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contextAfter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "concept",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage"
+        ],
+        "additionalProperties": false
+      },
+      "ImportConceptItem": {
+        "type": "object",
+        "properties": {
+          "concept": {
+            "type": "string",
+            "minLength": 1
+          },
+          "translation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetLanguage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "state": {
+            "type": "string"
+          },
+          "userNotes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "concept",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage"
+        ],
+        "additionalProperties": false
+      },
+      "ImportConceptsBody": {
+        "type": "object",
+        "properties": {
+          "concepts": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportConceptItem"
+            }
+          }
+        },
+        "required": [
+          "concepts"
+        ],
+        "additionalProperties": false
+      },
+      "BulkDeleteBody": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "additionalProperties": false
+      },
+      "BulkUpdateBody": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "new",
+              "learning",
+              "familiar",
+              "mastered"
+            ]
+          },
+          "addTagId": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "removeTagId": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "additionalProperties": false
+      },
+      "ConceptWithTags": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "userId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "concept": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "targetLanguage": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contextAfter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "userNotes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exampleSentence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phoneticApproximation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grammarRules": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonness": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fixedExpression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relatedWords": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "string",
+                "format": "date-time"
+              }
+            ]
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "string",
+                "format": "date-time"
+              }
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tag"
+            }
+          },
+          "nextReviewAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "concept",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage",
+          "state",
+          "createdAt",
+          "updatedAt",
+          "tags",
+          "nextReviewAt"
+        ],
+        "additionalProperties": false
+      },
+      "ConceptDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "userId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "concept": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "targetLanguage": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contextAfter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "userNotes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exampleSentence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phoneticApproximation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grammarRules": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonness": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fixedExpression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relatedWords": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "string",
+                "format": "date-time"
+              }
+            ]
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "string",
+                "format": "date-time"
+              }
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tag"
+            }
+          },
+          "schedule": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewSchedule"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "concept",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage",
+          "state",
+          "createdAt",
+          "updatedAt",
+          "tags",
+          "schedule"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateConceptBody": {
+        "type": "object",
+        "properties": {
+          "translation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "userNotes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exampleSentence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "new",
+              "learning",
+              "familiar",
+              "mastered"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReviewRating": {
+        "type": "string",
+        "enum": [
+          "again",
+          "hard",
+          "good",
+          "easy"
+        ]
+      },
+      "ReviewResultBody": {
+        "type": "object",
+        "properties": {
+          "quality": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 5
+              },
+              {
+                "$ref": "#/components/schemas/ReviewRating"
+              }
+            ]
+          }
+        },
+        "required": [
+          "quality"
+        ],
+        "additionalProperties": false
+      },
+      "ReviewResultResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "nextReviewAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "string",
+                "format": "date-time"
+              }
+            ]
+          },
+          "interval": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "conceptState": {
+            "type": "string",
+            "enum": [
+              "new",
+              "learning",
+              "familiar",
+              "mastered"
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "nextReviewAt",
+          "interval",
+          "conceptState"
+        ],
+        "additionalProperties": false
+      },
+      "ReviewHistoryEntry": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "string",
+                "format": "date-time"
+              }
+            ]
+          },
+          "rating": {
+            "$ref": "#/components/schemas/ReviewRating"
+          },
+          "correct": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "date",
+          "rating",
+          "correct"
+        ],
+        "additionalProperties": false
+      },
+      "ReviewStats": {
+        "type": "object",
+        "properties": {
+          "totalReviewed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "dueNow": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "avgAccuracy": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "totalReviewed",
+          "dueNow",
+          "avgAccuracy"
+        ],
+        "additionalProperties": false
+      },
+      "FlashcardQuestion": {
+        "type": "object",
+        "properties": {
+          "conceptId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "concept": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "targetLanguage": {
+            "type": "string"
+          },
+          "phoneticApproximation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commonUsage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/ReviewSchedule"
+          }
+        },
+        "required": [
+          "conceptId",
+          "concept",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage",
+          "schedule"
+        ],
+        "additionalProperties": false
+      },
+      "MultipleChoiceQuestion": {
+        "type": "object",
+        "properties": {
+          "conceptId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "concept": {
+            "type": "string"
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "targetLanguage": {
+            "type": "string"
+          },
+          "phoneticApproximation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "correctAnswer": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/ReviewSchedule"
+          }
+        },
+        "required": [
+          "conceptId",
+          "concept",
+          "sourceLanguage",
+          "targetLanguage",
+          "correctAnswer",
+          "options",
+          "schedule"
+        ],
+        "additionalProperties": false
+      },
+      "ContextualRecallQuestion": {
+        "type": "object",
+        "properties": {
+          "conceptId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "concept": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "contextBefore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contextAfter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "targetLanguage": {
+            "type": "string"
+          },
+          "phoneticApproximation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/ReviewSchedule"
+          }
+        },
+        "required": [
+          "conceptId",
+          "concept",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage",
+          "schedule"
+        ],
+        "additionalProperties": false
+      },
+      "ReviewSessionBody": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "minLength": 1
+          },
+          "totalItems": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "correctItems": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "accuracy": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "durationSeconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "mode",
+          "totalItems",
+          "correctItems",
+          "accuracy"
+        ],
+        "additionalProperties": false
+      },
+      "ReviewSession": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "userId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "mode": {
+            "type": "string"
+          },
+          "totalItems": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "correctItems": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "accuracy": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "durationSeconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "completedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "string",
+                "format": "date-time"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "mode",
+          "totalItems",
+          "correctItems",
+          "accuracy",
+          "durationSeconds",
+          "completedAt"
+        ],
+        "additionalProperties": false
+      },
+      "OverviewStats": {
+        "type": "object",
+        "properties": {
+          "totalConcepts": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "currentStreak": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "longestStreak": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "avgAccuracy": {
+            "type": "number"
+          },
+          "conceptsByState": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          "streakFreezes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "freezesUsed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "dailyGoal": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "todayReviews": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "todayGoalMet": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "totalConcepts",
+          "currentStreak",
+          "longestStreak",
+          "avgAccuracy",
+          "conceptsByState",
+          "streakFreezes",
+          "freezesUsed",
+          "dailyGoal",
+          "todayReviews",
+          "todayGoalMet"
+        ],
+        "additionalProperties": false
+      },
+      "DailyActivity": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "reviewsCompleted": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "correctReviews": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "conceptsAdded": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "date",
+          "reviewsCompleted",
+          "correctReviews",
+          "conceptsAdded"
+        ],
+        "additionalProperties": false
+      },
+      "SentenceBuilderGenerateBody": {
+        "type": "object",
+        "properties": {
+          "conceptId": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "conceptId"
+        ],
+        "additionalProperties": false
+      },
+      "SentenceBuilderChallenge": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nativeSentence": {
+            "type": "string"
+          },
+          "tiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "nativeSentence",
+          "tiles"
+        ],
+        "additionalProperties": false
+      },
+      "SentenceBuilderValidateBody": {
+        "type": "object",
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ordering": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "challengeId",
+          "ordering"
+        ],
+        "additionalProperties": false
+      },
+      "WordOfTheDay": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "sourceLanguage": {
+            "type": "string"
+          },
+          "targetLanguage": {
+            "type": "string"
+          },
+          "rationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exampleSentence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "date": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "word",
+          "translation",
+          "sourceLanguage",
+          "targetLanguage",
+          "rationale",
+          "exampleSentence",
+          "date"
+        ],
+        "additionalProperties": false
+      },
+      "RelatedSuggestion": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string"
+          },
+          "translation": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "exampleSentence": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "word",
+          "translation",
+          "rationale",
+          "exampleSentence"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "paths": {
+    "/translation": {
+      "post": {
+        "summary": "Translate a word or phrase (DeepL-first, LLM-fallback)",
+        "tags": [
+          "translation"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranslationRequestInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranslationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/translation/enrich": {
+      "post": {
+        "summary": "Enrich an already-translated word with linguistic metadata",
+        "tags": [
+          "translation"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrichmentRequestInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrichmentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/saved-concepts": {
+      "post": {
+        "summary": "Save a new concept for the authenticated user",
+        "tags": [
+          "concepts"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveConceptBodyInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "concept": {
+                      "$ref": "#/components/schemas/Concept"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "concept": {
+                      "$ref": "#/components/schemas/Concept"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "concept"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List concepts with search/filter/sort and per-row tags + nextReviewAt",
+        "tags": [
+          "concepts"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "search",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "language",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "state",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "tags",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "overdue",
+                "due-today",
+                "reviewed",
+                "new"
+              ]
+            },
+            "in": "query",
+            "name": "reviewStatus",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "date",
+                "alpha"
+              ]
+            },
+            "in": "query",
+            "name": "sortBy",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "in": "query",
+            "name": "sortOrder",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "page",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "concepts": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ConceptWithTags"
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "concepts",
+                    "total"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/saved-concepts/export": {
+      "get": {
+        "summary": "Export all concepts as csv, anki TSV, or json",
+        "tags": [
+          "concepts"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "csv",
+                "json",
+                "anki"
+              ]
+            },
+            "in": "query",
+            "name": "format",
+            "required": false
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/saved-concepts/import": {
+      "post": {
+        "summary": "Bulk import concepts; invalid rows surface in errors[] rather than 400",
+        "tags": [
+          "concepts"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportConceptsBodyInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "imported": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "skipped": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "imported",
+                    "skipped",
+                    "errors",
+                    "total"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/saved-concepts/lookup": {
+      "get": {
+        "summary": "Check whether a concept already exists for this user (cache probe)",
+        "tags": [
+          "concepts"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "query",
+            "name": "concept",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "query",
+            "name": "sourceLanguage",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "query",
+            "name": "targetLanguage",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "found": {
+                          "type": "boolean",
+                          "enum": [
+                            false
+                          ]
+                        }
+                      },
+                      "required": [
+                        "found"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "found": {
+                          "type": "boolean",
+                          "enum": [
+                            true
+                          ]
+                        },
+                        "concept": {
+                          "$ref": "#/components/schemas/Concept"
+                        }
+                      },
+                      "required": [
+                        "found",
+                        "concept"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/saved-concepts/languages": {
+      "get": {
+        "summary": "List distinct \"src->tgt\" language pairs present in the user's concepts",
+        "tags": [
+          "concepts"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "languages": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "languages"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/saved-concepts/bulk": {
+      "delete": {
+        "summary": "Delete multiple concepts by id",
+        "tags": [
+          "concepts"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkDeleteBodyInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "deleted": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "deleted"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Bulk-update concept state and/or tag membership",
+        "tags": [
+          "concepts"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkUpdateBodyInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "updated": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "updated"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/saved-concepts/{id}": {
+      "get": {
+        "summary": "Retrieve a single concept with tags and review schedule",
+        "tags": [
+          "concepts"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "concept": {
+                      "$ref": "#/components/schemas/ConceptDetail"
+                    }
+                  },
+                  "required": [
+                    "concept"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Patch translation / userNotes / exampleSentence / state on a concept",
+        "tags": [
+          "concepts"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConceptBodyInput"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "concept": {
+                      "$ref": "#/components/schemas/Concept"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "concept"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a concept by id",
+        "tags": [
+          "concepts"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "concept": {
+                      "$ref": "#/components/schemas/Concept"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/saved-concepts/{id}/suggest-example": {
+      "post": {
+        "summary": "Generate an LLM-authored example sentence for a concept",
+        "tags": [
+          "concepts"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "exampleSentence": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "exampleSentence"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/settings": {
+      "get": {
+        "summary": "Get current user settings",
+        "tags": [
+          "user"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update user settings (including optional BYOK)",
+        "tags": [
+          "user"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserSettingsBodyInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "targetLanguage": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "personalContext": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "preferredProvider": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "maskedApiKey": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "hasCustomApiKey": {
+                      "type": "boolean"
+                    },
+                    "dailyGoal": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "theme": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "displayLanguage": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "streakFreezes": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "targetLanguage",
+                    "personalContext",
+                    "preferredProvider",
+                    "maskedApiKey",
+                    "hasCustomApiKey",
+                    "dailyGoal",
+                    "theme",
+                    "displayLanguage",
+                    "streakFreezes",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/feedback": {
+      "post": {
+        "summary": "Submit feedback (unauthenticated OK)",
+        "tags": [
+          "user"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackBodyInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tags": {
+      "get": {
+        "summary": "List the current user's tags",
+        "tags": [
+          "tags"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Tag"
+                      }
+                    }
+                  },
+                  "required": [
+                    "tags"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new tag",
+        "tags": [
+          "tags"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTagBodyInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tag": {
+                      "$ref": "#/components/schemas/Tag"
+                    }
+                  },
+                  "required": [
+                    "tag"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tags/{id}": {
+      "patch": {
+        "summary": "Update a tag",
+        "tags": [
+          "tags"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTagBodyInput"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tag": {
+                      "$ref": "#/components/schemas/Tag"
+                    }
+                  },
+                  "required": [
+                    "tag"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a tag",
+        "tags": [
+          "tags"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "tag": {
+                      "$ref": "#/components/schemas/Tag"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "tag"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/saved-concepts/{id}/tags": {
+      "post": {
+        "summary": "Assign a tag to a concept",
+        "tags": [
+          "tags"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignTagBodyInput"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/saved-concepts/{id}/tags/{tagId}": {
+      "delete": {
+        "summary": "Remove a tag from a concept",
+        "tags": [
+          "tags"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "tagId",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/review/due": {
+      "get": {
+        "summary": "Get concepts due for review",
+        "tags": [
+          "review"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 500
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "in": "query",
+            "name": "countOnly",
+            "required": false
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "concepts": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ConceptWithSchedule"
+                          }
+                        },
+                        "dueCount": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "concepts",
+                        "dueCount"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "dueCount": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "dueCount"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/review/{conceptId}/result": {
+      "post": {
+        "summary": "Record a review result and advance the SM-2 schedule",
+        "tags": [
+          "review"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewResultBodyInput"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "conceptId",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewResultResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/review/history/{conceptId}": {
+      "get": {
+        "summary": "Per-concept rating timeline",
+        "tags": [
+          "review"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "conceptId",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReviewHistoryEntry"
+                      }
+                    }
+                  },
+                  "required": [
+                    "history"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/review/stats": {
+      "get": {
+        "summary": "Review statistics summary",
+        "tags": [
+          "review"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/quiz/generate": {
+      "get": {
+        "summary": "Generate quiz questions from due concepts",
+        "tags": [
+          "quiz"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "flashcard",
+                "multiple-choice",
+                "type-answer",
+                "contextual-recall"
+              ]
+            },
+            "in": "query",
+            "name": "type",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 100
+            },
+            "in": "query",
+            "name": "count",
+            "required": false
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "questions": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "$ref": "#/components/schemas/FlashcardQuestion"
+                          },
+                          {
+                            "$ref": "#/components/schemas/MultipleChoiceQuestion"
+                          },
+                          {
+                            "$ref": "#/components/schemas/ContextualRecallQuestion"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "questions"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/review/sessions": {
+      "post": {
+        "summary": "Save a completed review session",
+        "tags": [
+          "review"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewSessionBodyInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "session": {
+                      "$ref": "#/components/schemas/ReviewSession"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "session"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Paginated review-session history",
+        "tags": [
+          "review"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 500
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "query",
+            "name": "offset",
+            "required": false
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReviewSession"
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "sessions",
+                    "total"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/review/sentence-builder/generate": {
+      "post": {
+        "summary": "Generate a sentence-reconstruction challenge for a concept",
+        "tags": [
+          "sentence-builder"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SentenceBuilderGenerateBodyInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "challenge": {
+                      "$ref": "#/components/schemas/SentenceBuilderChallenge"
+                    }
+                  },
+                  "required": [
+                    "challenge"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/review/sentence-builder/validate": {
+      "post": {
+        "summary": "Validate a user's sentence tile ordering",
+        "tags": [
+          "sentence-builder"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SentenceBuilderValidateBodyInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "correct": {
+                      "type": "boolean"
+                    },
+                    "correctOrdering": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "conceptId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "correct",
+                    "correctOrdering",
+                    "conceptId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/suggestions/word-of-the-day": {
+      "get": {
+        "summary": "Today's suggested vocabulary word",
+        "tags": [
+          "suggestions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "suggestion": {
+                      "$ref": "#/components/schemas/WordOfTheDay"
+                    }
+                  },
+                  "required": [
+                    "suggestion"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/suggestions/related-to-vocab": {
+      "get": {
+        "summary": "Vocabulary suggestions related to saved concepts",
+        "tags": [
+          "suggestions"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 20
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "suggestions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RelatedSuggestion"
+                      }
+                    }
+                  },
+                  "required": [
+                    "suggestions"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stats/overview": {
+      "get": {
+        "summary": "Aggregate stats for the dashboard header",
+        "tags": [
+          "stats"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stats/activity": {
+      "get": {
+        "summary": "Per-day activity history",
+        "tags": [
+          "stats"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 365
+            },
+            "in": "query",
+            "name": "days",
+            "required": false
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "activity": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DailyActivity"
+                      }
+                    }
+                  },
+                  "required": [
+                    "activity"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/i18n/translations": {
+      "get": {
+        "summary": "Retrieve cached UI string translations for a language",
+        "tags": [
+          "i18n"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "query",
+            "name": "language",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "query",
+            "name": "version",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "translations": {
+                          "type": "null"
+                        },
+                        "isDefault": {
+                          "type": "boolean",
+                          "enum": [
+                            true
+                          ]
+                        }
+                      },
+                      "required": [
+                        "translations",
+                        "isDefault"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "translations": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "translations"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.gato.app",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "translation",
+      "description": "Translation and enrichment"
+    },
+    {
+      "name": "concepts",
+      "description": "Saved vocabulary CRUD"
+    },
+    {
+      "name": "review",
+      "description": "Spaced-repetition review flow"
+    },
+    {
+      "name": "quiz",
+      "description": "Quiz question generation"
+    },
+    {
+      "name": "tags",
+      "description": "User-defined tags"
+    },
+    {
+      "name": "stats",
+      "description": "Usage statistics"
+    },
+    {
+      "name": "suggestions",
+      "description": "Word-of-the-day and related suggestions"
+    },
+    {
+      "name": "sentence-builder",
+      "description": "Sentence reconstruction challenges"
+    },
+    {
+      "name": "i18n",
+      "description": "UI string translation"
+    },
+    {
+      "name": "user",
+      "description": "User settings and feedback"
+    }
+  ]
+}

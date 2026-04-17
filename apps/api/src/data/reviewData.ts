@@ -317,10 +317,13 @@ const reviewData = {
   },
 
   async ensureSchedulesExist(userId: number): Promise<void> {
-    // Create review schedules for all concepts that don't have one yet
+    // Create review schedules for all concepts that don't have one yet.
+    // next_review_at is set explicitly to now() - 1s (not the column default now())
+    // so "due now" queries filtering next_review_at <= <caller's new Date()> are
+    // immune to DB/JS clock skew: freshly-inserted schedules are always due.
     await db.execute(sql`
-      INSERT INTO review_schedule (concept_id, user_id)
-      SELECT c.id, c.user_id
+      INSERT INTO review_schedule (concept_id, user_id, next_review_at)
+      SELECT c.id, c.user_id, now() - interval '1 second'
       FROM concepts c
       LEFT JOIN review_schedule rs ON rs.concept_id = c.id
       WHERE c.user_id = ${userId} AND rs.id IS NULL
