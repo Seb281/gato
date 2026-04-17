@@ -64,6 +64,11 @@ jobs:
     name: Web E2E (Playwright)
     runs-on: ubuntu-latest
     needs: check
+    # Dependabot PRs run under a restricted GITHUB_TOKEN and cannot read
+    # repo-level Actions secrets (TEST_USER_EMAIL, Supabase keys, ...), so the
+    # E2E always throws "env vars must be set". Skip the job for dependabot
+    # and rely on type-check/lint/tests/build as the quality gate for bot PRs.
+    if: github.actor != 'dependabot[bot]'
     timeout-minutes: 15
 
     steps:
