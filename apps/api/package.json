@@ -29,9 +29,9 @@
     "@fastify/cors": "^11.2.0",
     "@fastify/rate-limit": "^10.3.0",
     "@fastify/swagger": "^9.7.0",
-    "@fastify/swagger-ui": "^5.2.5",
+    "@fastify/swagger-ui": "^5.2.6",
     "@gato/shared": "workspace:*",
-    "@supabase/supabase-js": "^2.103.3",
+    "@supabase/supabase-js": "^2.104.1",
     "ai": "^6.0.168",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
@@ -47,11 +47,11 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.2",
     "globals": "^17.5.0",
-    "msw": "^2.13.4",
+    "msw": "^2.13.6",
     "testcontainers": "^11.14.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.58.2",
-    "vitest": "^4.1.4"
+    "typescript-eslint": "^8.59.0",
+    "vitest": "^4.1.5"
   }
 }
